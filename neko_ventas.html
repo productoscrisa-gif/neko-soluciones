@@ -675,7 +675,7 @@
           style="flex:1;padding:11px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;font-family:'Plus Jakarta Sans',sans-serif;outline:none;transition:border-color .2s"
           onfocus="this.style.borderColor='#2563eb'"
           onblur="this.style.borderColor='#e2e8f0'"
-          onkeydown="if(event.key==='Enter')buscarSeguimiento()">
+          oninput="busquedaEnTiempoReal()" onkeydown="if(event.key==='Enter')buscarSeguimiento()">
         <button onclick="buscarSeguimiento()"
           style="padding:11px 22px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 3px 10px rgba(37,99,235,.3);white-space:nowrap">
           🔍 Buscar
@@ -1109,6 +1109,22 @@
     }
   }
 
+  // ── BÚSQUEDA EN TIEMPO REAL ─────────────────────────────
+  var _searchTimer = null;
+  function busquedaEnTiempoReal() {
+    var q = document.getElementById('seg-orden').value.trim();
+    // Limpiar si está vacío
+    if (!q) {
+      document.getElementById('seg-resultado').innerHTML = '';
+      return;
+    }
+    // Esperar 400ms después de que el usuario deje de escribir
+    clearTimeout(_searchTimer);
+    _searchTimer = setTimeout(function() {
+      buscarSeguimiento();
+    }, 400);
+  }
+
   // ── SEGUIMIENTO DE PEDIDO ───────────────────────────────
   const RUTAS_SEG = {
     'Ruta 1':['Ventas','Análisis','Diseño','Sublimación','Corte','Confección','Terminación','Almacén'],
@@ -1129,8 +1145,8 @@
     // Buscar por número de orden, teléfono o nombre
     let url = '';
     if (/^\d+$/.test(num) && num.length <= 6) {
-      // Es número de orden corto
-      url = `${SUPABASE_URL}/rest/v1/ordenes?numero_orden=eq.${encodeURIComponent(num)}&limit=5`;
+      // Es número de orden - búsqueda parcial con ilike
+      url = `${SUPABASE_URL}/rest/v1/ordenes?numero_orden=ilike.*${encodeURIComponent(num)}*&order=fecha_creacion.desc&limit=10`;
     } else if (/^[0-9+\s]{7,}$/.test(num)) {
       // Es teléfono
       url = `${SUPABASE_URL}/rest/v1/ordenes?telefono=ilike.*${encodeURIComponent(num.replace(/\s/g,''))}*&limit=5`;
