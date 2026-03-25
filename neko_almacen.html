@@ -322,18 +322,19 @@ function buildCard(o, isDespachado) {
 
   // Cliente
   var wp = (o.telefono||"").replace(/\D/g,"");
-  var clienteHTML = "<div class='section-title'>👤 Datos del Cliente</div>"
-    + "<div class='cliente-info'>"
-    + "<div class='ci-block'><span class='ci-label'>Cliente</span><span class='ci-value'>"+(o.nombre_cliente||"-")+"</span></div>"
-    + "<div class='ci-block'><span class='ci-label'>Telefono</span><span class='ci-value'><a href='https://wa.me/"+wp+"'>💬 "+(o.telefono||"-")+"</a></span></div>"
-    + "<div class='ci-block'><span class='ci-label'>Documento</span><span class='ci-value'>"+(o.doc_cliente||"-")+"</span></div>"
-    + "<div class='ci-block'><span class='ci-label'>Direccion</span><span class='ci-value'>"+(o.direccion||"-")+"</span></div>"
-    + "<div class='ci-block'><span class='ci-label'>Ciudad</span><span class='ci-value'>"+(o.ciudad||"-")+"</span></div>"
-    + "<div class='ci-block'><span class='ci-label'>Departamento</span><span class='ci-value'>"+(o.departamento||"-")+"</span></div>"
-    + (o.usuario_red?"<div class='ci-block'><span class='ci-label'>Red Social</span><span class='ci-value'>@"+o.usuario_red+"</span></div>":"")
-    + (o.marca?"<div class='ci-block'><span class='ci-label'>Marca</span><span class='ci-value'>"+o.marca+"</span></div>":"")
-    + (o.tipo_envio?"<div class='ci-block'><span class='ci-label'>Tipo Envio</span><span class='ci-value'>"+o.tipo_envio+(o.transportadora?" - "+o.transportadora:"")+"</span></div>":"")
-    + "</div>";
+  var clienteHTML = "";
+  clienteHTML += "<div class=\"section-title\">👤 Datos del Cliente</div>";
+  clienteHTML += "<div class=\"cliente-info\">";
+  clienteHTML += "<div class=\"ci-block\"><span class=\"ci-label\">Cliente</span><span class=\"ci-value\">" + (o.nombre_cliente||"-") + "</span></div>";
+  clienteHTML += "<div class=\"ci-block\"><span class=\"ci-label\">Telefono</span><span class=\"ci-value\"><a href=\"https://wa.me/" + wp + "\">💬 " + (o.telefono||"-") + "</a></span></div>";
+  clienteHTML += "<div class=\"ci-block\"><span class=\"ci-label\">Documento</span><span class=\"ci-value\">" + (o.doc_cliente||"-") + "</span></div>";
+  clienteHTML += "<div class=\"ci-block\"><span class=\"ci-label\">Direccion</span><span class=\"ci-value\">" + (o.direccion||"-") + "</span></div>";
+  clienteHTML += "<div class=\"ci-block\"><span class=\"ci-label\">Ciudad</span><span class=\"ci-value\">" + (o.ciudad||"-") + "</span></div>";
+  clienteHTML += "<div class=\"ci-block\"><span class=\"ci-label\">Departamento</span><span class=\"ci-value\">" + (o.departamento||"-") + "</span></div>";
+  if (o.usuario_red) clienteHTML += "<div class=\"ci-block\"><span class=\"ci-label\">Red Social</span><span class=\"ci-value\">@" + o.usuario_red + "</span></div>";
+  if (o.marca)       clienteHTML += "<div class=\"ci-block\"><span class=\"ci-label\">Marca</span><span class=\"ci-value\">" + o.marca + "</span></div>";
+  if (o.tipo_envio)  clienteHTML += "<div class=\"ci-block\"><span class=\"ci-label\">Tipo Envio</span><span class=\"ci-value\">" + o.tipo_envio + (o.transportadora ? " - " + o.transportadora : "") + "</span></div>";
+  clienteHTML += "</div>";
 
   // Pago
   var pagoHTML = "";
