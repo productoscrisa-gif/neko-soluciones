@@ -314,14 +314,12 @@
     // Acciones — usar data-oid para evitar problemas de escapes
     let accionesHTML = '';
     if (despachado) {
-      accionesHTML = '<span style="font-size:13px;font-weight:700;color:var(--indigo)">📦 Despachado el '
-        + (o.fecha_despacho ? new Date(o.fecha_despacho).toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'}) : '—')
-        + (o.guia_numero ? ' · Guía: ' + o.guia_numero : '') + '</span>';
+      const fechaDesp = o.fecha_despacho ? new Date(o.fecha_despacho).toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+      accionesHTML = `<span style="font-size:13px;font-weight:700;color:var(--indigo)">📦 Despachado el ${fechaDesp}${o.guia_numero ? ' · Guía: ' + o.guia_numero : ''}</span>`;
     } else {
-      accionesHTML = '<button class="btn-action btn-despachar" data-oid="' + oid + '" '
-        + (completo ? '' : 'disabled title="Faltan prendas"')
-        + ' onclick="despacharPorDataOid(this)">📤 Confirmar Despacho</button>'
-        + '<button class="btn-action btn-error" data-oid="' + oid + '" onclick="abrirErrorPorDataOid(this)">🔴 Reportar Problema</button>';
+      const disabledAttr = completo ? '' : 'disabled title="Faltan prendas"';
+      accionesHTML = `<button class="btn-action btn-despachar" data-oid="${oid}" ${disabledAttr} onclick="despacharPorDataOid(this)">📤 Confirmar Despacho</button>`
+        + `<button class="btn-action btn-error" data-oid="${oid}" onclick="abrirErrorPorDataOid(this)">🔴 Reportar Problema</button>`;
     }
 
     const html = [
