@@ -1,4 +1,4 @@
-<!-- NEKO v2.1.0 -->
+<!-- NEKO v2.2.0 -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -17,7 +17,7 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
 .topbar-left{display:flex;align-items:center;gap:12px;}
 .logo-icon{width:36px;height:36px;background:var(--indigo);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;}
 .topbar h1{font-size:16px;font-weight:800;}.topbar h1 span{color:var(--indigo);}
-.area-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--indigo-light);color:var(--indigo);text-transform:uppercase;letter-spacing:.05em;}
+.area-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--indigo-light);color:var(--indigo);text-transform:uppercase;}
 .topbar-right{display:flex;align-items:center;gap:10px;}
 .user-info{font-size:13px;font-weight:600;color:var(--text-secondary);}
 .btn-sm{padding:6px 12px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--text-secondary);}
@@ -28,9 +28,14 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
 .stat-label{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;}
 .stat-value{font-size:26px;font-weight:800;margin-top:4px;font-family:"JetBrains Mono",monospace;}
 .stat-value.blue{color:var(--indigo);}.stat-value.amber{color:var(--amber);}.stat-value.green{color:var(--green);}.stat-value.red{color:var(--red);}
+/* TABS */
 .tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:6px;margin-bottom:20px;box-shadow:var(--shadow-sm);}
-.tab{flex:1;padding:8px;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:var(--text-secondary);transition:all .2s;}
-.tab.active{background:var(--indigo);color:#fff;}
+.tab{flex:1;padding:10px;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:var(--text-secondary);transition:all .2s;}
+.tab.active{background:var(--indigo);color:#fff;box-shadow:0 2px 8px rgba(79,70,229,.3);}
+/* CONTENIDOS - cada tab tiene su propio div */
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+/* CARDS */
 .orders-list{display:flex;flex-direction:column;gap:16px;}
 .order-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-md);overflow:hidden;}
 .order-card.completo{border-color:var(--green-border);}
@@ -55,50 +60,48 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
 .alert-box{padding:12px 16px;border-radius:var(--radius-sm);margin-bottom:16px;display:flex;align-items:flex-start;gap:10px;font-size:13px;font-weight:600;}
 .alert-box.warning{background:var(--amber-light);border:1px solid #fcd34d;color:#92400e;}
 .alert-box.success{background:var(--green-light);border:1px solid var(--green-border);color:#065f46;}
-.alert-contraentrega{padding:14px 16px;border-radius:var(--radius-sm);margin-bottom:16px;background:#fff7ed;border:2px solid #fed7aa;display:flex;align-items:flex-start;gap:10px;}
+.alert-contraentrega{padding:14px 16px;border-radius:var(--radius-sm);margin-bottom:16px;background:#fff7ed;border:2px solid #fed7aa;display:flex;gap:10px;}
 .ac-icon{font-size:24px;flex-shrink:0;}
-.ac-title{font-size:14px;font-weight:800;color:#c2410c;margin-bottom:4px;}
-.ac-monto{font-family:"JetBrains Mono",monospace;font-size:18px;font-weight:800;color:#c2410c;margin-top:6px;}
+.ac-title{font-size:14px;font-weight:800;color:#c2410c;}
+.ac-monto{font-family:"JetBrains Mono",monospace;font-size:18px;font-weight:800;color:#c2410c;margin-top:4px;}
 .cliente-info{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;padding:14px;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border);}
 .ci-block{display:flex;flex-direction:column;gap:2px;}
-.ci-label{font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;}
-.ci-value{font-size:13px;font-weight:600;color:var(--text-primary);}
+.ci-label{font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;}
+.ci-value{font-size:13px;font-weight:600;}
 .ci-value a{color:var(--blue);text-decoration:none;}
-.prendas-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:20px;}
+.prendas-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px;}
 .prendas-table th{background:var(--surface2);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;border-bottom:1px solid var(--border);}
-.prendas-table td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.prendas-table td{padding:10px 12px;border-bottom:1px solid var(--border);}
 .prendas-table tr:last-child td{border-bottom:none;}
 .ep{padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;}
 .ep-listo{background:var(--green-light);color:var(--green);}
 .ep-ruta{background:var(--amber-light);color:var(--amber);}
 .ep-error{background:var(--red-light);color:var(--red);}
 .guia-section{background:var(--indigo-light);border:1px solid var(--indigo-mid);border-radius:var(--radius-sm);padding:16px;margin-bottom:16px;}
-.guia-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;}
+.guia-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px;}
 .field label{display:block;font-size:11px;font-weight:700;color:var(--text-secondary);margin-bottom:5px;text-transform:uppercase;}
-.field input{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:"Plus Jakarta Sans",sans-serif;background:var(--surface);color:var(--text-primary);outline:none;transition:border-color .2s;}
+.field input{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:"Plus Jakarta Sans",sans-serif;background:var(--surface);outline:none;}
 .field input:focus{border-color:var(--indigo);}
 .field input[readonly]{background:var(--surface2);color:var(--text-secondary);}
-.order-actions{display:flex;gap:10px;justify-content:flex-end;padding-top:16px;border-top:1px solid var(--border);}
-.btn-action{padding:10px 18px;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;transition:transform .15s,opacity .2s;}
-.btn-action:hover{transform:translateY(-1px);}
-.btn-action:disabled{opacity:.5;cursor:not-allowed;transform:none;}
-.btn-despachar{background:linear-gradient(135deg,#4f46e5,#4338ca);color:#fff;box-shadow:0 3px 12px rgba(79,70,229,.35);}
-.btn-error{background:var(--red-light);color:var(--red);border:1.5px solid var(--red-border);}
+.order-actions{display:flex;gap:10px;justify-content:flex-end;padding-top:14px;border-top:1px solid var(--border);}
+.btn-despachar{padding:10px 20px;background:linear-gradient(135deg,#4f46e5,#4338ca);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 3px 12px rgba(79,70,229,.35);}
+.btn-despachar:disabled{opacity:.5;cursor:not-allowed;}
+.btn-error-rep{padding:10px 16px;background:var(--red-light);color:var(--red);border:1.5px solid var(--red-border);border-radius:var(--radius-sm);font-size:13px;font-weight:700;cursor:pointer;}
+.state-box{text-align:center;padding:60px 20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);}
+.state-box .icon{font-size:40px;margin-bottom:12px;}
+.state-box p{font-size:15px;font-weight:600;color:var(--text-secondary);}
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;padding:20px;}
 .modal-overlay.show{display:flex;}
 .modal{background:var(--surface);border-radius:var(--radius);padding:28px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2);}
 .modal h3{font-size:17px;font-weight:800;margin-bottom:6px;}
-.modal p{font-size:13px;color:var(--text-secondary);margin-bottom:18px;}
-.modal select,.modal textarea{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:"Plus Jakarta Sans",sans-serif;background:var(--surface2);outline:none;margin-bottom:12px;appearance:none;}
+.modal p{font-size:13px;color:var(--text-secondary);margin-bottom:16px;}
+.modal select,.modal textarea{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:"Plus Jakarta Sans",sans-serif;background:var(--surface2);outline:none;margin-bottom:10px;appearance:none;}
 .modal textarea{resize:vertical;min-height:80px;}
 .modal-actions{display:flex;gap:10px;justify-content:flex-end;}
 .btn-cancel{padding:9px 16px;background:var(--surface2);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;}
 .btn-confirm-error{padding:9px 16px;background:var(--red);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:700;cursor:pointer;}
-.state-box{text-align:center;padding:60px 20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);}
-.state-box .icon{font-size:40px;margin-bottom:12px;}
-.state-box p{font-size:15px;font-weight:600;color:var(--text-secondary);}
 #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 22px;border-radius:10px;font-size:14px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:9999;opacity:0;transition:opacity .3s;white-space:nowrap;pointer-events:none;}
-@media(max-width:650px){.stats-bar{grid-template-columns:1fr 1fr;}.guia-grid{grid-template-columns:1fr;}.cliente-info{grid-template-columns:1fr 1fr;}}
+@media(max-width:650px){.stats-bar{grid-template-columns:1fr 1fr;}.guia-grid,.cliente-info{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
@@ -110,10 +113,11 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
   </div>
   <div class="topbar-right">
     <span class="user-info" id="user-info"></span>
-    <button class="btn-sm blue" onclick="cargar()">&#128260; Actualizar</button>
+    <button class="btn-sm blue" onclick="actualizarTodo()">&#128260; Actualizar</button>
     <button class="btn-sm" onclick="cerrarSesion()">&#128682; Salir</button>
   </div>
 </div>
+
 <div class="main">
   <div class="stats-bar">
     <div class="stat-card"><div class="stat-label">En Almacen</div><div class="stat-value blue" id="stat-total">-</div></div>
@@ -121,24 +125,35 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
     <div class="stat-card"><div class="stat-label">Incompletos</div><div class="stat-value amber" id="stat-incompletos">-</div></div>
     <div class="stat-card"><div class="stat-label">Despachados</div><div class="stat-value red" id="stat-despachados">-</div></div>
   </div>
+
   <div class="tabs">
-    <button class="tab active" id="tab-pendientes" onclick="cambiarTab('pendientes')">&#128230; Por Despachar</button>
-    <button class="tab" id="tab-despachados" onclick="cambiarTab('despachados')">&#9989; Despachados</button>
+    <button class="tab active" id="tab-btn-pendientes" onclick="mostrarTab('pendientes')">&#128230; Por Despachar</button>
+    <button class="tab" id="tab-btn-despachados" onclick="mostrarTab('despachados')">&#9989; Despachados</button>
   </div>
-  <div id="container"><div class="state-box"><div class="icon">&#9203;</div><p>Cargando...</p></div></div>
+
+  <!-- TAB POR DESPACHAR -->
+  <div class="tab-panel active" id="panel-pendientes">
+    <div class="state-box"><div class="icon">&#9203;</div><p>Cargando...</p></div>
+  </div>
+
+  <!-- TAB DESPACHADOS - completamente independiente -->
+  <div class="tab-panel" id="panel-despachados">
+    <div class="state-box"><div class="icon">&#9203;</div><p>Cargando despachados...</p></div>
+  </div>
 </div>
+
 <div class="modal-overlay" id="modal-error">
   <div class="modal">
     <h3>&#128308; Reportar Problema</h3>
-    <p>Selecciona la prenda, el area destino y describe el problema.</p>
-    <select id="error-prenda-idx"><option value="">- Seleccionar prenda -</option></select>
-    <select id="error-area-destino">
+    <p>Selecciona la prenda y el area a la que se devuelve.</p>
+    <select id="err-prenda"><option value="">- Seleccionar prenda -</option></select>
+    <select id="err-area">
       <option value="">- Area destino -</option>
       <option>Analisis</option><option>Diseno</option><option>Sublimacion</option>
       <option>Corte</option><option>Confeccion</option><option>Bordado</option>
       <option>Terminacion</option><option>Estampado</option><option>Compras</option>
     </select>
-    <textarea id="error-desc" placeholder="Describe el problema..."></textarea>
+    <textarea id="err-desc" placeholder="Describe el problema..."></textarea>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="cerrarModal()">Cancelar</button>
       <button class="btn-confirm-error" onclick="confirmarError()">&#128308; Devolver Prenda</button>
@@ -148,27 +163,23 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
 <div id="toast"></div>
 
 <script>
-var SB_URL = "https://umlzaupnuvarrnakcbdo.supabase.co";
-var SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtbHphdXBudXZhcnJuYWtjYmRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTM4NTYsImV4cCI6MjA4OTg2OTg1Nn0.7Z5q3vvAIGDKFmjMjt6kra-3wHxNHyNjTfEj8GamdFA";
-var HDR = { "apikey": SB_KEY, "Authorization": "Bearer " + SB_KEY };
+var SB = "https://umlzaupnuvarrnakcbdo.supabase.co";
+var KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtbHphdXBudXZhcnJuYWtjYmRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTM4NTYsImV4cCI6MjA4OTg2OTg1Nn0.7Z5q3vvAIGDKFmjMjt6kra-3wHxNHyNjTfEj8GamdFA";
+var H = { "apikey": KEY, "Authorization": "Bearer " + KEY };
 var sesion = null;
-var tabActual = "pendientes";
-var ordenes = [];
-var errorTarget = null;
+var errTarget = null;
+var ordenesEnAlmacen = [];
+var ordenesDespachadas = [];
 
+// Al cargar la página
 window.addEventListener("DOMContentLoaded", function() {
   var raw = sessionStorage.getItem("nk_user");
   if (!raw) { window.location.href = "neko_login.html"; return; }
   sesion = JSON.parse(raw);
   document.getElementById("user-info").textContent = "👤 " + sesion.nombre;
-  // Restaurar tab guardada
-  var tabGuardada = localStorage.getItem("almacen_tab");
-  if (tabGuardada) {
-    tabActual = tabGuardada;
-    document.getElementById("tab-pendientes").classList.toggle("active", tabActual === "pendientes");
-    document.getElementById("tab-despachados").classList.toggle("active", tabActual === "despachados");
-  }
-  cargar();
+  // Cargar AMBAS tabs de forma independiente
+  cargarPendientes();
+  cargarDespachados();
 });
 
 function cerrarSesion() {
@@ -176,287 +187,293 @@ function cerrarSesion() {
   window.location.href = "neko_login.html";
 }
 
-function contarPrendas(o) {
-  var prods = o.productos || [];
-  var enAlmacen = 0;
-  prods.forEach(function(p, idx) {
-    var se = (o.sub_estados || []).find(function(s) { return s.prenda_idx === idx; });
-    if (se && se.area_actual === "Almacen") enAlmacen++;
-    if (se && se.area_actual === "Almacén") enAlmacen++;
-  });
-  return { total: prods.length, enAlmacen: enAlmacen };
+// Actualizar sin cambiar de tab
+function actualizarTodo() {
+  cargarPendientes();
+  cargarDespachados();
 }
 
-async function cargar() {
-  document.getElementById("container").innerHTML = '<div class="state-box"><div class="icon">⏳</div><p>Cargando...</p></div>';
+// Cambiar tab - solo cambia la visibilidad, NO recarga datos
+function mostrarTab(tab) {
+  document.getElementById("tab-btn-pendientes").classList.toggle("active", tab === "pendientes");
+  document.getElementById("tab-btn-despachados").classList.toggle("active", tab === "despachados");
+  document.getElementById("panel-pendientes").classList.toggle("active", tab === "pendientes");
+  document.getElementById("panel-despachados").classList.toggle("active", tab === "despachados");
+}
+
+// ── CARGAR PENDIENTES (EN_PRODUCCION con prendas en Almacén) ──
+async function cargarPendientes() {
+  document.getElementById("panel-pendientes").innerHTML = '<div class="state-box"><div class="icon">⏳</div><p>Cargando...</p></div>';
   try {
-    var r = await fetch(SB_URL + "/rest/v1/ordenes?estado=in.(EN_PRODUCCION,DESPACHADO)&select=id,numero_orden,nombre_cliente,telefono,doc_cliente,direccion,barrio,ciudad,departamento,usuario_red,marca,vendedora,productos,sub_estados,es_prioritario,fecha_entrega,fecha_creacion,valor_total,monto_pagado,saldo_pendiente,es_contraentrega,pago_confirmado,confirmado_por,guia_numero,guia_url,fecha_despacho,tipo_envio,transportadora&order=es_prioritario.desc,fecha_creacion.asc", { headers: HDR });
+    var r = await fetch(SB + "/rest/v1/ordenes?estado=eq.EN_PRODUCCION&select=id,numero_orden,nombre_cliente,telefono,doc_cliente,direccion,barrio,ciudad,departamento,usuario_red,marca,vendedora,productos,sub_estados,es_prioritario,fecha_entrega,fecha_creacion,valor_total,monto_pagado,saldo_pendiente,es_contraentrega,pago_confirmado,confirmado_por,guia_numero,guia_url,tipo_envio,transportadora&order=es_prioritario.desc,fecha_creacion.asc", { headers: H });
     var all = await r.json();
     if (!Array.isArray(all)) all = [];
-    ordenes = all.filter(function(o) {
-      if (o.estado === "DESPACHADO") return true;
-      var prods = o.productos || [];
-      return prods.some(function(p, idx) {
+    // Solo las que tienen prendas en Almacén
+    ordenesEnAlmacen = all.filter(function(o) {
+      return (o.productos || []).some(function(p, idx) {
         var se = (o.sub_estados || []).find(function(s) { return s.prenda_idx === idx; });
         return se && (se.area_actual === "Almacen" || se.area_actual === "Almacén");
       });
     });
     actualizarStats();
-    renderTab();
+    renderPendientes();
   } catch(e) {
-    document.getElementById("container").innerHTML = '<div class="state-box"><div class="icon">❌</div><p>' + e.message + '</p></div>';
+    document.getElementById("panel-pendientes").innerHTML = '<div class="state-box"><div class="icon">❌</div><p>' + e.message + '</p></div>';
+  }
+}
+
+// ── CARGAR DESPACHADOS ────────────────────────────────────────
+async function cargarDespachados() {
+  document.getElementById("panel-despachados").innerHTML = '<div class="state-box"><div class="icon">⏳</div><p>Cargando despachados...</p></div>';
+  try {
+    var r = await fetch(SB + "/rest/v1/ordenes?estado=eq.DESPACHADO&select=id,numero_orden,nombre_cliente,telefono,doc_cliente,direccion,barrio,ciudad,productos,guia_numero,guia_url,fecha_despacho,tipo_envio,transportadora,valor_total,es_prioritario,fecha_entrega&order=fecha_despacho.desc&limit=50", { headers: H });
+    ordenesDespachadas = await r.json();
+    if (!Array.isArray(ordenesDespachadas)) ordenesDespachadas = [];
+    document.getElementById("stat-despachados").textContent = ordenesDespachadas.length;
+    renderDespachados();
+  } catch(e) {
+    document.getElementById("panel-despachados").innerHTML = '<div class="state-box"><div class="icon">❌</div><p>' + e.message + '</p></div>';
   }
 }
 
 function actualizarStats() {
-  var enAlmacenList = ordenes.filter(function(o) { return o.estado !== "DESPACHADO"; });
-  var despachados   = ordenes.filter(function(o) { return o.estado === "DESPACHADO"; });
   var completos = 0, incompletos = 0;
-  enAlmacenList.forEach(function(o) {
+  ordenesEnAlmacen.forEach(function(o) {
     var c = contarPrendas(o);
     if (c.total === c.enAlmacen) completos++; else incompletos++;
   });
-  document.getElementById("stat-total").textContent       = enAlmacenList.length;
+  document.getElementById("stat-total").textContent       = ordenesEnAlmacen.length;
   document.getElementById("stat-completos").textContent   = completos;
   document.getElementById("stat-incompletos").textContent = incompletos;
-  document.getElementById("stat-despachados").textContent = despachados.length;
 }
 
-function cambiarTab(tab) {
-  tabActual = tab;
-  localStorage.setItem("almacen_tab", tab);
-  document.getElementById("tab-pendientes").classList.toggle("active", tab === "pendientes");
-  document.getElementById("tab-despachados").classList.toggle("active", tab === "despachados");
-  renderTab();
+function contarPrendas(o) {
+  var total = (o.productos || []).length;
+  var enAlmacen = (o.productos || []).filter(function(p, idx) {
+    var se = (o.sub_estados || []).find(function(s) { return s.prenda_idx === idx; });
+    return se && (se.area_actual === "Almacen" || se.area_actual === "Almacén");
+  }).length;
+  return { total: total, enAlmacen: enAlmacen };
 }
 
-function renderTab() {
-  // Sincronizar botones de tab con tabActual
-  document.getElementById("tab-pendientes").classList.toggle("active", tabActual === "pendientes");
-  document.getElementById("tab-despachados").classList.toggle("active", tabActual === "despachados");
-  var lista = tabActual === "pendientes"
-    ? ordenes.filter(function(o) { return o.estado !== "DESPACHADO"; })
-    : ordenes.filter(function(o) { return o.estado === "DESPACHADO"; });
-  var cont = document.getElementById("container");
-  if (!lista.length) {
-    var msg = tabActual === "pendientes" ? "No hay pedidos en Almacen" : "No hay pedidos despachados";
-    cont.innerHTML = '<div class="state-box"><div class="icon">📭</div><p>' + msg + '</p></div>';
+// ── RENDER PENDIENTES ─────────────────────────────────────────
+function renderPendientes() {
+  var el = document.getElementById("panel-pendientes");
+  if (!ordenesEnAlmacen.length) {
+    el.innerHTML = '<div class="state-box"><div class="icon">📦</div><p>No hay pedidos en Almacen</p></div>';
     return;
   }
   var html = '<div class="orders-list">';
-  lista.forEach(function(o) { html += renderOrden(o); });
-  html += "</div>";
-  cont.innerHTML = html;
+  ordenesEnAlmacen.forEach(function(o) { html += buildCard(o, false); });
+  html += '</div>';
+  el.innerHTML = html;
 }
 
-function renderOrden(o) {
+// ── RENDER DESPACHADOS ────────────────────────────────────────
+function renderDespachados() {
+  var el = document.getElementById("panel-despachados");
+  if (!ordenesDespachadas.length) {
+    el.innerHTML = '<div class="state-box"><div class="icon">✅</div><p>No hay pedidos despachados aún</p></div>';
+    return;
+  }
+  var html = '<div class="orders-list">';
+  ordenesDespachadas.forEach(function(o) { html += buildCard(o, true); });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+// ── CONSTRUIR CARD ────────────────────────────────────────────
+function buildCard(o, isDespachado) {
   var c = contarPrendas(o);
   var total = c.total, enAlmacen = c.enAlmacen;
   var faltantes = total - enAlmacen;
-  var completo  = faltantes === 0;
-  var despachado = o.estado === "DESPACHADO";
+  var completo = faltantes === 0;
   var oid = o.id;
 
   var fecha   = o.fecha_creacion ? new Date(o.fecha_creacion).toLocaleDateString("es-CO",{day:"2-digit",month:"short",year:"numeric"}) : "-";
   var entrega = o.fecha_entrega  ? new Date(o.fecha_entrega+"T12:00:00").toLocaleDateString("es-CO",{day:"2-digit",month:"short",year:"numeric"}) : "-";
 
-  var cardClass = despachado ? "despachado" : completo ? "completo" : o.es_prioritario ? "priority" : "incompleto";
+  var cardClass = isDespachado ? "despachado" : (completo ? "completo" : (o.es_prioritario ? "priority" : "incompleto"));
 
-  var statusBadge = despachado
+  var statusBadge = isDespachado
     ? '<span class="badge badge-despachado">✅ Despachado</span>'
-    : completo
-      ? '<span class="badge badge-completo">✅ Listo para despachar</span>'
-      : '<span class="badge badge-incompleto">⏳ Faltan ' + faltantes + ' prenda(s)</span>';
+    : (completo
+        ? '<span class="badge badge-completo">✅ Listo para despachar</span>'
+        : '<span class="badge badge-incompleto">⏳ Faltan ' + faltantes + ' prenda(s)</span>');
 
-  var pagoConfBadge = o.pago_confirmado
+  var pagoConfBadge = (!isDespachado && o.pago_confirmado)
     ? '<span class="badge" style="background:var(--green-light);color:var(--green);border:1px solid var(--green-border)">✅ Pago OK</span>'
     : "";
 
   // Tabla prendas
   var prendasRows = "";
   (o.productos || []).forEach(function(p, idx) {
-    var se    = (o.sub_estados || []).find(function(s) { return s.prenda_idx === idx; });
-    var area  = se && se.area_actual ? se.area_actual : "En ruta";
+    var se = (o.sub_estados || []).find(function(s) { return s.prenda_idx === idx; });
+    var area = se && se.area_actual ? se.area_actual : "En ruta";
     var enAlm = area === "Almacen" || area === "Almacén";
-    var cls   = enAlm ? "ep-listo" : (se && se.estado === "error") ? "ep-error" : "ep-ruta";
-    var label = enAlm ? "✅ En Almacen" : "📍 " + area;
+    var cls = enAlm ? "ep-listo" : (se && se.estado === "error" ? "ep-error" : "ep-ruta");
     prendasRows += "<tr>"
       + "<td><strong>" + (p.tipo||"-") + "</strong><br><small style='color:var(--text-muted)'>" + (p.horma||"") + (p.talla?" · "+p.talla:"") + "</small></td>"
-      + "<td><span style='background:var(--blue-light);color:var(--blue);padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700'>x" + (p.cantidad||1) + "</span></td>"
-      + "<td><span class='ep " + cls + "'>" + label + "</span></td>"
-      + "<td style='font-size:11px;color:var(--red)'>" + (se && se.error_desc ? "⚠️ "+se.error_desc : "-") + "</td>"
+      + "<td><span style='background:var(--blue-light);color:var(--blue);padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700'>x"+(p.cantidad||1)+"</span></td>"
+      + "<td><span class='ep "+cls+"'>"+(enAlm?"✅ En Almacen":"📍 "+area)+"</span></td>"
+      + "<td style='font-size:11px;color:var(--red)'>"+(se&&se.error_desc?"⚠️ "+se.error_desc:"-")+"</td>"
       + "</tr>";
   });
 
-  // Datos cliente
+  // Cliente
   var wp = (o.telefono||"").replace(/\D/g,"");
   var clienteHTML = "<div class='section-title'>👤 Datos del Cliente</div>"
     + "<div class='cliente-info'>"
-    + "<div class='ci-block'><span class='ci-label'>Cliente</span><span class='ci-value'>" + (o.nombre_cliente||"-") + "</span></div>"
+    + "<div class='ci-block'><span class='ci-label'>Cliente</span><span class='ci-value'>"+(o.nombre_cliente||"-")+"</span></div>"
     + "<div class='ci-block'><span class='ci-label'>Telefono</span><span class='ci-value'><a href='https://wa.me/"+wp+"'>💬 "+(o.telefono||"-")+"</a></span></div>"
-    + "<div class='ci-block'><span class='ci-label'>Documento</span><span class='ci-value'>" + (o.doc_cliente||"-") + "</span></div>"
-    + "<div class='ci-block'><span class='ci-label'>Direccion</span><span class='ci-value'>" + (o.direccion||"-") + "</span></div>"
-    + "<div class='ci-block'><span class='ci-label'>Ciudad</span><span class='ci-value'>" + (o.ciudad||"-") + "</span></div>"
-    + "<div class='ci-block'><span class='ci-label'>Departamento</span><span class='ci-value'>" + (o.departamento||"-") + "</span></div>"
-    + (o.usuario_red ? "<div class='ci-block'><span class='ci-label'>Red Social</span><span class='ci-value'>@"+o.usuario_red+"</span></div>" : "")
-    + (o.marca ? "<div class='ci-block'><span class='ci-label'>Marca</span><span class='ci-value'>"+o.marca+"</span></div>" : "")
-    + (o.tipo_envio ? "<div class='ci-block'><span class='ci-label'>Tipo de Envio</span><span class='ci-value'>" + o.tipo_envio + (o.transportadora ? " - " + o.transportadora : "") + "</span></div>" : "")
+    + "<div class='ci-block'><span class='ci-label'>Documento</span><span class='ci-value'>"+(o.doc_cliente||"-")+"</span></div>"
+    + "<div class='ci-block'><span class='ci-label'>Direccion</span><span class='ci-value'>"+(o.direccion||"-")+"</span></div>"
+    + "<div class='ci-block'><span class='ci-label'>Ciudad</span><span class='ci-value'>"+(o.ciudad||"-")+"</span></div>"
+    + "<div class='ci-block'><span class='ci-label'>Departamento</span><span class='ci-value'>"+(o.departamento||"-")+"</span></div>"
+    + (o.usuario_red?"<div class='ci-block'><span class='ci-label'>Red Social</span><span class='ci-value'>@"+o.usuario_red+"</span></div>":"")
+    + (o.marca?"<div class='ci-block'><span class='ci-label'>Marca</span><span class='ci-value'>"+o.marca+"</span></div>":"")
+    + (o.tipo_envio?"<div class='ci-block'><span class='ci-label'>Tipo Envio</span><span class='ci-value'>"+o.tipo_envio+(o.transportadora?" - "+o.transportadora:"")+"</span></div>":"")
     + "</div>";
 
-  // Alerta pago
+  // Pago
   var pagoHTML = "";
-  if (!despachado && !o.pago_confirmado) {
+  if (!isDespachado && !o.pago_confirmado) {
     if (o.es_contraentrega) {
-      pagoHTML = "<div class='alert-contraentrega'><span class='ac-icon'>🚚</span><div><div class='ac-title'>CONTRAENTREGA - Cobrar al entregar</div><div class='ac-monto'>$" + Number(o.valor_total||0).toLocaleString("es-CO") + " COP</div></div></div>";
+      pagoHTML = "<div class='alert-contraentrega'><span class='ac-icon'>🚚</span><div><div class='ac-title'>CONTRAENTREGA - Cobrar al entregar</div><div class='ac-monto'>$"+Number(o.valor_total||0).toLocaleString("es-CO")+" COP</div></div></div>";
     } else if (o.saldo_pendiente > 0) {
-      pagoHTML = "<div class='alert-box warning'><span>💰</span><div><strong>Saldo Pendiente</strong> - Abono: $" + Number(o.monto_pagado||0).toLocaleString("es-CO") + " | Adeuda: <strong>$" + Number(o.saldo_pendiente||0).toLocaleString("es-CO") + " COP</strong></div></div>";
+      pagoHTML = "<div class='alert-box warning'><span>💰</span><div><strong>Saldo Pendiente</strong> - Abono: $"+Number(o.monto_pagado||0).toLocaleString("es-CO")+" | Adeuda: $"+Number(o.saldo_pendiente||0).toLocaleString("es-CO")+" COP</div></div>";
     }
   }
 
-  // Alerta estado prendas
+  // Alerta estado
   var alertHTML = "";
-  if (!despachado) {
+  if (!isDespachado) {
     alertHTML = completo
       ? "<div class='alert-box success'><span>✅</span><div><strong>Pedido completo</strong> - Registra la guia y despacha.</div></div>"
-      : "<div class='alert-box warning'><span>⚠️</span><div><strong>Pedido incompleto</strong> - " + enAlmacen + "/" + total + " prendas. Faltan <strong>" + faltantes + "</strong> en produccion.</div></div>";
+      : "<div class='alert-box warning'><span>⚠️</span><div><strong>Pedido incompleto</strong> - "+enAlmacen+"/"+total+" prendas llegaron. Faltan "+faltantes+" en produccion.</div></div>";
   }
 
   // Guia
-  var guiaNum = o.guia_numero || "";
-  var guiaUrl = o.guia_url || "";
-  var guiaSec = despachado
-    ? (guiaNum ? "<div class='guia-section'><div class='section-title'>📬 Guia de Envio</div><div class='guia-grid'><div class='field'><label>N de Guia</label><input type='text' value='" + guiaNum + "' readonly></div><div class='field'><label>URL Seguimiento</label><input type='text' value='" + guiaUrl + "' readonly></div></div></div>" : "")
-    : "<div class='guia-section'><div class='section-title'>📬 Registrar Guia</div><div class='guia-grid'><div class='field'><label>N de Guia *</label><input type='text' id='gn-" + oid + "' placeholder='Ej. 1234567890' value='" + guiaNum + "'></div><div class='field'><label>URL Seguimiento</label><input type='text' id='gu-" + oid + "' placeholder='https://...' value='" + guiaUrl + "'></div></div></div>";
+  var gn = o.guia_numero || "";
+  var gu = o.guia_url || "";
+  var guiaSec = isDespachado
+    ? (gn ? "<div class='guia-section'><div class='section-title'>📬 Guia de Envio</div><div class='guia-grid'><div class='field'><label>N de Guia</label><input type='text' value='"+gn+"' readonly></div><div class='field'><label>URL Seguimiento</label><input type='text' value='"+gu+"' readonly></div></div>"+(gu?"<div style='margin-top:10px'><a href='"+gu+"' target='_blank' style='font-size:13px;font-weight:700;color:var(--blue)'>🔗 Rastrear envio</a></div>":"")+"</div>" : "")
+    : "<div class='guia-section'><div class='section-title'>📬 Registrar Guia</div><div class='guia-grid'><div class='field'><label>N de Guia *</label><input type='text' id='gn-"+oid+"' placeholder='Ej. 1234567890' value='"+gn+"'></div><div class='field'><label>URL Seguimiento</label><input type='text' id='gu-"+oid+"' placeholder='https://...' value='"+gu+"'></div></div></div>";
 
   // Acciones
   var accionesHTML = "";
-  if (despachado) {
+  if (isDespachado) {
     var fdp = o.fecha_despacho ? new Date(o.fecha_despacho).toLocaleDateString("es-CO",{day:"2-digit",month:"short",year:"numeric"}) : "-";
-    accionesHTML = "<span style='font-size:13px;font-weight:700;color:var(--indigo)'>📦 Despachado el " + fdp + (o.guia_numero ? " · Guia: "+o.guia_numero : "") + "</span>";
+    accionesHTML = "<span style='font-size:13px;font-weight:700;color:var(--indigo)'>📦 Despachado el "+fdp+(o.guia_numero?" · Guia: "+o.guia_numero:"")+"</span>";
   } else {
     var disAttr = completo ? "" : "disabled";
-    accionesHTML = "<button class='btn-action btn-despachar' id='btn-d-" + oid + "' " + disAttr + " onclick='doDespachar(" + JSON.stringify(oid) + ")'>📤 Confirmar Despacho</button>"
-      + "<button class='btn-action btn-error' onclick='doAbrirError(" + JSON.stringify(oid) + ")'>🔴 Reportar Problema</button>";
+    accionesHTML = "<button class='btn-despachar' id='btn-d-"+oid+"' "+disAttr+" onclick='doDespachar(\""+oid+"\")'>📤 Confirmar Despacho</button>"
+      + "<button class='btn-error-rep' onclick='doError(\""+oid+"\")'>🔴 Reportar Problema</button>";
   }
 
-  return "<div class='order-card " + cardClass + "' id='card-" + oid + "'>"
-    + "<div class='order-header' id='oh-" + oid + "' onclick='doToggle(" + JSON.stringify(oid) + ")'>"
+  return "<div class='order-card "+cardClass+"' id='card-"+oid+"'>"
+    + "<div class='order-header' onclick='doToggle(\""+oid+"\")'>"
       + "<div>"
-        + "<div class='order-num'>" + o.numero_orden + " &nbsp;·&nbsp; <span style='font-size:13px;font-weight:600;color:var(--text-primary)'>" + (o.nombre_cliente||"-") + "</span></div>"
-        + "<div class='order-meta'>📅 " + fecha + " &nbsp;·&nbsp; 🚚 Entrega: " + entrega + " &nbsp;·&nbsp; 📦 " + enAlmacen + "/" + total + (o.tipo_envio ? " &nbsp;·&nbsp; 🚚 " + o.tipo_envio + (o.transportadora ? " - "+o.transportadora : "") : "") + (o.es_prioritario ? " &nbsp;·&nbsp; 🔴 PRIORITARIO" : "") + "</div>"
+        + "<div class='order-num'>"+o.numero_orden+" &nbsp;·&nbsp; <span style='font-size:13px;font-weight:600;color:var(--text-primary)'>"+(o.nombre_cliente||"-")+"</span></div>"
+        + "<div class='order-meta'>📅 "+fecha+" &nbsp;·&nbsp; 🚚 Entrega: "+entrega+(o.tipo_envio?" &nbsp;·&nbsp; "+o.tipo_envio+(o.transportadora?" - "+o.transportadora:""):"")+(o.es_prioritario?" &nbsp;·&nbsp; 🔴 PRIORITARIO":"")+"</div>"
       + "</div>"
-      + "<div class='order-header-right'>" + pagoConfBadge + statusBadge + (o.es_prioritario && !despachado ? '<span class="badge badge-priority">🔴</span>' : "") + "<span class='chevron' id='chev-" + oid + "'>▼</span></div>"
+      + "<div class='order-header-right'>"+pagoConfBadge+statusBadge+(o.es_prioritario&&!isDespachado?'<span class="badge badge-priority">🔴</span>':"")+
+        "<span class='chevron' id='chev-"+oid+"'>▼</span></div>"
     + "</div>"
-    + "<div class='order-body' id='body-" + oid + "'>"
-      + clienteHTML
-      + pagoHTML
-      + alertHTML
+    + "<div class='order-body' id='body-"+oid+"'>"
+      + clienteHTML + pagoHTML + alertHTML
       + "<div class='section-title'>📦 Estado de Prendas</div>"
-      + "<table class='prendas-table'><thead><tr><th>Prenda</th><th>Cant</th><th>Ubicacion</th><th>Observacion</th></tr></thead><tbody>" + prendasRows + "</tbody></table>"
+      + "<table class='prendas-table'><thead><tr><th>Prenda</th><th>Cant</th><th>Ubicacion</th><th>Obs</th></tr></thead><tbody>"+prendasRows+"</tbody></table>"
       + guiaSec
-      + "<div class='order-actions'>" + accionesHTML + "</div>"
+      + "<div class='order-actions'>"+accionesHTML+"</div>"
     + "</div>"
   + "</div>";
 }
 
-// Funciones globales llamadas desde onclick - usan nombres simples sin conflicto
+// ── FUNCIONES GLOBALES ────────────────────────────────────────
 function doToggle(oid) {
-  var body = document.getElementById("body-" + oid);
-  var chev = document.getElementById("chev-" + oid);
-  if (body) body.classList.toggle("open");
-  if (chev) chev.classList.toggle("open");
+  var b = document.getElementById("body-"+oid);
+  var c = document.getElementById("chev-"+oid);
+  if (b) b.classList.toggle("open");
+  if (c) c.classList.toggle("open");
 }
 
 function doDespachar(oid) {
-  var guiaNum = document.getElementById("gn-" + oid);
-  var guiaUrl = document.getElementById("gu-" + oid);
-  var gn = guiaNum ? guiaNum.value.trim() : "";
-  var gu = guiaUrl ? guiaUrl.value.trim() : "";
+  var gnEl = document.getElementById("gn-"+oid);
+  var guEl = document.getElementById("gu-"+oid);
+  var gn = gnEl ? gnEl.value.trim() : "";
+  var gu = guEl ? guEl.value.trim() : "";
   if (!gn) { alert("Ingresa el numero de guia antes de despachar."); return; }
-  var btn = document.getElementById("btn-d-" + oid);
+  var btn = document.getElementById("btn-d-"+oid);
   if (btn) { btn.disabled = true; btn.textContent = "⏳ Despachando..."; }
-  fetch(SB_URL + "/rest/v1/ordenes?id=eq." + oid, {
+  fetch(SB+"/rest/v1/ordenes?id=eq."+oid, {
     method: "PATCH",
-    headers: Object.assign({}, HDR, { "Content-Type": "application/json", "Prefer": "return=minimal" }),
-    body: JSON.stringify({ estado: "DESPACHADO", guia_numero: gn, guia_url: gu, fecha_despacho: new Date().toISOString() })
+    headers: Object.assign({}, H, {"Content-Type":"application/json","Prefer":"return=minimal"}),
+    body: JSON.stringify({estado:"DESPACHADO", guia_numero:gn, guia_url:gu, fecha_despacho:new Date().toISOString()})
   }).then(function(r) {
-    if (!r.ok) throw new Error("HTTP " + r.status);
-    // Actualizar en memoria
-    var o = ordenes.find(function(x) { return String(x.id) === String(oid); });
-    if (o) {
-      o.estado = "DESPACHADO";
-      o.guia_numero = gn;
-      o.guia_url = gu;
-      o.fecha_despacho = new Date().toISOString();
-    }
-    actualizarStats();
-    tabActual = "despachados";
-    document.getElementById("tab-pendientes").classList.remove("active");
-    document.getElementById("tab-despachados").classList.add("active");
-    renderTab();
-    showToast("🚀 Pedido despachado - Guia: " + gn);
+    if (!r.ok) throw new Error("HTTP "+r.status);
+    showToast("🚀 Pedido despachado - Guia: "+gn);
+    // Recargar AMBAS tabs para reflejar el cambio
+    cargarPendientes();
+    cargarDespachados();
+    // Cambiar a tab despachados para que vea el resultado
+    mostrarTab("despachados");
   }).catch(function(e) {
-    alert("Error: " + e.message);
-    if (btn) { btn.disabled = false; btn.textContent = "📤 Confirmar Despacho"; }
+    alert("Error: "+e.message);
+    if (btn) { btn.disabled=false; btn.textContent="📤 Confirmar Despacho"; }
   });
 }
 
-function doAbrirError(oid) {
-  errorTarget = { oid: oid };
-  var orden = ordenes.find(function(x) { return String(x.id) === String(oid); });
-  var sel = document.getElementById("error-prenda-idx");
+function doError(oid) {
+  errTarget = oid;
+  var o = ordenesEnAlmacen.find(function(x) { return String(x.id)===String(oid); });
+  var sel = document.getElementById("err-prenda");
   sel.innerHTML = "<option value=''>- Seleccionar prenda -</option>";
-  (orden ? orden.productos || [] : []).forEach(function(p, idx) {
-    sel.innerHTML += "<option value='" + idx + "'>" + (p.tipo||"Prenda "+(idx+1)) + " - " + (p.talla||"Sin talla") + "</option>";
+  (o ? o.productos||[] : []).forEach(function(p,i) {
+    sel.innerHTML += "<option value='"+i+"'>"+(p.tipo||"Prenda "+(i+1))+" - "+(p.talla||"Sin talla")+"</option>";
   });
-  document.getElementById("error-desc").value = "";
-  document.getElementById("error-area-destino").value = "";
+  document.getElementById("err-desc").value = "";
+  document.getElementById("err-area").value = "";
   document.getElementById("modal-error").classList.add("show");
 }
 
 function cerrarModal() {
   document.getElementById("modal-error").classList.remove("show");
-  errorTarget = null;
+  errTarget = null;
 }
 
 function confirmarError() {
-  if (!errorTarget) return;
-  var oid       = errorTarget.oid;
-  var prendaIdx = parseInt(document.getElementById("error-prenda-idx").value);
-  var areaDestino = document.getElementById("error-area-destino").value;
-  var desc      = document.getElementById("error-desc").value.trim();
-  if (isNaN(prendaIdx)) { alert("Selecciona la prenda."); return; }
-  if (!areaDestino)     { alert("Selecciona el area destino."); return; }
-  if (!desc)            { alert("Describe el problema."); return; }
-
-  fetch(SB_URL + "/rest/v1/ordenes?id=eq." + oid + "&select=sub_estados", { headers: HDR })
-  .then(function(r) { return r.json(); })
-  .then(function(data) {
-    var sub = data[0] ? (data[0].sub_estados || []) : [];
-    var cambio = { prenda_idx: prendaIdx, area_actual: areaDestino, estado: "pendiente", error_desc: desc, error_area: "Almacen", error_fecha: new Date().toISOString() };
-    var i = sub.findIndex(function(s) { return s.prenda_idx === prendaIdx; });
-    if (i >= 0) sub[i] = Object.assign({}, sub[i], cambio);
-    else sub.push(cambio);
-    return fetch(SB_URL + "/rest/v1/ordenes?id=eq." + oid, {
-      method: "PATCH",
-      headers: Object.assign({}, HDR, { "Content-Type": "application/json", "Prefer": "return=minimal" }),
-      body: JSON.stringify({ sub_estados: sub })
+  if (!errTarget) return;
+  var idx  = parseInt(document.getElementById("err-prenda").value);
+  var area = document.getElementById("err-area").value;
+  var desc = document.getElementById("err-desc").value.trim();
+  if (isNaN(idx)) { alert("Selecciona la prenda."); return; }
+  if (!area)      { alert("Selecciona el area."); return; }
+  if (!desc)      { alert("Describe el problema."); return; }
+  fetch(SB+"/rest/v1/ordenes?id=eq."+errTarget+"&select=sub_estados", {headers:H})
+  .then(function(r){return r.json();})
+  .then(function(data){
+    var sub = data[0] ? (data[0].sub_estados||[]) : [];
+    var cambio = {prenda_idx:idx, area_actual:area, estado:"pendiente", error_desc:desc, error_area:"Almacen", error_fecha:new Date().toISOString()};
+    var i = sub.findIndex(function(s){return s.prenda_idx===idx;});
+    if (i>=0) sub[i]=Object.assign({},sub[i],cambio); else sub.push(cambio);
+    return fetch(SB+"/rest/v1/ordenes?id=eq."+errTarget, {
+      method:"PATCH",
+      headers:Object.assign({},H,{"Content-Type":"application/json","Prefer":"return=minimal"}),
+      body:JSON.stringify({sub_estados:sub})
     });
-  })
-  .then(function() {
+  }).then(function(){
     cerrarModal();
-    showToast("🔴 Prenda devuelta a " + areaDestino);
-    cargar();
-  })
-  .catch(function(e) { alert("Error: " + e.message); });
+    showToast("🔴 Prenda devuelta a "+area);
+    cargarPendientes();
+  }).catch(function(e){alert("Error: "+e.message);});
 }
 
 function showToast(msg) {
   var t = document.getElementById("toast");
-  t.textContent = msg;
-  t.style.opacity = "1";
+  t.textContent = msg; t.style.opacity = "1";
   clearTimeout(t._tid);
-  t._tid = setTimeout(function() { t.style.opacity = "0"; }, 3500);
+  t._tid = setTimeout(function(){t.style.opacity="0";}, 3500);
 }
 </script>
 </body>
