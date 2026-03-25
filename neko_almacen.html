@@ -179,7 +179,7 @@ function contarPrendas(o) {
 async function cargar() {
   document.getElementById("container").innerHTML = '<div class="state-box"><div class="icon">⏳</div><p>Cargando...</p></div>';
   try {
-    var r = await fetch(SB_URL + "/rest/v1/ordenes?estado=in.(EN_PRODUCCION,DESPACHADO)&select=id,numero_orden,nombre_cliente,telefono,doc_cliente,direccion,barrio,ciudad,departamento,usuario_red,marca,vendedora,productos,sub_estados,es_prioritario,fecha_entrega,fecha_creacion,valor_total,monto_pagado,saldo_pendiente,es_contraentrega,pago_confirmado,confirmado_por,guia_numero,guia_url,fecha_despacho&order=es_prioritario.desc,fecha_creacion.asc", { headers: HDR });
+    var r = await fetch(SB_URL + "/rest/v1/ordenes?estado=in.(EN_PRODUCCION,DESPACHADO)&select=id,numero_orden,nombre_cliente,telefono,doc_cliente,direccion,barrio,ciudad,departamento,usuario_red,marca,vendedora,productos,sub_estados,es_prioritario,fecha_entrega,fecha_creacion,valor_total,monto_pagado,saldo_pendiente,es_contraentrega,pago_confirmado,confirmado_por,guia_numero,guia_url,fecha_despacho,tipo_envio,transportadora&order=es_prioritario.desc,fecha_creacion.asc", { headers: HDR });
     var all = await r.json();
     if (!Array.isArray(all)) all = [];
     ordenes = all.filter(function(o) {
@@ -285,6 +285,7 @@ function renderOrden(o) {
     + "<div class='ci-block'><span class='ci-label'>Departamento</span><span class='ci-value'>" + (o.departamento||"-") + "</span></div>"
     + (o.usuario_red ? "<div class='ci-block'><span class='ci-label'>Red Social</span><span class='ci-value'>@"+o.usuario_red+"</span></div>" : "")
     + (o.marca ? "<div class='ci-block'><span class='ci-label'>Marca</span><span class='ci-value'>"+o.marca+"</span></div>" : "")
+    + (o.tipo_envio ? "<div class='ci-block'><span class='ci-label'>Tipo de Envio</span><span class='ci-value'>" + o.tipo_envio + (o.transportadora ? " - " + o.transportadora : "") + "</span></div>" : "")
     + "</div>";
 
   // Alerta pago
@@ -327,7 +328,7 @@ function renderOrden(o) {
     + "<div class='order-header' id='oh-" + oid + "' onclick='doToggle(" + JSON.stringify(oid) + ")'>"
       + "<div>"
         + "<div class='order-num'>" + o.numero_orden + " &nbsp;·&nbsp; <span style='font-size:13px;font-weight:600;color:var(--text-primary)'>" + (o.nombre_cliente||"-") + "</span></div>"
-        + "<div class='order-meta'>📅 " + fecha + " &nbsp;·&nbsp; 🚚 Entrega: " + entrega + " &nbsp;·&nbsp; 📦 " + enAlmacen + "/" + total + (o.es_prioritario ? " &nbsp;·&nbsp; 🔴 PRIORITARIO" : "") + "</div>"
+        + "<div class='order-meta'>📅 " + fecha + " &nbsp;·&nbsp; 🚚 Entrega: " + entrega + " &nbsp;·&nbsp; 📦 " + enAlmacen + "/" + total + (o.tipo_envio ? " &nbsp;·&nbsp; 🚚 " + o.tipo_envio + (o.transportadora ? " - "+o.transportadora : "") : "") + (o.es_prioritario ? " &nbsp;·&nbsp; 🔴 PRIORITARIO" : "") + "</div>"
       + "</div>"
       + "<div class='order-header-right'>" + pagoConfBadge + statusBadge + (o.es_prioritario && !despachado ? '<span class="badge badge-priority">🔴</span>' : "") + "<span class='chevron' id='chev-" + oid + "'>▼</span></div>"
     + "</div>"

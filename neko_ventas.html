@@ -440,6 +440,31 @@
     </div>
   </div>
 
+  <div class="section-label">🚚 Tipo de Envío</div>
+
+  <div class="grid-2" style="margin-top:0">
+    <div class="field">
+      <label>Tipo de Envío <span class="req">*</span></label>
+      <select id="tipo_envio">
+        <option value="">— Seleccionar —</option>
+        <option value="Transportadora">Transportadora</option>
+        <option value="Picap">Picap</option>
+        <option value="Mensajero">Mensajero</option>
+        <option value="Recoge en Fabrica">Recoge en Fábrica</option>
+      </select>
+    </div>
+    <div class="field" id="campo-transportadora">
+      <label>Transportadora</label>
+      <select id="transportadora">
+        <option value="">— Seleccionar —</option>
+        <option>Interrapidisimo</option>
+        <option>Servientrega</option>
+        <option>Envia</option>
+        <option>Coordinadora</option>
+      </select>
+    </div>
+  </div>
+
   <div class="section-label">📡 Origen de la Venta</div>
 
   <div class="grid-2">
@@ -710,6 +735,24 @@
     if (saldo > 0)       saldoField.classList.add('highlight');
     else if (saldo <= 0) saldoField.classList.add('zero');
   }
+
+  // ── TIPO ENVÍO ──────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', function() {
+    var tipoEnvio = document.getElementById('tipo_envio');
+    if (tipoEnvio) {
+      tipoEnvio.addEventListener('change', function() {
+        var campoTrans = document.getElementById('campo-transportadora');
+        if (this.value === 'Transportadora') {
+          campoTrans.style.display = 'flex';
+        } else {
+          campoTrans.style.display = 'none';
+          document.getElementById('transportadora').value = '';
+        }
+      });
+      // Ocultar al inicio
+      document.getElementById('campo-transportadora').style.display = 'none';
+    }
+  });
 
   // ── CONTRAENTREGA CHECKBOX ──────────────────────────────
   function toggleContraentrega() {
@@ -988,6 +1031,7 @@
       { id: 'tipo_pago',     label: 'Tipo de Pago' },
       { id: 'pagado',        label: 'Monto Pagado' },
       { id: 'medio_pago',    label: 'Medio de Pago' },
+      { id: 'tipo_envio',    label: 'Tipo de Envío' },
     ];
     for (const c of campos) {
       const el = document.getElementById(c.id);
@@ -1016,6 +1060,8 @@
         numero_orden:    numeroOrden,
         vendedora:       document.getElementById('vendedora').value,
         marca:           document.getElementById('marca').value,
+        tipo_envio:      document.getElementById('tipo_envio').value,
+        transportadora:  document.getElementById('transportadora').value,
         es_contraentrega: document.getElementById('es_contraentrega').value === 'true',
         usuario_red:     document.getElementById('usuario_red').value,
         canal:           document.getElementById('canal').value,
