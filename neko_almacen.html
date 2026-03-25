@@ -348,6 +348,16 @@
     return html;
   }
 
+  function despacharPorDataOid(btn) {
+    const oid = btn.getAttribute('data-oid');
+    despachar(oid);
+  }
+
+  function abrirErrorPorDataOid(btn) {
+    const oid = btn.getAttribute('data-oid');
+    abrirError(oid);
+  }
+
   function toggleCardByData(el) {
     const id = el.getAttribute('data-oid');
     toggleCard(id);
