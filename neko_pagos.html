@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neko Soluciones - Pagos</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f0f4f8;--surface:#fff;--surface2:#f8fafc;--border:#e2e8f0;--text-primary:#0f172a;--text-secondary:#64748b;--text-muted:#94a3b8;--blue:#2563eb;--blue-light:#eff6ff;--blue-mid:#bfdbfe;--red:#ef4444;--red-light:#fff1f2;--red-border:#fca5a5;--green:#10b981;--green-light:#ecfdf5;--green-border:#6ee7b7;--amber:#f59e0b;--amber-light:#fffbeb;--orange:#f97316;--orange-light:#fff7ed;--shadow-sm:0 1px 3px rgba(0,0,0,.06);--shadow-md:0 4px 16px rgba(0,0,0,.08);--radius:14px;--radius-sm:8px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(--text-primary);min-height:100vh;}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-sm);}
+.topbar-left{display:flex;align-items:center;gap:12px;}
+.logo-icon{width:36px;height:36px;background:var(--orange);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 3px 10px rgba(249,115,22,.3);}
+.topbar h1{font-size:16px;font-weight:800;}.topbar h1 span{color:var(--orange);}
+.area-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--orange-light);color:var(--orange);text-transform:uppercase;letter-spacing:.05em;}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.user-info{font-size:13px;font-weight:600;color:var(--text-secondary);}
+.btn-sm{padding:6px 12px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--text-secondary);}
+.main{padding:24px;max-width:860px;margin:0 auto;}
+.stats-bar{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow-sm);}
+.stat-label{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;}
+.stat-value{font-size:22px;font-weight:800;margin-top:4px;font-family:"JetBrains Mono",monospace;}
+.stat-value.red{color:var(--red);}.stat-value.amber{color:var(--amber);}.stat-value.green{color:var(--green);}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;box-shadow:var(--shadow-md);margin-bottom:20px;}
+.card-title{font-size:15px;font-weight:800;margin-bottom:4px;}
+.card-sub{font-size:13px;color:var(--text-secondary);margin-bottom:16px;}
+.search-row{display:flex;gap:10px;margin-bottom:0;}
+.search-input{flex:1;padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:"Plus Jakarta Sans",sans-serif;outline:none;transition:border-color .2s;background:var(--surface2);}
+.search-input:focus{border-color:var(--orange);background:#fff;}
+.btn-buscar{padding:11px 22px;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.orden-card{background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-top:16px;}
+.orden-header{padding:14px 16px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.orden-num{font-family:"JetBrains Mono",monospace;font-size:15px;font-weight:700;color:var(--blue);}
+.orden-cliente{font-size:14px;font-weight:700;margin-top:2px;}
+.orden-meta{font-size:12px;color:var(--text-muted);margin-top:2px;}
+.resumen{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:14px 16px;border-bottom:1px solid var(--border);}
+.rf{display:flex;flex-direction:column;gap:3px;}
+.rf-label{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;}
+.rf-value{font-size:16px;font-weight:800;font-family:"JetBrains Mono",monospace;}
+.rf-value.red{color:var(--red);}.rf-value.green{color:var(--green);}.rf-value.blue{color:var(--blue);}
+.historial{padding:14px 16px;border-bottom:1px solid var(--border);}
+.section-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.section-label::after{content:"";flex:1;height:1px;background:var(--border);}
+.hi{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--surface);border-radius:var(--radius-sm);border:1px solid var(--border);margin-bottom:6px;}
+.hi-monto{font-family:"JetBrains Mono",monospace;font-size:14px;font-weight:800;color:var(--green);}
+.hi-meta{font-size:11px;color:var(--text-muted);margin-top:2px;}
+.hi-fecha{font-size:11px;color:var(--text-muted);}
+.form-pago{padding:16px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:12px;font-weight:700;color:var(--text-secondary);}
+.field input,.field select{padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:"Plus Jakarta Sans",sans-serif;background:var(--surface);color:var(--text-primary);outline:none;transition:border-color .2s;}
+.field select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2711%27 height=%2711%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%2364748b%27 stroke-width=%272.5%27%3E%3Cpolyline points=%276 9 12 15 18 9%27%3E%3C/polyline%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;padding-right:28px;cursor:pointer;}
+.field input:focus,.field select:focus{border-color:var(--orange);}
+.field input[type=number]{font-family:"JetBrains Mono",monospace;}
+.alerta{padding:10px 14px;border-radius:var(--radius-sm);margin-bottom:12px;font-size:13px;font-weight:600;display:flex;gap:8px;align-items:flex-start;}
+.alerta.rojo{background:var(--red-light);border:1px solid var(--red-border);color:#7f1d1d;}
+.alerta.naranja{background:#fff7ed;border:1px solid #fed7aa;color:#92400e;}
+.alerta.verde{background:var(--green-light);border:1px solid var(--green-border);color:#065f46;}
+.alerta.amarillo{background:var(--amber-light);border:1px solid #fcd34d;color:#92400e;}
+.btn-confirmar{width:100%;padding:13px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 3px 12px rgba(16,185,129,.3);display:flex;align-items:center;justify-content:center;gap:8px;}
+.btn-confirmar:disabled{opacity:.6;cursor:not-allowed;}
+.badge-estado{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;}
+.pendientes-list{display:flex;flex-direction:column;gap:10px;}
+.pi{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.pi.contra{border-left:4px solid var(--orange);}
+.pi.saldo{border-left:4px solid var(--red);}
+.pi-info{display:flex;flex-direction:column;gap:3px;}
+.pi-num{font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;color:var(--blue);}
+.pi-cliente{font-size:14px;font-weight:700;}
+.pi-meta{font-size:12px;color:var(--text-muted);}
+.pi-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.pi-saldo{font-family:"JetBrains Mono",monospace;font-size:15px;font-weight:800;color:var(--red);}
+.btn-gestionar{padding:7px 14px;background:var(--orange-light);color:var(--orange);border:1.5px solid #fed7aa;border-radius:var(--radius-sm);font-size:12px;font-weight:700;cursor:pointer;}
+.empty{text-align:center;padding:40px;color:var(--text-muted);font-size:13px;}
+.empty .icon{font-size:36px;margin-bottom:10px;}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 22px;border-radius:10px;font-size:14px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:9999;opacity:0;transition:opacity .3s;white-space:nowrap;pointer-events:none;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo-icon">&#128179;</div>
+    <h1>Neko <span>Soluciones</span></h1>
+    <span class="area-badge">&#128179; Gestion de Pagos</span>
+  </div>
+  <div class="topbar-right">
+    <span class="user-info" id="user-info"></span>
+    <button class="btn-sm" onclick="volverVentas()">&#8592; Volver</button>
+    <button class="btn-sm" onclick="cargar()">&#128260; Actualizar</button>
+    <button class="btn-sm" onclick="cerrarSesion()">&#128682; Salir</button>
+  </div>
+</div>
+<div class="main">
+  <div class="stats-bar">
+    <div class="stat-card"><div class="stat-label">Con Saldo Pendiente</div><div class="stat-value red" id="stat-saldo">-</div></div>
+    <div class="stat-card"><div class="stat-label">Contraentregas</div><div class="stat-value amber" id="stat-contra">-</div></div>
+    <div class="stat-card"><div class="stat-label">Confirmados Hoy</div><div class="stat-value green" id="stat-hoy">-</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">&#128269; Buscar y Gestionar Pago</div>
+    <div class="card-sub">Busca por numero de orden, nombre del cliente o telefono</div>
+    <div class="search-row">
+      <input type="text" id="buscar-input" class="search-input" placeholder="Ej: 0001 - Juan Garcia - 3001234567" onkeydown="if(event.key==='Enter') buscarOrden()">
+      <button class="btn-buscar" onclick="buscarOrden()">&#128269; Buscar</button>
+    </div>
+    <div id="resultado-busqueda"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">&#9888; Ordenes con Pago Pendiente</div>
+    <div class="card-sub">Saldos por cobrar y contraentregas activas</div>
+    <div id="lista-pendientes"><div class="empty"><div class="icon">&#9203;</div><p>Cargando...</p></div></div>
+  </div>
+</div>
+<div id="toast"></div>
+<script>
+  var SB_URL = "https://umlzaupnuvarrnakcbdo.supabase.co";
+  var SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtbHphdXBudXZhcnJuYWtjYmRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTM4NTYsImV4cCI6MjA4OTg2OTg1Nn0.7Z5q3vvAIGDKFmjMjt6kra-3wHxNHyNjTfEj8GamdFA";
+  var HDR = { "apikey": SB_KEY, "Authorization": "Bearer " + SB_KEY };
+  var sesion = null;
+
+  window.addEventListener("DOMContentLoaded", function() {
+    var raw = sessionStorage.getItem("nk_user");
+    if (!raw) { window.location.href = "neko_login.html"; return; }
+    sesion = JSON.parse(raw);
+    // Permitir acceso a Ventas, Admin, Pagos y Supervisor
+    var areasPermitidas = ["Ventas","Admin","Pagos","Supervisor"];
+    if (!areasPermitidas.includes(sesion.area)) { window.location.href = "neko_login.html"; return; }
+    document.getElementById("user-info").textContent = "👤 " + sesion.nombre;
+    cargar();
+  });
+
+  function cerrarSesion() { sessionStorage.removeItem("nk_user"); window.location.href = "neko_login.html"; }
+
+  async function cargar() {
+    try {
+      var hoy = new Date().toISOString().split("T")[0];
+      var r = await fetch(SB_URL + "/rest/v1/ordenes?select=id,numero_orden,nombre_cliente,telefono,valor_total,monto_pagado,saldo_pendiente,tipo_pago,es_contraentrega,pago_confirmado,vendedora,estado&or=(saldo_pendiente.gt.0,es_contraentrega.eq.true)&pago_confirmado=is.false&order=fecha_creacion.desc", { headers: HDR });
+      var ordenes = await r.json();
+      if (!Array.isArray(ordenes)) ordenes = [];
+      var rHoy = await fetch(SB_URL + "/rest/v1/pagos?select=id&fecha_pago=gte." + hoy + "T00:00:00", { headers: HDR });
+      var pagosHoy = await rHoy.json();
+      if (!Array.isArray(pagosHoy)) pagosHoy = [];
+      document.getElementById("stat-saldo").textContent = ordenes.filter(function(o){ return o.saldo_pendiente > 0; }).length;
+      document.getElementById("stat-contra").textContent = ordenes.filter(function(o){ return o.es_contraentrega; }).length;
+      document.getElementById("stat-hoy").textContent = pagosHoy.length;
+      renderPendientes(ordenes);
+    } catch(e) {
+      document.getElementById("lista-pendientes").innerHTML = "<div class=\"empty\"><div class=\"icon\">❌</div><p>" + e.message + "</p></div>";
+    }
+  }
+
+  function renderPendientes(ordenes) {
+    var el = document.getElementById("lista-pendientes");
+    if (!ordenes.length) { el.innerHTML = "<div class=\"empty\"><div class=\"icon\">✅</div><p>No hay pagos pendientes</p></div>"; return; }
+    var html = "<div class=\"pendientes-list\">";
+    ordenes.forEach(function(o) {
+      var esContra = o.es_contraentrega;
+      var saldo = o.saldo_pendiente || 0;
+      var cls = esContra ? "contra" : "saldo";
+      var badgeTxt = esContra ? "🚚 Contraentrega" : "💰 Abono parcial";
+      var badgeStyle = esContra
+        ? "padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;background:#fff7ed;color:#f97316;border:1px solid #fed7aa"
+        : "padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;background:var(--red-light);color:var(--red);border:1px solid var(--red-border)";
+      var monto = esContra ? (o.valor_total || 0) : saldo;
+      html += "<div class=\"pi " + cls + "\">"
+        + "<div class=\"pi-info\">"
+          + "<span class=\"pi-num\">" + o.numero_orden + "</span>"
+          + "<span class=\"pi-cliente\">" + (o.nombre_cliente || "-") + "</span>"
+          + "<span class=\"pi-meta\">📱 " + (o.telefono || "-") + " · 👩 " + (o.vendedora || "-") + "</span>"
+        + "</div>"
+        + "<div class=\"pi-right\">"
+          + "<span style=\"" + badgeStyle + "\">" + badgeTxt + "</span>"
+          + "<span class=\"pi-saldo\">$" + Number(monto).toLocaleString("es-CO") + "</span>"
+          + "<button class=\"btn-gestionar\" onclick=\"cargarOrden('" + o.numero_orden + "')\">💳 Gestionar</button>"
+        + "</div>"
+      + "</div>";
+    });
+    html += "</div>";
+    el.innerHTML = html;
+  }
+
+  function cargarOrden(num) {
+    document.getElementById("buscar-input").value = num;
+    buscarOrden();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function buscarOrden() {
+    var q = document.getElementById("buscar-input").value.trim();
+    var el = document.getElementById("resultado-busqueda");
+    if (!q) { el.innerHTML = ""; return; }
+    el.innerHTML = "<div style=\"color:var(--text-muted);font-size:13px;margin-top:8px\">⏳ Buscando...</div>";
+    try {
+      var url;
+      if (/^\d{1,6}$/.test(q)) {
+        url = SB_URL + "/rest/v1/ordenes?numero_orden=eq." + encodeURIComponent(q) + "&limit=1";
+      } else if (/^[0-9+\s]{7,}$/.test(q)) {
+        url = SB_URL + "/rest/v1/ordenes?telefono=ilike.*" + encodeURIComponent(q.replace(/\s/g,"")) + "*&limit=5";
+      } else {
+        url = SB_URL + "/rest/v1/ordenes?nombre_cliente=ilike.*" + encodeURIComponent(q) + "*&order=fecha_creacion.desc&limit=5";
+      }
+      var r = await fetch(url, { headers: HDR });
+      var data = await r.json();
+      if (!Array.isArray(data) || !data.length) {
+        el.innerHTML = "<div style=\"color:var(--red);font-size:13px;font-weight:600;margin-top:8px\">❌ No se encontraron resultados</div>";
+        return;
+      }
+      if (data.length > 1) {
+        var listHtml = "<div style=\"margin-top:12px\"><div style=\"font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:8px\">" + data.length + " ordenes encontradas:</div><div class=\"pendientes-list\">";
+        data.forEach(function(o) {
+          listHtml += "<div class=\"pi\" style=\"cursor:pointer\" onclick=\"cargarOrden('" + o.numero_orden + "')\"><div class=\"pi-info\"><span class=\"pi-num\">" + o.numero_orden + "</span><span class=\"pi-cliente\">" + (o.nombre_cliente||"-") + "</span></div><div class=\"pi-right\"><span style=\"font-size:12px;color:var(--text-muted)\">Toca para seleccionar →</span></div></div>";
+        });
+        listHtml += "</div></div>";
+        el.innerHTML = listHtml;
+        return;
+      }
+      var orden = data[0];
+      var rP = await fetch(SB_URL + "/rest/v1/pagos?orden_id=eq." + orden.id + "&order=fecha_pago.desc", { headers: HDR });
+      orden._pagos = await rP.json();
+      if (!Array.isArray(orden._pagos)) orden._pagos = [];
+      renderOrden(orden);
+    } catch(e) {
+      el.innerHTML = "<div style=\"color:var(--red);font-size:13px;margin-top:8px\">❌ Error: " + e.message + "</div>";
+    }
+  }
+
+  function renderOrden(o) {
+    var el = document.getElementById("resultado-busqueda");
+    var saldo = o.saldo_pendiente || 0;
+    var esContra = o.es_contraentrega;
+    var confirmado = o.pago_confirmado;
+    var pagos = o._pagos || [];
+    var montoACobrar = esContra ? (o.valor_total || 0) : saldo;
+
+    var estadoStyle, estadoTxt;
+    if (confirmado) {
+      estadoStyle = "background:var(--green-light);color:var(--green);border:1px solid var(--green-border)";
+      estadoTxt = "✅ Pago Confirmado";
+    } else if (esContra) {
+      estadoStyle = "background:#fff7ed;color:#f97316;border:1px solid #fed7aa";
+      estadoTxt = "🚚 Contraentrega";
+    } else if (saldo > 0) {
+      estadoStyle = "background:var(--red-light);color:var(--red);border:1px solid var(--red-border)";
+      estadoTxt = "💰 Saldo Pendiente";
+    } else {
+      estadoStyle = "background:var(--green-light);color:var(--green);border:1px solid var(--green-border)";
+      estadoTxt = "✅ Pagado";
+    }
+
+    var alertaTxt = "";
+    if (confirmado) {
+      alertaTxt = "<div class=\"alerta verde\"><span>✅</span><div><strong>Pago confirmado</strong> — Almacen puede despachar sin restricciones.</div></div>";
+    } else if (esContra) {
+      alertaTxt = "<div class=\"alerta naranja\"><span>🚚</span><div><strong>Contraentrega</strong> — El cliente debe pagar <strong>$" + Number(o.valor_total||0).toLocaleString("es-CO") + " COP</strong> al recibir.</div></div>";
+    } else if (saldo > 0) {
+      alertaTxt = "<div class=\"alerta rojo\"><span>⚠️</span><div><strong>Saldo pendiente</strong> — Abono de <strong>$" + Number(o.monto_pagado||0).toLocaleString("es-CO") + "</strong>, adeuda <strong>$" + Number(saldo).toLocaleString("es-CO") + " COP</strong>.</div></div>";
+    }
+
+    var histHtml = pagos.length ? pagos.map(function(p) {
+      var fecha = new Date(p.fecha_pago).toLocaleDateString("es-CO",{day:"2-digit",month:"short",year:"numeric"});
+      return "<div class=\"hi\"><div><div class=\"hi-monto\">+$" + Number(p.monto).toLocaleString("es-CO") + "</div><div class=\"hi-meta\">" + (p.medio_pago||"-") + " · " + (p.registrado_por||"-") + (p.notas?" · "+p.notas:"") + "</div></div><span class=\"hi-fecha\">" + fecha + "</span></div>";
+    }).join("") : "<div style=\"font-size:13px;color:var(--text-muted)\">Sin pagos registrados</div>";
+
+    var formHtml = "";
+    if (!confirmado) {
+      formHtml = "<div class=\"form-pago\">"
+        + "<div class=\"section-label\">💳 Registrar Nuevo Pago</div>"
+        + alertaTxt
+        + "<div class=\"form-grid\">"
+          + "<div class=\"field\"><label>Monto Recibido *</label>"
+          + "<input type=\"number\" id=\"pago-monto\" placeholder=\"0\" min=\"0\" value=\"" + montoACobrar + "\" oninput=\"verificarMonto(" + montoACobrar + ")\"></div>"
+          + "<div class=\"field\"><label>Medio de Pago *</label>"
+          + "<select id=\"pago-medio\"><option value=\"\">- Seleccionar -</option><option>NEQUI</option><option>DAVIPLATA</option><option>BANCOLOMBIA</option><option>ADDI</option><option>PAYU</option><option>DAVIVIENDA</option><option>LLAVE</option><option>Efectivo</option></select></div>"
+        + "</div>"
+        + "<div class=\"field\" style=\"margin-bottom:12px\"><label>Notas</label>"
+        + "<input type=\"text\" id=\"pago-notas\" placeholder=\"Ej: Transferencia recibida, referencia...\"></div>"
+        + "<div id=\"pago-alerta\"></div>"
+        + "<button class=\"btn-confirmar\" id=\"btn-confirmar\" onclick=\"confirmarPago('" + o.id + "','" + o.numero_orden + "'," + montoACobrar + ")\">"
+        + "✅ Confirmar Pago y Notificar Almacen</button>"
+        + "</div>";
+    }
+
+    el.innerHTML = "<div class=\"orden-card\">"
+      + "<div class=\"orden-header\">"
+        + "<div><div class=\"orden-num\">" + o.numero_orden + "</div>"
+        + "<div class=\"orden-cliente\">" + (o.nombre_cliente||"-") + "</div>"
+        + "<div class=\"orden-meta\">📱 " + (o.telefono||"-") + " · 👩 " + (o.vendedora||"-") + " · Estado: " + (o.estado||"-") + "</div></div>"
+        + "<span class=\"badge-estado\" style=\"" + estadoStyle + "\">" + estadoTxt + "</span>"
+      + "</div>"
+      + "<div class=\"resumen\">"
+        + "<div class=\"rf\"><div class=\"rf-label\">Total Pedido</div><div class=\"rf-value blue\">$" + Number(o.valor_total||0).toLocaleString("es-CO") + "</div></div>"
+        + "<div class=\"rf\"><div class=\"rf-label\">Total Pagado</div><div class=\"rf-value green\">$" + Number(o.monto_pagado||0).toLocaleString("es-CO") + "</div></div>"
+        + "<div class=\"rf\"><div class=\"rf-label\">Por Cobrar</div><div class=\"rf-value red\">$" + Number(montoACobrar).toLocaleString("es-CO") + "</div></div>"
+      + "</div>"
+      + "<div class=\"historial\"><div class=\"section-label\">📋 Historial de Pagos</div>" + histHtml + "</div>"
+      + formHtml
+    + "</div>";
+  }
+
+  function verificarMonto(saldoTotal) {
+    var monto = parseFloat(document.getElementById("pago-monto").value) || 0;
+    var el = document.getElementById("pago-alerta");
+    if (!el) return;
+    if (monto > saldoTotal) {
+      el.innerHTML = "<div class=\"alerta naranja\"><span>⚠️</span>El monto supera el saldo. Verifica antes de confirmar.</div>";
+    } else if (monto === saldoTotal) {
+      el.innerHTML = "<div class=\"alerta verde\"><span>✅</span>Monto exacto — el pedido quedara saldado.</div>";
+    } else if (monto > 0) {
+      el.innerHTML = "<div class=\"alerta amarillo\"><span>ℹ️</span>Pago parcial — quedara saldo de $" + Number(saldoTotal - monto).toLocaleString("es-CO") + " COP.</div>";
+    } else {
+      el.innerHTML = "";
+    }
+  }
+
+  async function confirmarPago(ordenId, numeroOrden, saldoTotal) {
+    var monto = parseFloat(document.getElementById("pago-monto").value) || 0;
+    var medio = document.getElementById("pago-medio").value;
+    var notas = document.getElementById("pago-notas").value || "";
+    if (!monto || monto <= 0) { alert("Ingresa el monto recibido."); return; }
+    if (!medio) { alert("Selecciona el medio de pago."); return; }
+    var btn = document.getElementById("btn-confirmar");
+    btn.disabled = true; btn.textContent = "⏳ Confirmando...";
+    try {
+      await fetch(SB_URL + "/rest/v1/pagos", {
+        method: "POST",
+        headers: Object.assign({}, HDR, { "Content-Type": "application/json", "Prefer": "return=minimal" }),
+        body: JSON.stringify({ orden_id: parseInt(ordenId), numero_orden: numeroOrden, monto: monto, medio_pago: medio, notas: notas, registrado_por: sesion.nombre })
+      });
+      var rO = await fetch(SB_URL + "/rest/v1/ordenes?id=eq." + ordenId + "&select=monto_pagado", { headers: HDR });
+      var dataO = await rO.json();
+      var montoPagadoAnterior = dataO[0] ? (dataO[0].monto_pagado || 0) : 0;
+      var nuevoMontoPagado = montoPagadoAnterior + monto;
+      var quedaSaldado = nuevoMontoPagado >= saldoTotal;
+      var updateBody = { monto_pagado: nuevoMontoPagado, saldo_pendiente: Math.max(0, saldoTotal - monto) };
+      if (quedaSaldado) {
+        updateBody.pago_confirmado = true;
+        updateBody.fecha_pago_confirmado = new Date().toISOString();
+        updateBody.confirmado_por = sesion.nombre;
+      }
+      await fetch(SB_URL + "/rest/v1/ordenes?id=eq." + ordenId, {
+        method: "PATCH",
+        headers: Object.assign({}, HDR, { "Content-Type": "application/json", "Prefer": "return=minimal" }),
+        body: JSON.stringify(updateBody)
+      });
+      showToast(quedaSaldado ? "✅ Pago confirmado — Almacen puede despachar" : "💰 Abono registrado correctamente");
+      await cargar();
+      await buscarOrden();
+    } catch(e) {
+      alert("Error: " + e.message);
+      btn.disabled = false;
+      btn.textContent = "✅ Confirmar Pago y Notificar Almacen";
+    }
+  }
+
+  function volverVentas() {
+    if (sesion && sesion.area === "Ventas") {
+      window.location.href = "neko_ventas.html";
+    } else if (sesion && sesion.area === "Admin") {
+      window.location.href = "neko_admin.html";
+    } else if (sesion && sesion.area === "Supervisor") {
+      window.location.href = "neko_supervisor.html";
+    } else {
+      history.back();
+    }
+  }
+
+  function showToast(msg) {
+    var t = document.getElementById("toast");
+    t.textContent = msg; t.style.opacity = "1";
+    clearTimeout(t._tid);
+    t._tid = setTimeout(function(){ t.style.opacity = "0"; }, 3500);
+  }
+</script>
+</body>
+</html>

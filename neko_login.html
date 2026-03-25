@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neko Soluciones – Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue:#2563eb;--blue-dark:#1d4ed8;--blue-light:#eff6ff;--blue-mid:#bfdbfe;
+    --red:#ef4444;--red-light:#fff1f2;
+    --green:#10b981;
+    --border:#e2e8f0;--surface:#ffffff;--bg:#f0f4f8;
+    --text-primary:#0f172a;--text-secondary:#64748b;--text-muted:#94a3b8;
+    --radius:14px;--radius-sm:8px;
+    --shadow-lg:0 20px 60px rgba(0,0,0,.12),0 8px 24px rgba(0,0,0,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:'Plus Jakarta Sans',sans-serif;
+    background:var(--bg);
+    min-height:100vh;
+    display:flex;align-items:center;justify-content:center;
+    padding:20px;
+    background-image:
+      radial-gradient(at 20% 20%, rgba(37,99,235,.08) 0%, transparent 50%),
+      radial-gradient(at 80% 80%, rgba(124,58,237,.06) 0%, transparent 50%);
+  }
+
+  .login-wrap{width:100%;max-width:420px;}
+
+  /* LOGO */
+  .logo-area{text-align:center;margin-bottom:32px;}
+  .logo-circle{
+    width:72px;height:72px;
+    background:linear-gradient(135deg,#2563eb,#1d4ed8);
+    border-radius:20px;
+    display:inline-flex;align-items:center;justify-content:center;
+    font-size:36px;
+    box-shadow:0 8px 24px rgba(37,99,235,.35);
+    margin-bottom:14px;
+  }
+  .logo-area h1{font-size:26px;font-weight:800;color:var(--text-primary);}
+  .logo-area h1 span{color:var(--blue);}
+  .logo-area p{font-size:14px;color:var(--text-secondary);margin-top:4px;}
+
+  /* CARD */
+  .card{
+    background:var(--surface);
+    border-radius:var(--radius);
+    border:1px solid var(--border);
+    padding:32px;
+    box-shadow:var(--shadow-lg);
+  }
+
+  .card-title{font-size:18px;font-weight:800;margin-bottom:6px;}
+  .card-sub{font-size:13px;color:var(--text-secondary);margin-bottom:24px;}
+
+  /* FIELD */
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-size:12px;font-weight:700;color:var(--text-secondary);margin-bottom:6px;letter-spacing:.03em;}
+  .input-wrap{position:relative;}
+  .input-wrap .icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;}
+  .input-wrap input{
+    width:100%;padding:11px 12px 11px 36px;
+    font-size:14px;font-family:'Plus Jakarta Sans',sans-serif;
+    border:1.5px solid var(--border);border-radius:var(--radius-sm);
+    background:var(--bg);color:var(--text-primary);outline:none;
+    transition:border-color .2s,box-shadow .2s,background .2s;
+  }
+  .input-wrap input:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(37,99,235,.12);}
+
+  /* TOGGLE PASSWORD */
+  .toggle-pw{position:absolute;right:11px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--text-muted);}
+
+  /* ERROR */
+  .error-box{
+    display:none;
+    background:var(--red-light);border:1px solid #fca5a5;
+    border-radius:var(--radius-sm);padding:10px 14px;
+    font-size:13px;font-weight:600;color:var(--red);
+    margin-bottom:16px;
+    align-items:center;gap:8px;
+  }
+  .error-box.show{display:flex;}
+
+  /* SUBMIT */
+  .btn-login{
+    width:100%;padding:13px;
+    background:linear-gradient(135deg,#2563eb,#1d4ed8);
+    color:#fff;border:none;border-radius:var(--radius-sm);
+    font-size:15px;font-weight:800;
+    cursor:pointer;
+    box-shadow:0 4px 16px rgba(37,99,235,.35);
+    transition:transform .15s,box-shadow .15s,opacity .2s;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    margin-top:8px;
+  }
+  .btn-login:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(37,99,235,.45);}
+  .btn-login:active{transform:translateY(0);}
+  .btn-login:disabled{opacity:.7;cursor:not-allowed;transform:none;}
+
+  /* LOADING SPINNER */
+  .spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* AREA CHIPS */
+  .areas-wrap{margin-top:28px;padding-top:20px;border-top:1px solid var(--border);}
+  .areas-label{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;}
+  .areas-grid{display:flex;flex-wrap:wrap;gap:6px;}
+  .area-chip{
+    padding:4px 10px;
+    background:var(--bg);border:1px solid var(--border);
+    border-radius:20px;font-size:11px;font-weight:600;color:var(--text-secondary);
+  }
+
+  .footer-note{text-align:center;font-size:12px;color:var(--text-muted);margin-top:20px;}
+</style>
+</head>
+<body>
+
+<div class="login-wrap">
+  <div class="logo-area">
+    <div class="logo-circle">🐱</div>
+    <h1>Neko <span>Soluciones</span></h1>
+    <p>Sistema de Gestión de Producción Textil</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Iniciar Sesión</div>
+    <div class="card-sub">Ingresa tus credenciales para acceder a tu módulo</div>
+
+    <div class="error-box" id="error-box">
+      <span>⚠️</span><span id="error-msg">Usuario o contraseña incorrectos</span>
+    </div>
+
+    <div class="field">
+      <label>Usuario</label>
+      <div class="input-wrap">
+        <span class="icon">👤</span>
+        <input type="text" id="usuario" placeholder="Ej. jennifer" autocomplete="username" onkeydown="if(event.key==='Enter') login()">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Contraseña</label>
+      <div class="input-wrap">
+        <span class="icon">🔒</span>
+        <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter') login()">
+        <button class="toggle-pw" onclick="togglePw()" tabindex="-1" id="pw-eye">👁️</button>
+      </div>
+    </div>
+
+    <button class="btn-login" id="btn-login" onclick="login()">
+      <span id="btn-text">Ingresar al Sistema</span>
+    </button>
+
+    <div class="areas-wrap">
+      <div class="areas-label">Módulos disponibles</div>
+      <div class="areas-grid">
+        <span class="area-chip">🛒 Ventas</span>
+        <span class="area-chip">📊 Análisis</span>
+        <span class="area-chip">🛍️ Compras</span>
+        <span class="area-chip">🎨 Diseño</span>
+        <span class="area-chip">♨️ Sublimación</span>
+        <span class="area-chip">🖨️ Estampado</span>
+        <span class="area-chip">✂️ Corte</span>
+        <span class="area-chip">🪡 Bordado</span>
+        <span class="area-chip">🧵 Confección</span>
+        <span class="area-chip">✅ Terminación</span>
+        <span class="area-chip">📦 Almacén</span>
+        <span class="area-chip">⚙️ Admin</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-note">Neko Soluciones v1.0 &nbsp;·&nbsp; Productos Crisa &amp; Rosieglam</div>
+</div>
+
+<script>
+  const SB_URL = 'https://umlzaupnuvarrnakcbdo.supabase.co';
+  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtbHphdXBudXZhcnJuYWtjYmRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTM4NTYsImV4cCI6MjA4OTg2OTg1Nn0.7Z5q3vvAIGDKFmjMjt6kra-3wHxNHyNjTfEj8GamdFA';
+
+  // Mapa área → archivo HTML
+  const MODULOS = {
+    'Ventas':       'neko_ventas.html',
+    'Análisis':     'neko_analisis.html',
+    'Compras':      'neko_compras.html',
+    'Diseño':       'neko_diseno.html',
+    'Sublimación':  'neko_sublimacion.html',
+    'Estampado':    'neko_estampado.html',
+    'Corte':        'neko_corte.html',
+    'Bordado':      'neko_bordado.html',
+    'Confección':   'neko_confeccion.html',
+    'Terminación':  'neko_terminacion.html',
+    'Almacén':      'neko_almacen.html',
+    'Admin':        'neko_admin.html',
+    'Pagos':         'neko_pagos.html',
+    'Supervisor':   'neko_supervisor.html',
+  };
+
+  function togglePw() {
+    const inp = document.getElementById('password');
+    const eye = document.getElementById('pw-eye');
+    if (inp.type === 'password') { inp.type = 'text'; eye.textContent = '🙈'; }
+    else { inp.type = 'password'; eye.textContent = '👁️'; }
+  }
+
+  function showError(msg) {
+    const box = document.getElementById('error-box');
+    document.getElementById('error-msg').textContent = msg;
+    box.classList.add('show');
+  }
+  function hideError() { document.getElementById('error-box').classList.remove('show'); }
+
+  async function login() {
+    hideError();
+    const usuario  = document.getElementById('usuario').value.trim().toLowerCase();
+    const password = document.getElementById('password').value.trim();
+
+    if (!usuario || !password) { showError('Completa usuario y contraseña.'); return; }
+
+    const btn      = document.getElementById('btn-login');
+    const btnText  = document.getElementById('btn-text');
+    btn.disabled   = true;
+    btnText.innerHTML = '<div class="spinner"></div> Verificando...';
+
+    try {
+      const res  = await fetch(
+        `${SB_URL}/rest/v1/usuarios?usuario=eq.${encodeURIComponent(usuario)}&password=eq.${encodeURIComponent(password)}&activo=eq.true&limit=1`,
+        { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY } }
+      );
+      const data = await res.json();
+
+      if (!data || data.length === 0) {
+        showError('Usuario o contraseña incorrectos.');
+        btn.disabled = false;
+        btnText.textContent = 'Ingresar al Sistema';
+        return;
+      }
+
+      const user = data[0];
+
+      // Guardar sesión en sessionStorage
+      sessionStorage.setItem('nk_user', JSON.stringify({
+        id:     user.id,
+        nombre: user.nombre,
+        area:   user.area,
+        usuario: user.usuario
+      }));
+
+      const modulo = MODULOS[user.area];
+      if (!modulo) {
+        showError('Área no configurada: ' + user.area);
+        btn.disabled = false;
+        btnText.textContent = 'Ingresar al Sistema';
+        return;
+      }
+
+      btnText.textContent = '✅ Redirigiendo a ' + user.area + '...';
+      setTimeout(() => { window.location.href = modulo; }, 800);
+
+    } catch(err) {
+      showError('Error de conexión: ' + err.message);
+      btn.disabled = false;
+      btnText.textContent = 'Ingresar al Sistema';
+    }
+  }
+
+  // Si ya hay sesión activa, redirigir directo
+  window.addEventListener('DOMContentLoaded', () => {
+    const session = sessionStorage.getItem('nk_user');
+    if (session) {
+      try {
+        const user   = JSON.parse(session);
+        const modulo = MODULOS[user.area];
+        if (modulo) window.location.href = modulo;
+      } catch(e) { sessionStorage.removeItem('nk_user'); }
+    }
+    document.getElementById('usuario').focus();
+  });
+</script>
+</body>
+</html>

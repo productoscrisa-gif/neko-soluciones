@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neko Soluciones – Producción</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#f0f4f8;--surface:#fff;--surface2:#f8fafc;--border:#e2e8f0;--text-primary:#0f172a;--text-secondary:#64748b;--text-muted:#94a3b8;--blue:#2563eb;--blue-light:#eff6ff;--blue-mid:#bfdbfe;--red:#ef4444;--red-light:#fff1f2;--red-border:#fca5a5;--green:#10b981;--green-light:#ecfdf5;--green-border:#6ee7b7;--amber:#f59e0b;--amber-light:#fffbeb;--purple:#7c3aed;--purple-light:#f5f3ff;--shadow-sm:0 1px 3px rgba(0,0,0,.06);--shadow-md:0 4px 16px rgba(0,0,0,.08);--radius:14px;--radius-sm:8px;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text-primary);min-height:100vh;}
+  .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-sm);}
+  .topbar-left{display:flex;align-items:center;gap:12px;}
+  .logo-icon{width:36px;height:36px;background:var(--blue);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 3px 10px rgba(37,99,235,.3);}
+  .topbar h1{font-size:16px;font-weight:800;}.topbar h1 span{color:var(--blue);}
+  .area-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:.05em;text-transform:uppercase;}
+  .topbar-right{display:flex;align-items:center;gap:10px;}
+  .user-info{font-size:13px;font-weight:600;color:var(--text-secondary);}
+  .btn-sm{padding:6px 12px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--text-secondary);transition:background .2s;}
+  .btn-sm:hover{background:var(--border);}
+  .btn-sm.blue{background:var(--blue-light);color:var(--blue);border-color:var(--blue-mid);}
+  .main{padding:24px;max-width:1000px;margin:0 auto;}
+  .stats-bar{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow-sm);}
+  .stat-label{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;}
+  .stat-value{font-size:26px;font-weight:800;margin-top:4px;font-family:'JetBrains Mono',monospace;}
+  .stat-value.blue{color:var(--blue);}.stat-value.amber{color:var(--amber);}.stat-value.green{color:var(--green);}
+  .tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:6px;margin-bottom:20px;box-shadow:var(--shadow-sm);}
+  .tab{flex:1;padding:8px;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:var(--text-secondary);transition:all .2s;}
+  .tab:hover{background:var(--surface2);}
+  .tab.active{background:var(--blue);color:#fff;box-shadow:0 2px 8px rgba(37,99,235,.3);}
+  .prendas-list{display:flex;flex-direction:column;gap:12px;}
+  .prenda-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-md);overflow:hidden;transition:box-shadow .2s;}
+  .prenda-card.priority{border-left:4px solid var(--red);}
+  .prenda-card.en-proceso{border-left:4px solid var(--amber);}
+  .prenda-card.lista{border-left:4px solid var(--green);}
+  .prenda-header{padding:14px 18px;display:flex;align-items:flex-start;justify-content:space-between;background:var(--surface2);border-bottom:1px solid var(--border);}
+  .prenda-header-left{display:flex;flex-direction:column;gap:4px;}
+  .prenda-orden{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--blue);}
+  .prenda-nombre{font-size:15px;font-weight:800;color:var(--text-primary);}
+  .prenda-tags{display:flex;gap:6px;margin-top:2px;flex-wrap:wrap;}
+  .ptag{padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;}
+  .ptag-gray{background:var(--surface);border:1px solid var(--border);color:var(--text-secondary);}
+  .ptag-blue{background:var(--blue-light);border:1px solid var(--blue-mid);color:var(--blue);}
+  .ptag-red{background:var(--red-light);border:1px solid var(--red-border);color:var(--red);}
+  .ptag-amber{background:var(--amber-light);color:var(--amber);}
+  .ptag-purple{background:var(--purple-light);border:1px solid #ede9fe;color:var(--purple);}
+  .estado-badge{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap;}
+  .estado-pendiente{background:var(--blue-light);color:var(--blue);}
+  .estado-proceso{background:var(--amber-light);color:var(--amber);}
+  .estado-lista{background:var(--green-light);color:var(--green);}
+  .prenda-body{padding:16px 18px;}
+  .prenda-notas{font-size:13px;color:#92400e;background:var(--amber-light);padding:8px 12px;border-radius:6px;border-left:3px solid var(--amber);margin-bottom:12px;}
+  .prenda-url{font-size:13px;margin-bottom:12px;}
+  .prenda-url a{color:var(--blue);font-weight:600;}
+  .flujo-wrap{margin-bottom:14px;padding:10px 14px;background:var(--blue-light);border-radius:var(--radius-sm);border:1px solid var(--blue-mid);display:flex;flex-wrap:wrap;gap:4px;align-items:center;}
+  .flujo-chip{padding:3px 10px;background:var(--surface);border:1px solid var(--blue-mid);border-radius:20px;font-size:11px;font-weight:700;color:var(--blue);white-space:nowrap;}
+  .flujo-chip.current{background:var(--blue);color:#fff;}
+  .flujo-chip.done{background:var(--green-light);color:var(--green);border-color:var(--green-border);}
+  .flujo-chip.pending{background:var(--surface2);color:var(--text-muted);border-color:var(--border);}
+  .flujo-arr{font-size:11px;color:var(--text-muted);}
+  .error-alert{margin-bottom:12px;background:var(--red-light);border:1px solid var(--red-border);border-left:3px solid var(--red);border-radius:6px;padding:10px 12px;}
+  .error-alert-title{font-size:11px;font-weight:800;color:var(--red);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;}
+  .error-alert-desc{font-size:12px;color:#7f1d1d;}
+  .diseno-estados{margin-bottom:14px;}
+  .diseno-label{font-size:11px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;}
+  .diseno-btns{display:flex;gap:8px;flex-wrap:wrap;}
+  .diseno-btn{padding:8px 14px;border:2px solid var(--border);border-radius:var(--radius-sm);background:var(--surface2);font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;color:var(--text-secondary);}
+  .diseno-btn.active-diseno{background:var(--purple);color:#fff;border-color:var(--purple);}
+  .diseno-btn.active-imprimiendo{background:var(--amber);color:#fff;border-color:var(--amber);}
+  .diseno-btn.active-impreso{background:var(--green);color:#fff;border-color:var(--green);}
+  .prenda-actions{display:flex;gap:8px;flex-wrap:wrap;}
+  .btn-action{padding:9px 16px;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;transition:transform .15s,opacity .2s;}
+  .btn-action:hover{transform:translateY(-1px);}
+  .btn-action:active{transform:translateY(0);}
+  .btn-action:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+  .btn-iniciar{background:var(--amber-light);color:var(--amber);border:1.5px solid #fcd34d;}
+  .btn-listo{background:linear-gradient(135deg,#10b981,#059669);color:#fff;box-shadow:0 3px 10px rgba(16,185,129,.3);}
+  .btn-enviar{background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;box-shadow:0 3px 10px rgba(37,99,235,.3);}
+  .btn-error{background:var(--red-light);color:var(--red);border:1.5px solid var(--red-border);}
+  /* PAGINACIÓN */
+  .paginacion{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:20px;}
+  .btn-pag{padding:7px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;}
+  .btn-pag:hover{border-color:var(--blue);color:var(--blue);}
+  .btn-pag.active{background:var(--blue);color:#fff;border-color:var(--blue);}
+  .btn-pag:disabled{opacity:.4;cursor:not-allowed;}
+  .pag-info{font-size:13px;color:var(--text-muted);font-weight:600;}
+  /* MODAL */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;padding:20px;}
+  .modal-overlay.show{display:flex;}
+  .modal{background:var(--surface);border-radius:var(--radius);padding:28px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+  .modal h3{font-size:17px;font-weight:800;margin-bottom:6px;}
+  .modal p{font-size:13px;color:var(--text-secondary);margin-bottom:18px;}
+  .modal textarea{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:'Plus Jakarta Sans',sans-serif;background:var(--surface2);resize:vertical;min-height:80px;outline:none;margin-bottom:16px;}
+  .modal textarea:focus{border-color:var(--red);}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;}
+  .btn-cancel{padding:9px 16px;background:var(--surface2);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;}
+  .btn-confirm-error{padding:9px 16px;background:var(--red);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:700;cursor:pointer;}
+  .state-box{text-align:center;padding:60px 20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);}
+  .state-box .icon{font-size:40px;margin-bottom:12px;}
+  .state-box p{font-size:15px;font-weight:600;color:var(--text-secondary);}
+  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 22px;border-radius:10px;font-size:14px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:9999;opacity:0;transition:opacity .3s;white-space:nowrap;pointer-events:none;}
+  @media(max-width:600px){.stats-bar{grid-template-columns:1fr 1fr;}.prenda-actions{flex-direction:column;}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo-icon">🐱</div>
+    <h1>Neko <span>Soluciones</span></h1>
+    <span class="area-badge" id="area-badge">Cargando...</span>
+  </div>
+  <div class="topbar-right">
+    <span class="user-info" id="user-info"></span>
+    <button class="btn-sm blue" onclick="cargar()">🔄 Actualizar</button>
+    <button class="btn-sm" onclick="cerrarSesion()">🚪 Salir</button>
+  </div>
+</div>
+<div class="main">
+  <div class="stats-bar">
+    <div class="stat-card"><div class="stat-label">Pendientes</div><div class="stat-value blue" id="stat-pendientes">—</div></div>
+    <div class="stat-card"><div class="stat-label">En Proceso</div><div class="stat-value amber" id="stat-proceso">—</div></div>
+    <div class="stat-card"><div class="stat-label">Listas</div><div class="stat-value green" id="stat-listas">—</div></div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" id="tab-pendientes" onclick="cambiarTab('pendientes')">📥 Pendientes</button>
+    <button class="tab" id="tab-proceso" onclick="cambiarTab('proceso')">⚙️ En Proceso</button>
+    <button class="tab" id="tab-listas" onclick="cambiarTab('listas')">✅ Listas</button>
+    <button class="tab" id="tab-errores" onclick="cambiarTab('errores')">🔴 Errores <span id="badge-errores" style="display:none;background:#ef4444;color:#fff;border-radius:20px;padding:1px 6px;font-size:10px;margin-left:3px">0</span></button>
+  </div>
+  <div id="container">
+    <div class="state-box"><div class="icon">⏳</div><p>Cargando prendas...</p></div>
+  </div>
+  <div class="paginacion" id="paginacion" style="display:none"></div>
+</div>
+
+<div class="modal-overlay" id="modal-error">
+  <div class="modal">
+    <h3>🔴 Reportar Error</h3>
+    <p>Describe el problema. La prenda será devuelta al área anterior para corrección.</p>
+    <textarea id="error-desc" placeholder="Ej: El diseño tiene el color incorrecto..."></textarea>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn-confirm-error" onclick="confirmarError()">🔴 Reportar y Devolver</button>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+  const SB_URL = 'https://umlzaupnuvarrnakcbdo.supabase.co';
+  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtbHphdXBudXZhcnJuYWtjYmRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTM4NTYsImV4cCI6MjA4OTg2OTg1Nn0.7Z5q3vvAIGDKFmjMjt6kra-3wHxNHyNjTfEj8GamdFA';
+  const HDR = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY };
+
+  const RUTAS = {
+    'Ruta 1': ['Ventas','Análisis','Diseño','Sublimación','Corte','Confección','Terminación','Almacén'],
+    'Ruta 2': ['Ventas','Análisis','Corte','Confección','Terminación','Almacén'],
+    'Ruta 3': ['Ventas','Análisis','Compras','Diseño','Estampado','Almacén'],
+    'Ruta 4': ['Análisis','Diseño','Sublimación','Almacén'],
+    'Ruta 5': ['Ventas','Análisis','Diseño','Confección','Bordado','Terminación','Almacén'],
+    'Ruta 6': ['Ventas','Análisis','Diseño','Bordado','Confección','Terminación','Almacén'],
+  };
+
+  const AREA_CONFIG = {
+    'Compras':     { icon:'🛍️', color:'#0891b2', bg:'#ecfeff' },
+    'Diseño':      { icon:'🎨', color:'#7c3aed', bg:'#f5f3ff' },
+    'Sublimación': { icon:'♨️', color:'#dc2626', bg:'#fff1f2' },
+    'Estampado':   { icon:'🖨️', color:'#d97706', bg:'#fffbeb' },
+    'Corte':       { icon:'✂️', color:'#059669', bg:'#ecfdf5' },
+    'Bordado':     { icon:'🪡', color:'#db2777', bg:'#fdf2f8' },
+    'Confección':  { icon:'🧵', color:'#2563eb', bg:'#eff6ff' },
+    'Terminación': { icon:'✅', color:'#0d9488', bg:'#f0fdfa' },
+    'Almacén':     { icon:'📦', color:'#4f46e5', bg:'#eef2ff' },
+  };
+
+  // ── ESTADO GLOBAL ────────────────────────────────────────
+  let sesion      = null;
+  let areaActual  = '';
+  let tabActual   = 'pendientes';
+  let prendas     = [];       // Solo las prendas del tab actual
+  let erroresArea = [];
+  let errorTarget = null;
+  let pagina      = 0;
+  const POR_PAG   = 20;       // Prendas por página
+  let totalPrendas = { pendientes: 0, proceso: 0, listas: 0 };
+
+  // ── INIT ─────────────────────────────────────────────────
+  window.addEventListener('DOMContentLoaded', () => {
+    const raw = sessionStorage.getItem('nk_user');
+    if (!raw) { window.location.href = 'neko_login.html'; return; }
+    sesion = JSON.parse(raw);
+    areaActual = sesion.area;
+
+    const cfg = AREA_CONFIG[areaActual] || { icon:'⚙️', color:'#2563eb', bg:'#eff6ff' };
+    document.title = 'Neko Soluciones – ' + areaActual;
+    const badgeEl = document.getElementById('area-badge');
+    badgeEl.textContent = cfg.icon + ' ' + areaActual;
+    badgeEl.style.background = cfg.bg;
+    badgeEl.style.color = cfg.color;
+    document.getElementById('user-info').textContent = '👤 ' + sesion.nombre;
+
+    cargar();
+    cargarErrores();
+  });
+
+  function cerrarSesion() {
+    sessionStorage.removeItem('nk_user');
+    window.location.href = 'neko_login.html';
+  }
+
+  // ── CARGA OPTIMIZADA: solo trae campos necesarios ────────
+  async function cargar() {
+    mostrarCargando();
+    try {
+      // Solo traer id, numero_orden, productos, sub_estados, marca, es_prioritario, fecha_entrega
+      // Y filtrar por estado EN_PRODUCCION directamente en el servidor
+      const url = SB_URL + '/rest/v1/ordenes'
+        + '?estado=eq.EN_PRODUCCION'
+        + '&select=id,numero_orden,productos,sub_estados,marca,es_prioritario,fecha_entrega'
+        + '&order=es_prioritario.desc,fecha_creacion.asc';
+
+      const r = await fetch(url, { headers: HDR });
+      if (!r.ok) throw new Error('Error HTTP ' + r.status);
+      const ordenes = await r.json();
+
+      // Extraer prendas del área actual — procesamiento eficiente
+      const pendientes = [], enProceso = [], listas = [];
+
+      ordenes.forEach(orden => {
+        const prods = orden.productos || [];
+        const subs  = orden.sub_estados || [];
+
+        prods.forEach((p, idx) => {
+          const se = subs.find(s => s.prenda_idx === idx);
+          if (!se) return; // Sin sub_estado = no inicializada, ignorar
+
+          if (se.area_actual !== areaActual) return; // No es de esta área
+
+          const item = {
+            ordenId:      orden.id,
+            ordenNum:     orden.numero_orden,
+            prendaIdx:    idx,
+            prenda:       p,
+            ruta:         RUTAS[p.ruta] || [],
+            marca:        orden.marca || '',
+            esPrioritario: orden.es_prioritario,
+            entrega:      orden.fecha_entrega,
+            estado:       se.estado || 'pendiente',
+            estadoDiseno: se.estado_diseno || 'diseno',
+            tieneError:        !!(se.error_desc),
+            errorAreaReporta:  se.error_area || '',
+            errorDesc:         se.error_desc || '',
+            diseñadorAsignado: se.diseñador_asignado || '',
+            // Guardar sub para actualizaciones locales
+            _subs:        subs,
+            _ordenId:     orden.id,
+          };
+
+          if (se.estado === 'pendiente')  pendientes.push(item);
+          else if (se.estado === 'en_proceso') enProceso.push(item);
+          else if (se.estado === 'lista') listas.push(item);
+        });
+      });
+
+      // Guardar totales
+      totalPrendas = {
+        pendientes: pendientes.length,
+        proceso:    enProceso.length,
+        listas:     listas.length,
+      };
+
+      // Guardar todas separadas para paginación
+      window._pendientes = pendientes;
+      window._proceso    = enProceso;
+      window._listas     = listas;
+
+      actualizarStats();
+      renderTab();
+
+    } catch(e) {
+      document.getElementById('container').innerHTML =
+        '<div class="state-box"><div class="icon">❌</div><p>' + e.message + '</p></div>';
+    }
+  }
+
+  // ── STATS ─────────────────────────────────────────────────
+  function actualizarStats() {
+    document.getElementById('stat-pendientes').textContent = totalPrendas.pendientes;
+    document.getElementById('stat-proceso').textContent    = totalPrendas.proceso;
+    document.getElementById('stat-listas').textContent     = totalPrendas.listas;
+  }
+
+  // ── TABS ──────────────────────────────────────────────────
+  function cambiarTab(tab) {
+    tabActual = tab;
+    pagina = 0;
+    ['pendientes','proceso','listas','errores'].forEach(t => {
+      const el = document.getElementById('tab-' + t);
+      if (el) el.classList.toggle('active', t === tab);
+    });
+    if (tab === 'errores') {
+      document.getElementById('paginacion').style.display = 'none';
+      renderErrores();
+    } else {
+      renderTab();
+    }
+  }
+
+  // ── RENDER CON PAGINACIÓN ─────────────────────────────────
+  function renderTab() {
+    const mapTab = {
+      pendientes: window._pendientes || [],
+      proceso:    window._proceso    || [],
+      listas:     window._listas     || [],
+    };
+    const todas  = mapTab[tabActual] || [];
+    const inicio = pagina * POR_PAG;
+    const pagina_actual = todas.slice(inicio, inicio + POR_PAG);
+    const cont   = document.getElementById('container');
+    const pagDiv = document.getElementById('paginacion');
+
+    if (!todas.length) {
+      const msgs = {
+        pendientes: ['📥', 'No hay prendas pendientes'],
+        proceso:    ['⚙️', 'No hay prendas en proceso'],
+        listas:     ['✅', 'No hay prendas listas aún'],
+      };
+      const [icon, msg] = msgs[tabActual];
+      cont.innerHTML = '<div class="state-box"><div class="icon">' + icon + '</div><p>' + msg + '</p></div>';
+      pagDiv.style.display = 'none';
+      return;
+    }
+
+    cont.innerHTML = '<div class="prendas-list">' + pagina_actual.map(renderPrenda).join('') + '</div>';
+
+    // Paginación
+    const totalPags = Math.ceil(todas.length / POR_PAG);
+    if (totalPags <= 1) {
+      pagDiv.style.display = 'none';
+    } else {
+      pagDiv.style.display = 'flex';
+      let html = '<button class="btn-pag" onclick="irPagina(' + (pagina-1) + ')" ' + (pagina===0?'disabled':'') + '>← Ant</button>';
+      for (let i = 0; i < totalPags; i++) {
+        html += '<button class="btn-pag ' + (i===pagina?'active':'') + '" onclick="irPagina(' + i + ')">' + (i+1) + '</button>';
+      }
+      html += '<button class="btn-pag" onclick="irPagina(' + (pagina+1) + ')" ' + (pagina>=totalPags-1?'disabled':'') + '>Sig →</button>';
+      html += '<span class="pag-info">' + (inicio+1) + '–' + Math.min(inicio+POR_PAG, todas.length) + ' de ' + todas.length + '</span>';
+      pagDiv.innerHTML = html;
+    }
+  }
+
+  function irPagina(p) {
+    pagina = p;
+    renderTab();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ── RENDER PRENDA ─────────────────────────────────────────
+  function renderPrenda(item) {
+    const { ordenId, ordenNum, prendaIdx, prenda, ruta, marca, esPrioritario, entrega, estado, estadoDiseno, tieneError, errorAreaReporta, errorDesc, diseñadorAsignado } = item;
+    const entregaF  = entrega ? new Date(entrega + 'T12:00:00').toLocaleDateString('es-CO', { day:'2-digit', month:'short' }) : '—';
+    const idxActual = ruta.indexOf(areaActual);
+    const areaSig   = idxActual >= 0 && idxActual < ruta.length - 1 ? ruta[idxActual + 1] : null;
+
+    // Flujo visual
+    const flujoHTML = ruta.map((area, i) => {
+      const cls = i < idxActual ? 'done' : i === idxActual ? 'current' : 'pending';
+      return '<div style="display:flex;align-items:center;gap:3px">'
+        + '<span class="flujo-chip ' + cls + '">' + area + '</span>'
+        + (i < ruta.length - 1 ? '<span class="flujo-arr">→</span>' : '')
+        + '</div>';
+    }).join('');
+
+    // Botones según estado y área
+    let acciones = '';
+    if (estado === 'pendiente') {
+      acciones = '<button class="btn-action btn-iniciar" onclick="cambiarEstado(\'' + ordenId + '\',' + prendaIdx + ',\'en_proceso\')">⚙️ Iniciar Proceso</button>';
+    }
+
+    if (estado === 'en_proceso') {
+      if (areaActual === 'Diseño') {
+        const bD = 'diseno-btn' + (estadoDiseno === 'diseno' ? ' active-diseno' : '');
+        const bI = 'diseno-btn' + (estadoDiseno === 'imprimiendo' ? ' active-imprimiendo' : '');
+        const bP = 'diseno-btn' + (estadoDiseno === 'impreso' ? ' active-impreso' : '');
+        const enviarBtn = estadoDiseno === 'impreso' && areaSig
+          ? '<button class="btn-action btn-enviar" onclick="enviarSiguiente(\'' + ordenId + '\',' + prendaIdx + ',\'' + areaSig + '\')">📤 Enviar a ' + areaSig + '</button>'
+          : '';
+        acciones = '<div style="width:100%">'
+          + '<div class="diseno-estados"><div class="diseno-label">Estado del Arte</div><div class="diseno-btns">'
+          + '<button class="' + bD + '" onclick="cambiarEstadoDiseno(\'' + ordenId + '\',' + prendaIdx + ',\'diseno\')">🎨 En Diseño</button>'
+          + '<button class="' + bI + '" onclick="cambiarEstadoDiseno(\'' + ordenId + '\',' + prendaIdx + ',\'imprimiendo\')">🖨️ Imprimiendo</button>'
+          + '<button class="' + bP + '" onclick="cambiarEstadoDiseno(\'' + ordenId + '\',' + prendaIdx + ',\'impreso\')">✅ Impreso</button>'
+          + '</div></div>'
+          + '<div class="prenda-actions">' + enviarBtn
+          + '<button class="btn-action btn-error" onclick="abrirError(\'' + ordenId + '\',' + prendaIdx + ')">🔴 Reportar Error</button>'
+          + '</div></div>';
+      } else {
+        acciones = '<button class="btn-action btn-listo" onclick="cambiarEstado(\'' + ordenId + '\',' + prendaIdx + ',\'lista\')">✅ Marcar Lista</button>'
+          + '<button class="btn-action btn-error" onclick="abrirError(\'' + ordenId + '\',' + prendaIdx + ')">🔴 Reportar Error</button>';
+      }
+    }
+
+    if (estado === 'lista') {
+      acciones = areaSig
+        ? '<button class="btn-action btn-enviar" onclick="enviarSiguiente(\'' + ordenId + '\',' + prendaIdx + ',\'' + areaSig + '\')">📤 Enviar a ' + areaSig + '</button>'
+          + '<button class="btn-action btn-error" onclick="abrirError(\'' + ordenId + '\',' + prendaIdx + ')">🔴 Reportar Error</button>'
+        : '<span style="font-size:13px;font-weight:700;color:var(--green)">✅ Lista — En Almacén</span>';
+    }
+
+    const estadoBadge = {
+      pendiente:  '<span class="estado-badge estado-pendiente">📥 Pendiente</span>',
+      en_proceso: '<span class="estado-badge estado-proceso">⚙️ En Proceso</span>',
+      lista:      '<span class="estado-badge estado-lista">✅ Lista</span>',
+    }[estado] || '';
+
+    const cardClass = estado === 'en_proceso' ? 'en-proceso' : estado === 'lista' ? 'lista' : esPrioritario ? 'priority' : '';
+
+    return '<div class="prenda-card ' + cardClass + '">'
+      + '<div class="prenda-header">'
+        + '<div class="prenda-header-left">'
+          + '<span class="prenda-orden">' + ordenNum + '</span>'
+          + '<span class="prenda-nombre">' + (prenda.tipo || 'Prenda') + '</span>'
+          + '<div class="prenda-tags">'
+            + (prenda.horma ? '<span class="ptag ptag-gray">' + prenda.horma + '</span>' : '')
+            + (prenda.talla ? '<span class="ptag ptag-gray">' + prenda.talla + '</span>' : '')
+            + '<span class="ptag ptag-blue">x' + (prenda.cantidad || 1) + '</span>'
+            + (esPrioritario ? '<span class="ptag ptag-red">🔴 Prioritario</span>' : '')
+            + '<span class="ptag ptag-amber">🚚 ' + entregaF + '</span>'
+            + (marca ? '<span class="ptag ptag-purple">🏷️ ' + marca + '</span>' : '')
+            + (diseñadorAsignado && areaActual === 'Diseño' ? '<span class="ptag" style="background:#ecfdf5;border:1px solid #6ee7b7;color:#059669;font-weight:700">👤 ' + diseñadorAsignado + '</span>' : '')
+          + '</div>'
+        + '</div>'
+        + '<div>' + estadoBadge + '</div>'
+      + '</div>'
+      + '<div class="prenda-body">'
+        + (prenda.notas ? '<div class="prenda-notas">📝 ' + prenda.notas + '</div>' : '')
+        + (prenda.url   ? '<div class="prenda-url">🔗 <a href="' + prenda.url + '" target="_blank">Ver referencia del diseño</a></div>' : '')
+        + '<div class="flujo-wrap">' + flujoHTML + '</div>'
+        + (tieneError ? '<div class="error-alert"><div class="error-alert-title">⚠️ Error reportado por: ' + errorAreaReporta + '</div><div class="error-alert-desc">' + errorDesc + '</div></div>' : '')
+        + '<div class="prenda-actions">' + acciones + '</div>'
+      + '</div>'
+    + '</div>';
+  }
+
+  // ── CAMBIAR ESTADO (Actualización local optimista) ────────
+  async function cambiarEstado(ordenId, prendaIdx, nuevoEstado) {
+    // 1. Actualizar UI inmediatamente sin esperar a Supabase
+    const listas = { pendientes: window._pendientes, proceso: window._proceso, listas: window._listas };
+    let item = null;
+    let listaOrigen = null;
+
+    for (const [key, arr] of Object.entries(listas)) {
+      const idx = arr.findIndex(p => String(p.ordenId) === String(ordenId) && p.prendaIdx === prendaIdx);
+      if (idx >= 0) { item = arr.splice(idx, 1)[0]; listaOrigen = key; break; }
+    }
+
+    if (item) {
+      item.estado = nuevoEstado;
+      const destino = { en_proceso: window._proceso, lista: window._listas, pendiente: window._pendientes };
+      if (destino[nuevoEstado]) destino[nuevoEstado].unshift(item);
+      totalPrendas = { pendientes: window._pendientes.length, proceso: window._proceso.length, listas: window._listas.length };
+      actualizarStats();
+      const tabDest = { en_proceso: 'proceso', lista: 'listas', pendiente: 'pendientes' }[nuevoEstado];
+      if (tabDest) { tabActual = tabDest; pagina = 0; ['pendientes','proceso','listas','errores'].forEach(t => { const el = document.getElementById('tab-'+t); if(el) el.classList.toggle('active', t===tabDest); }); }
+      renderTab();
+      showToast(nuevoEstado === 'en_proceso' ? '⚙️ Proceso iniciado' : '✅ Prenda lista para enviar');
+    }
+
+    // 2. Guardar en Supabase en background (no bloquea la UI)
+    actualizarSubEstado(ordenId, prendaIdx, { estado: nuevoEstado }).catch(e => {
+      showToast('⚠️ Error guardando: ' + e.message);
+    });
+  }
+
+  // ── ESTADO DISEÑO ─────────────────────────────────────────
+  async function cambiarEstadoDiseno(ordenId, prendaIdx, nuevoEstadoDiseno) {
+    // Actualizar en memoria
+    const arr = window._proceso || [];
+    const item = arr.find(p => String(p.ordenId) === String(ordenId) && p.prendaIdx === prendaIdx);
+    if (item) { item.estadoDiseno = nuevoEstadoDiseno; renderTab(); }
+    showToast(nuevoEstadoDiseno === 'imprimiendo' ? '🖨️ Imprimiendo...' : nuevoEstadoDiseno === 'impreso' ? '✅ Arte impreso — puedes enviar' : '🎨 En diseño');
+    // Guardar en background
+    actualizarSubEstado(ordenId, prendaIdx, { estado_diseno: nuevoEstadoDiseno }).catch(() => {});
+  }
+
+  // ── ENVIAR A SIGUIENTE ÁREA ───────────────────────────────
+  async function enviarSiguiente(ordenId, prendaIdx, areaSiguiente) {
+    // Buscar y remover de CUALQUIER lista (Diseño envía desde en_proceso, otras áreas desde listas)
+    const todasListas = [
+      { key: 'listas',     arr: window._listas     || [] },
+      { key: 'proceso',    arr: window._proceso     || [] },
+      { key: 'pendientes', arr: window._pendientes  || [] },
+    ];
+
+    for (const { key, arr } of todasListas) {
+      const idx = arr.findIndex(p => String(p.ordenId) === String(ordenId) && p.prendaIdx === prendaIdx);
+      if (idx >= 0) {
+        arr.splice(idx, 1);
+        totalPrendas[key] = arr.length;
+        break;
+      }
+    }
+
+    actualizarStats();
+    // Cambiar a tab pendientes para que no quede en tab vacía
+    tabActual = 'pendientes';
+    ['pendientes','proceso','listas','errores'].forEach(t => {
+      const el = document.getElementById('tab-' + t);
+      if (el) el.classList.toggle('active', t === 'pendientes');
+    });
+    renderTab();
+    showToast('📤 Prenda enviada a ' + areaSiguiente);
+    // Guardar en Supabase en background
+    actualizarSubEstado(ordenId, prendaIdx, {
+      area_actual:   areaSiguiente,
+      estado:        'pendiente',
+      estado_diseno: 'diseno',
+      error_desc:    null,
+      error_area:    null
+    }).catch(() => {});
+  }
+
+  // ── MODAL ERROR ───────────────────────────────────────────
+  function abrirError(ordenId, prendaIdx) {
+    errorTarget = { ordenId, prendaIdx };
+    document.getElementById('error-desc').value = '';
+    document.getElementById('modal-error').classList.add('show');
+  }
+  function cerrarModal() {
+    document.getElementById('modal-error').classList.remove('show');
+    errorTarget = null;
+  }
+
+  async function confirmarError() {
+    if (!errorTarget) return;
+    const { ordenId, prendaIdx } = errorTarget;
+    const desc = document.getElementById('error-desc').value.trim();
+    if (!desc) { alert('Describe el problema antes de continuar.'); return; }
+
+    // Buscar item en cualquier lista
+    let item = null;
+    for (const arr of [window._pendientes, window._proceso, window._listas]) {
+      item = arr.find(p => String(p.ordenId) === String(ordenId) && p.prendaIdx === prendaIdx);
+      if (item) break;
+    }
+
+    const ruta   = item?.ruta || [];
+    const idx    = ruta.indexOf(areaActual);
+    const areaAnt = idx > 0 ? ruta[idx - 1] : 'Análisis';
+
+    // Remover de lista actual
+    for (const arr of [window._pendientes, window._proceso, window._listas]) {
+      const i = arr.findIndex(p => String(p.ordenId) === String(ordenId) && p.prendaIdx === prendaIdx);
+      if (i >= 0) { arr.splice(i, 1); break; }
+    }
+    totalPrendas = { pendientes: window._pendientes.length, proceso: window._proceso.length, listas: window._listas.length };
+    actualizarStats();
+    renderTab();
+
+    cerrarModal();
+    showToast('🔴 Error reportado — devuelta a ' + areaAnt);
+
+    // Guardar en Supabase en background
+    Promise.all([
+      actualizarSubEstado(ordenId, prendaIdx, { area_actual: areaAnt, estado: 'pendiente', error_desc: desc, error_area: areaActual, error_fecha: new Date().toISOString() }),
+      fetch(SB_URL + '/rest/v1/errores_produccion', {
+        method: 'POST',
+        headers: { ...HDR, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ orden_id: ordenId, numero_orden: item?.ordenNum || '', prenda_idx: prendaIdx, tipo_prenda: item?.prenda?.tipo || '', area_reporta: areaActual, area_responsable: areaAnt, descripcion: desc, estado: 'PENDIENTE' })
+      })
+    ]).then(() => cargarErrores()).catch(() => {});
+  }
+
+  // ── ACTUALIZAR SUB_ESTADO (eficiente — solo lee sub_estados) ──
+  async function actualizarSubEstado(ordenId, prendaIdx, cambios) {
+    const r = await fetch(SB_URL + '/rest/v1/ordenes?id=eq.' + ordenId + '&select=sub_estados', { headers: HDR });
+    const data = await r.json();
+    let sub = data[0]?.sub_estados || [];
+    const i = sub.findIndex(s => s.prenda_idx === prendaIdx);
+    // Limpiar nulls del objeto cambios
+    const cambiosLimpios = Object.fromEntries(Object.entries(cambios).filter(([_, v]) => v !== null && v !== undefined));
+    if (i >= 0) sub[i] = { ...sub[i], ...cambiosLimpios, prenda_idx: prendaIdx };
+    else sub.push({ prenda_idx: prendaIdx, area_actual: areaActual, ...cambiosLimpios });
+    await fetch(SB_URL + '/rest/v1/ordenes?id=eq.' + ordenId, {
+      method: 'PATCH',
+      headers: { ...HDR, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ sub_estados: sub })
+    });
+  }
+
+  // ── ERRORES DEL ÁREA ──────────────────────────────────────
+  async function cargarErrores() {
+    try {
+      const r = await fetch(
+        SB_URL + '/rest/v1/errores_produccion?area_responsable=eq.' + encodeURIComponent(areaActual) + '&estado=eq.PENDIENTE&order=fecha_reporte.desc&limit=50',
+        { headers: HDR }
+      );
+      erroresArea = await r.json();
+      const badgeEl = document.getElementById('badge-errores');
+      if (erroresArea.length > 0) { badgeEl.textContent = erroresArea.length; badgeEl.style.display = 'inline'; }
+      else { badgeEl.style.display = 'none'; }
+      if (tabActual === 'errores') renderErrores();
+    } catch(e) {}
+  }
+
+  function renderErrores() {
+    const cont = document.getElementById('container');
+    document.getElementById('paginacion').style.display = 'none';
+    if (!erroresArea.length) {
+      cont.innerHTML = '<div class="state-box"><div class="icon">✅</div><p>No hay errores pendientes en esta área</p></div>';
+      return;
+    }
+    cont.innerHTML = '<div class="prendas-list">' + erroresArea.map(e => {
+      const fecha = new Date(e.fecha_reporte).toLocaleDateString('es-CO', { day:'2-digit', month:'short', year:'numeric' });
+      return '<div style="background:#fff;border:1.5px solid #fca5a5;border-left:4px solid #ef4444;border-radius:14px;box-shadow:0 4px 16px rgba(0,0,0,.08);overflow:hidden">'
+        + '<div style="padding:14px 18px;background:#fff1f2;border-bottom:1px solid #fecaca;display:flex;align-items:center;justify-content:space-between">'
+          + '<div><span style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:700;color:#2563eb">' + e.numero_orden + '</span>'
+          + ' &nbsp;·&nbsp; <span style="font-size:13px;font-weight:700">' + (e.tipo_prenda || 'Prenda') + '</span></div>'
+          + '<div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;color:#64748b">📅 ' + fecha + '</span>'
+          + '<span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:#fff1f2;color:#ef4444;border:1px solid #fca5a5">🔴 Pendiente</span></div>'
+        + '</div>'
+        + '<div style="padding:16px 18px">'
+          + '<div style="font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Reportado por: ' + e.area_reporta + '</div>'
+          + '<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:10px 14px;font-size:13px;color:#92400e;margin-bottom:14px">⚠️ ' + e.descripcion + '</div>'
+          + '<button onclick="corregirError(' + e.id + ',\'' + e.orden_id + '\',' + e.prenda_idx + ')" '
+            + 'style="padding:9px 18px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 3px 10px rgba(16,185,129,.3)">'
+            + '✅ Corregí el Error — Reenviar</button>'
+        + '</div>'
+      + '</div>';
+    }).join('') + '</div>';
+  }
+
+  async function corregirError(errorId, ordenId, prendaIdx) {
+    if (!confirm('¿Confirmas que el error fue corregido y la prenda está lista?')) return;
+    showToast('⏳ Procesando...');
+    await Promise.all([
+      fetch(SB_URL + '/rest/v1/errores_produccion?id=eq.' + errorId, {
+        method: 'PATCH',
+        headers: { ...HDR, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ estado: 'RESUELTO', fecha_correccion: new Date().toISOString() })
+      }),
+      actualizarSubEstado(ordenId, prendaIdx, { area_actual: areaActual, estado: 'lista', error_desc: null, error_area: null })
+    ]);
+    showToast('✅ Error corregido — prenda lista para enviar');
+    await cargar();
+    await cargarErrores();
+  }
+
+  // ── UTILIDADES ────────────────────────────────────────────
+  function mostrarCargando() {
+    document.getElementById('container').innerHTML =
+      '<div class="state-box"><div class="icon">⏳</div><p>Cargando...</p></div>';
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.style.opacity = '1';
+    clearTimeout(t._tid);
+    t._tid = setTimeout(() => { t.style.opacity = '0'; }, 3000);
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neko Soluciones – Ingreso de Ventas</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f0f4f8;
+    --surface: #ffffff;
+    --surface2: #f8fafc;
+    --border: #e2e8f0;
+    --border-focus: #3b82f6;
+    --text-primary: #0f172a;
+    --text-secondary: #64748b;
+    --text-muted: #94a3b8;
+    --blue-primary: #2563eb;
+    --blue-light: #eff6ff;
+    --blue-mid: #bfdbfe;
+    --red-alert: #ef4444;
+    --red-light: #fff1f2;
+    --red-border: #fca5a5;
+    --green: #10b981;
+    --green-light: #ecfdf5;
+    --amber: #f59e0b;
+    --amber-light: #fffbeb;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+    --shadow-md: 0 4px 16px rgba(0,0,0,.08), 0 2px 6px rgba(0,0,0,.04);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,.10), 0 4px 12px rgba(0,0,0,.06);
+    --radius: 14px;
+    --radius-sm: 8px;
+    --radius-xs: 6px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding: 24px 16px 48px;
+  }
+
+  /* HEADER */
+  .header {
+    max-width: 860px;
+    margin: 0 auto 28px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .header-logo {
+    width: 48px; height: 48px;
+    background: var(--blue-primary);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+    box-shadow: 0 4px 12px rgba(37,99,235,.35);
+  }
+  .header-text h1 { font-size: 22px; font-weight: 800; color: var(--text-primary); line-height:1.1; }
+  .header-text p { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+
+  /* CARD */
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border);
+    padding: 24px;
+    max-width: 860px;
+    margin: 0 auto 20px;
+    transition: border-color .25s, box-shadow .25s;
+  }
+  .card.priority-active {
+    border-color: var(--red-alert) !important;
+    box-shadow: 0 4px 16px rgba(239,68,68,.15), 0 2px 6px rgba(239,68,68,.08) !important;
+  }
+
+  /* CARD HEADER */
+  .card-header {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .card-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px;
+  }
+  .card-icon.blue { background: var(--blue-light); }
+  .card-icon.amber { background: var(--amber-light); }
+  .card-icon.green { background: var(--green-light); }
+  .card-icon.purple { background: #faf5ff; }
+  .card-title { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+  .card-subtitle { font-size: 12px; color: var(--text-secondary); margin-top: 1px; }
+
+  /* GRID */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 14px; }
+  .col-span-2 { grid-column: span 2; }
+  .col-span-3 { grid-column: span 3; }
+  .col-span-4 { grid-column: span 4; }
+
+  /* SECTION LABEL */
+  .section-label {
+    font-size: 11px; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--text-muted);
+    margin: 18px 0 12px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .section-label::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  /* FIELD */
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label {
+    font-size: 12px; font-weight: 600;
+    color: var(--text-secondary);
+  }
+  .field label span.req { color: var(--red-alert); margin-left: 2px; }
+
+  input[type="text"], input[type="email"], input[type="tel"],
+  input[type="number"], input[type="date"], input[type="url"],
+  select, textarea {
+    width: 100%;
+    padding: 9px 12px;
+    font-size: 14px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    color: var(--text-primary);
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    outline: none;
+    transition: border-color .2s, box-shadow .2s, background .2s;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--border-focus);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(59,130,246,.12);
+  }
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 32px;
+    cursor: pointer;
+  }
+  textarea { resize: vertical; min-height: 68px; line-height: 1.5; }
+  input[type="number"] { font-family: 'JetBrains Mono', monospace; font-size: 14px; }
+
+  /* INPUT WITH ICON */
+  .input-icon-wrap { position: relative; }
+  .input-icon-wrap .icon {
+    position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+    font-size: 16px; pointer-events: none;
+  }
+  .input-icon-wrap input { padding-left: 34px; }
+  .input-icon-wrap .suffix {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    font-size: 12px; font-weight: 600; color: var(--text-muted);
+    pointer-events: none;
+  }
+
+  /* SEARCH BUTTON */
+  .search-wrap { display: flex; gap: 8px; }
+  .search-wrap input { flex: 1; }
+  .btn-search {
+    padding: 9px 14px;
+    background: var(--blue-primary);
+    color: #fff;
+    border: none; border-radius: var(--radius-sm);
+    font-size: 13px; font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background .2s, transform .1s;
+  }
+  .btn-search:hover { background: #1d4ed8; }
+  .btn-search:active { transform: scale(.97); }
+
+  /* TOGGLE */
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px;
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+    transition: border-color .2s, background .2s;
+  }
+  .toggle-row:hover { border-color: var(--border-focus); background: var(--blue-light); }
+  .toggle-row.active { border-color: var(--red-border); background: var(--red-light); }
+  .toggle-info { display: flex; flex-direction: column; gap: 2px; }
+  .toggle-label { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+  .toggle-desc { font-size: 12px; color: var(--text-secondary); }
+  .toggle-switch {
+    width: 44px; height: 24px;
+    background: #cbd5e1;
+    border-radius: 12px;
+    position: relative;
+    transition: background .25s;
+    flex-shrink: 0;
+  }
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    width: 18px; height: 18px;
+    background: #fff;
+    border-radius: 50%;
+    top: 3px; left: 3px;
+    transition: transform .25s;
+    box-shadow: 0 1px 4px rgba(0,0,0,.2);
+  }
+  .toggle-row.active .toggle-switch { background: var(--red-alert); }
+  .toggle-row.active .toggle-switch::after { transform: translateX(20px); }
+
+  /* PRIORITY BADGE */
+  .priority-badge {
+    display: none;
+    align-items: center; gap: 6px;
+    padding: 6px 12px;
+    background: var(--red-alert);
+    color: #fff;
+    border-radius: 20px;
+    font-size: 11px; font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    animation: pulse-badge 1.8s infinite;
+    margin-top: 12px;
+  }
+  .priority-badge.visible { display: inline-flex; }
+  @keyframes pulse-badge {
+    0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,.4); }
+    50% { box-shadow: 0 0 0 6px rgba(239,68,68,.0); }
+  }
+
+  /* PRODUCTS */
+  .products-list { display: flex; flex-direction: column; gap: 12px; margin-top: 4px; }
+  .product-item {
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    position: relative;
+    animation: slide-in .2s ease;
+  }
+  @keyframes slide-in {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .product-item-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .product-item-title {
+    font-size: 12px; font-weight: 700;
+    color: var(--blue-primary);
+    text-transform: uppercase; letter-spacing: .06em;
+  }
+  .btn-remove {
+    background: none; border: none;
+    width: 26px; height: 26px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 15px;
+    color: var(--text-muted);
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s, color .15s;
+  }
+  .btn-remove:hover { background: #fee2e2; color: var(--red-alert); }
+
+  .btn-add-product {
+    width: 100%;
+    padding: 11px;
+    background: var(--blue-light);
+    color: var(--blue-primary);
+    border: 2px dashed var(--blue-mid);
+    border-radius: var(--radius-sm);
+    font-size: 13px; font-weight: 700;
+    cursor: pointer;
+    transition: background .2s, border-color .2s;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    margin-top: 12px;
+  }
+  .btn-add-product:hover {
+    background: var(--blue-mid);
+    border-color: var(--blue-primary);
+  }
+
+  /* PAYMENT */
+  .saldo-field input {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    background: var(--surface2);
+  }
+  .saldo-field.highlight input {
+    color: var(--red-alert);
+    background: var(--red-light);
+    border-color: var(--red-border);
+  }
+  .saldo-field.zero input {
+    color: var(--green);
+    background: var(--green-light);
+    border-color: #6ee7b7;
+  }
+
+  /* SUBMIT BUTTON */
+  .submit-wrap {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 0 8px;
+  }
+  .btn-submit {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 16px; font-weight: 800;
+    letter-spacing: .04em;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(37,99,235,.35);
+    transition: transform .15s, box-shadow .15s;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .btn-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(37,99,235,.45);
+  }
+  .btn-submit:active { transform: translateY(0); }
+
+  /* RESPONSIVE */
+  @media (max-width: 600px) {
+    .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+    .col-span-2, .col-span-3, .col-span-4 { grid-column: span 1; }
+  }
+
+  /* EMPTY STATE */
+  .empty-products {
+    text-align: center;
+    padding: 24px;
+    color: var(--text-muted);
+    font-size: 13px;
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-sm);
+  }
+  .empty-products span { font-size: 28px; display: block; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<!-- TABS VENTAS -->
+<div style="max-width:860px;margin:0 auto 20px;padding:0 0px">
+  <div style="display:flex;gap:4px;background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:6px;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+    <button id="vtab-nueva" onclick="cambiarVTab('nueva')" style="flex:1;padding:9px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:#2563eb;color:#fff;box-shadow:0 2px 8px rgba(37,99,235,.3);transition:all .2s">🛒 Nueva Orden</button>
+    <button id="vtab-seguimiento" onclick="cambiarVTab('seguimiento')" style="flex:1;padding:9px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:#64748b;transition:all .2s">🔍 Seguimiento</button>
+    <button onclick="window.location.href='neko_pagos.html'" style="flex:1;padding:9px;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;background:transparent;color:#f97316;transition:all .2s">💳 Pagos</button>
+  </div>
+</div>
+
+<div id="vcontent-nueva">
+<div class="header">
+  <div class="header-logo">🐱</div>
+  <div class="header-text">
+    <h1>Neko Soluciones</h1>
+    <p>Módulo de Ingreso de Ventas &nbsp;·&nbsp; Nueva Orden</p>
+  </div>
+</div>
+
+<!-- BLOQUE 1: CLIENTE -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-icon blue">👤</div>
+    <div>
+      <div class="card-title">Bloque 1 — Identificación y Ubicación del Cliente</div>
+      <div class="card-subtitle">Datos personales, contacto y logística de entrega</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="field">
+      <label>Documento de Identidad <span class="req">*</span></label>
+      <div class="search-wrap">
+        <input type="text" id="doc_id" placeholder="Ej. 1234567890">
+        <button class="btn-search" onclick="buscarCliente()">🔍 Buscar</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Nombre Completo <span class="req">*</span></label>
+      <input type="text" id="nombre" placeholder="Nombre y apellidos">
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-top:14px">
+    <div class="field">
+      <label>Teléfono / WhatsApp <span class="req">*</span></label>
+      <div class="input-icon-wrap">
+        <span class="icon">💬</span>
+        <input type="tel" id="telefono" placeholder="+57 300 000 0000">
+      </div>
+    </div>
+    <div class="field">
+      <label>Correo Electrónico</label>
+      <input type="email" id="email" placeholder="cliente@email.com">
+    </div>
+  </div>
+
+  <div class="section-label">📦 Dirección de Envío</div>
+
+  <div class="grid-2">
+    <div class="field col-span-2">
+      <label>Dirección de Residencia <span class="req">*</span></label>
+      <input type="text" id="direccion" placeholder="Ej. Calle 45 # 22-10, Apto 301">
+    </div>
+  </div>
+  <div class="grid-3" style="margin-top:14px">
+    <div class="field">
+      <label>Barrio <span class="req">*</span></label>
+      <input type="text" id="barrio" placeholder="Nombre del barrio">
+    </div>
+    <div class="field">
+      <label>Ciudad <span class="req">*</span></label>
+      <input type="text" id="ciudad" placeholder="Ej. Medellín">
+    </div>
+    <div class="field">
+      <label>Departamento <span class="req">*</span></label>
+      <input type="text" id="departamento" placeholder="Ej. Antioquia">
+    </div>
+  </div>
+
+  <div class="section-label">📡 Origen de la Venta</div>
+
+  <div class="grid-2">
+    <div class="field">
+      <label>Canal de Venta <span class="req">*</span></label>
+      <select id="canal">
+        <option value="">— Seleccionar —</option>
+        <option>Facebook</option>
+        <option>Instagram</option>
+        <option>WhatsApp</option>
+        <option>Web</option>
+        <option>Presencial</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Marca del Producto <span class="req">*</span></label>
+      <select id="marca">
+        <option value="">— Seleccionar Marca —</option>
+        <option>River Caves</option>
+        <option>Productos Crisa</option>
+        <option>Neko Sublima</option>
+        <option>Fighting</option>
+        <option>Possession</option>
+        <option>Rosie Glam</option>
+        <option>Artemis</option>
+        <option>Akihabara</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-top:14px">
+    <div class="field">
+      <label>Nombre de la Vendedora <span class="req">*</span></label>
+      <select id="vendedora">
+        <option value="">— Seleccionar —</option>
+        <option>Jennifer</option>
+        <option>María Isabel</option>
+        <option>Cristhian</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Usuario en Red Social</label>
+      <div class="input-icon-wrap">
+        <span class="icon">@</span>
+        <input type="text" id="usuario_red" placeholder="Ej. @cliente123 o nombre en chat">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BLOQUE 2: CRONOGRAMA -->
+<div class="card" id="bloque2">
+  <div class="card-header">
+    <div class="card-icon amber">📅</div>
+    <div>
+      <div class="card-title">Bloque 2 — Cronograma y Prioridad</div>
+      <div class="card-subtitle">Fecha de entrega y semáforo de urgencia</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="field">
+      <label>Fecha de Entrega Comprometida <span class="req">*</span></label>
+      <input type="date" id="fecha_entrega">
+    </div>
+    <div class="field">
+      <label>Prioridad de Envío</label>
+      <div class="toggle-row" id="toggleRow" onclick="togglePriority()">
+        <div class="toggle-info">
+          <span class="toggle-label">🚨 Prioridad Máxima</span>
+          <span class="toggle-desc">Despacho &lt; 3 días · Mercado Libre</span>
+        </div>
+        <div class="toggle-switch" id="toggleSwitch"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="priority-badge" id="priorityBadge">
+    🔴 PEDIDO PRIORITARIO — Área de Análisis
+  </div>
+</div>
+
+<!-- BLOQUE 3: PRODUCTOS -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-icon green">🛒</div>
+    <div>
+      <div class="card-title">Bloque 3 — Productos del Pedido</div>
+      <div class="card-subtitle">Agrega los ítems que el cliente solicitó</div>
+    </div>
+  </div>
+
+  <div id="products-list" class="products-list">
+    <div class="empty-products" id="empty-msg">
+      <span>📦</span>
+      Aún no hay productos. Presiona el botón para agregar el primero.
+    </div>
+  </div>
+
+  <button class="btn-add-product" onclick="agregarProducto()">
+    ＋ AGREGAR PRODUCTO
+  </button>
+</div>
+
+<!-- BLOQUE 4: PAGOS -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-icon purple">💰</div>
+    <div>
+      <div class="card-title">Bloque 4 — Calculadora de Pagos</div>
+      <div class="card-subtitle">Todos los valores se ingresan manualmente</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="field">
+      <label>Valor Total del Pedido <span class="req">*</span></label>
+      <div class="input-icon-wrap">
+        <span class="icon">$</span>
+        <input type="number" id="total" placeholder="0" min="0" oninput="calcularSaldo()">
+        <span class="suffix">COP</span>
+      </div>
+    </div>
+    <div class="field">
+      <label>Tipo de Pago <span class="req">*</span></label>
+      <select id="tipo_pago" onchange="onTipoPago()">
+        <option value="">— Seleccionar —</option>
+        <option value="total">Pago Total</option>
+        <option value="parcial">Pago Parcial / Abono</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-top:14px">
+    <div class="field">
+      <label>Monto Pagado <span class="req">*</span></label>
+      <div class="input-icon-wrap">
+        <span class="icon">💵</span>
+        <input type="number" id="pagado" placeholder="0" min="0" oninput="calcularSaldo()">
+        <span class="suffix">COP</span>
+      </div>
+    </div>
+    <div class="field saldo-field" id="saldo-field">
+      <label>Saldo Pendiente</label>
+      <div class="input-icon-wrap">
+        <span class="icon">⚖️</span>
+        <input type="number" id="saldo" placeholder="0" readonly>
+        <span class="suffix">COP</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-top:14px">
+    <div class="field">
+      <label>Medio de Pago <span class="req">*</span></label>
+      <select id="medio_pago">
+        <option value="">— Seleccionar —</option>
+        <option>ADDI</option>
+        <option>PAYU</option>
+        <option>BANCOLOMBIA</option>
+        <option>NEQUI</option>
+        <option>DAVIPLATA</option>
+        <option>DAVIVIENDA</option>
+        <option>LLAVE</option>
+        <option>Efectivo</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Observaciones de Pago</label>
+      <input type="text" id="obs_pago" placeholder="Ej. Abono inicial, segundo pago pendiente...">
+    </div>
+    <div class="field col-span-2">
+      <div id="contraentrega-wrap" style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:#fff7ed;border:2px solid #fed7aa;border-radius:8px;cursor:pointer;" onclick="toggleContraentrega()">
+        <div id="contraentrega-check" style="width:22px;height:22px;border:2px solid #f97316;border-radius:6px;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;font-size:14px;"></div>
+        <div>
+          <div style="font-size:14px;font-weight:700;color:#c2410c;">🚚 Contraentrega</div>
+          <div style="font-size:12px;color:#92400e;">El cliente pagará al recibir el paquete. Almacén verá esta alerta antes de despachar.</div>
+        </div>
+      </div>
+      <input type="hidden" id="es_contraentrega" value="false">
+    </div>
+  </div>
+</div>
+
+<!-- SUBMIT -->
+<div class="submit-wrap">
+  <button class="btn-submit" onclick="generarOrden()">
+    🚀 GENERAR ORDEN Y ENVIAR A ANÁLISIS
+  </button>
+</div><!-- fin submit-wrap -->
+</div><!-- fin vcontent-nueva -->
+
+<!-- PESTAÑA SEGUIMIENTO -->
+<div id="vcontent-seguimiento" style="display:none">
+  <div style="max-width:860px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;border-radius:14px;box-shadow:0 4px 16px rgba(0,0,0,.08);overflow:hidden">
+    <div style="padding:20px 24px;background:#f8fafc;border-bottom:1px solid #e2e8f0">
+      <div style="font-size:15px;font-weight:800;margin-bottom:4px">🔍 Seguimiento de Pedido</div>
+      <div style="font-size:13px;color:#64748b">Busca por número de pedido, celular o nombre del cliente</div>
+    </div>
+    <div style="padding:20px 24px">
+      <div style="display:flex;gap:10px;margin-bottom:20px">
+        <input type="text" id="seg-orden"
+          placeholder="Ej: 1001 · 3001234567 · Juan García · @usuario_red"
+          style="flex:1;padding:11px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;font-family:'Plus Jakarta Sans',sans-serif;outline:none;transition:border-color .2s"
+          onfocus="this.style.borderColor='#2563eb'"
+          onblur="this.style.borderColor='#e2e8f0'"
+          onkeydown="if(event.key==='Enter')buscarSeguimiento()">
+        <button onclick="buscarSeguimiento()"
+          style="padding:11px 22px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 3px 10px rgba(37,99,235,.3);white-space:nowrap">
+          🔍 Buscar
+        </button>
+      </div>
+      <div id="seg-resultado"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── TABS VENTAS ─────────────────────────────────────────
+  function cambiarVTab(tab) {
+    const esNueva = tab === 'nueva';
+    document.getElementById('vcontent-nueva').style.display = esNueva ? 'block' : 'none';
+    document.getElementById('vcontent-seguimiento').style.display = esNueva ? 'none' : 'block';
+    const btnNueva = document.getElementById('vtab-nueva');
+    const btnSeg   = document.getElementById('vtab-seguimiento');
+    if (esNueva) {
+      btnNueva.style.background = '#2563eb'; btnNueva.style.color = '#fff';
+      btnNueva.style.boxShadow = '0 2px 8px rgba(37,99,235,.3)';
+      btnSeg.style.background = 'transparent'; btnSeg.style.color = '#64748b';
+      btnSeg.style.boxShadow = 'none';
+    } else {
+      btnSeg.style.background = '#2563eb'; btnSeg.style.color = '#fff';
+      btnSeg.style.boxShadow = '0 2px 8px rgba(37,99,235,.3)';
+      btnNueva.style.background = 'transparent'; btnNueva.style.color = '#64748b';
+      btnNueva.style.boxShadow = 'none';
+    }
+  }
+
+  // ── ESTADO ──────────────────────────────────────────────
+  let productos = [];
+  let productCounter = 0;
+  let isPriority = false;
+
+  // ── TOGGLE PRIORIDAD ────────────────────────────────────
+  function togglePriority() {
+    isPriority = !isPriority;
+    const row    = document.getElementById('toggleRow');
+    const badge  = document.getElementById('priorityBadge');
+    const card   = document.getElementById('bloque2');
+
+    row.classList.toggle('active', isPriority);
+    badge.classList.toggle('visible', isPriority);
+    card.classList.toggle('priority-active', isPriority);
+  }
+
+  // ── CALCULAR SALDO ──────────────────────────────────────
+  function calcularSaldo() {
+    const total  = parseFloat(document.getElementById('total').value)  || 0;
+    const pagado = parseFloat(document.getElementById('pagado').value) || 0;
+    const saldo  = total - pagado;
+
+    const saldoInput = document.getElementById('saldo');
+    const saldoField = document.getElementById('saldo-field');
+
+    saldoInput.value = saldo < 0 ? 0 : saldo.toFixed(0);
+
+    saldoField.classList.remove('highlight', 'zero');
+    if (saldo > 0)       saldoField.classList.add('highlight');
+    else if (saldo <= 0) saldoField.classList.add('zero');
+  }
+
+  // ── CONTRAENTREGA CHECKBOX ──────────────────────────────
+  function toggleContraentrega() {
+    const input = document.getElementById('es_contraentrega');
+    const check = document.getElementById('contraentrega-check');
+    const wrap  = document.getElementById('contraentrega-wrap');
+    const activo = input.value === 'true';
+    input.value = activo ? 'false' : 'true';
+    check.textContent = activo ? '' : '✓';
+    check.style.background = activo ? '#fff' : '#f97316';
+    check.style.color = '#fff';
+    wrap.style.background = activo ? '#fff7ed' : '#fed7aa';
+    wrap.style.borderColor = activo ? '#fed7aa' : '#f97316';
+  }
+
+  // ── TIPO DE PAGO ────────────────────────────────────────
+  function onTipoPago() {
+    const tipo  = document.getElementById('tipo_pago').value;
+    const total = parseFloat(document.getElementById('total').value) || 0;
+    const pagadoEl = document.getElementById('pagado');
+    const medioEl  = document.getElementById('medio_pago');
+
+    if (tipo === 'total') {
+      pagadoEl.value = total > 0 ? total : '';
+      pagadoEl.readOnly = false;
+      calcularSaldo();
+    } else if (tipo === 'contraentrega') {
+      pagadoEl.value = 0;
+      pagadoEl.readOnly = true;
+      document.getElementById('saldo').value = total;
+      document.getElementById('saldo-field').classList.remove('zero');
+      document.getElementById('saldo-field').classList.add('highlight');
+      // Mostrar alerta contraentrega
+      let alerta = document.getElementById('contraentrega-alert');
+      if (!alerta) {
+        alerta = document.createElement('div');
+        alerta.id = 'contraentrega-alert';
+        alerta.style.cssText = 'background:#fff7ed;border:1.5px solid #fed7aa;border-radius:8px;padding:10px 14px;font-size:13px;font-weight:600;color:#c2410c;margin-top:10px;display:flex;align-items:center;gap:8px;';
+        alerta.innerHTML = '🚚 <span>CONTRAENTREGA — El cliente pagará al recibir el paquete. El almacén verá esta alerta antes de despachar.</span>';
+        document.getElementById('saldo-field').parentElement.parentElement.appendChild(alerta);
+      }
+      alerta.style.display = 'flex';
+    } else {
+      pagadoEl.readOnly = false;
+      const alerta = document.getElementById('contraentrega-alert');
+      if (alerta) alerta.style.display = 'none';
+      calcularSaldo();
+    }
+  }
+
+  // ── BUSCAR CLIENTE EN SUPABASE ──────────────────────────
+  async function buscarCliente() {
+    const doc = document.getElementById('doc_id').value.trim();
+    if (!doc) { alert('Ingresa un número de documento para buscar.'); return; }
+
+    const btn = document.querySelector('.btn-search');
+    btn.disabled = true;
+    btn.textContent = '⏳';
+
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/clientes?doc_cliente=eq.${encodeURIComponent(doc)}&limit=1`, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+      });
+      const data = await res.json();
+
+      if (data && data.length > 0) {
+        const c = data[0];
+        document.getElementById('nombre').value      = c.nombre_cliente  || '';
+        document.getElementById('telefono').value    = c.telefono        || '';
+        document.getElementById('email').value       = c.email           || '';
+        document.getElementById('direccion').value   = c.direccion       || '';
+        document.getElementById('barrio').value      = c.barrio          || '';
+        document.getElementById('ciudad').value      = c.ciudad          || '';
+        document.getElementById('departamento').value= c.departamento    || '';
+        showToast('✅ Cliente encontrado: ' + c.nombre_cliente);
+      } else {
+        showToast('🆕 Cliente nuevo — completa los datos manualmente.');
+        ['nombre','telefono','email','direccion','barrio','ciudad','departamento'].forEach(id => {
+          document.getElementById(id).value = '';
+        });
+        document.getElementById('nombre').focus();
+      }
+    } catch (err) {
+      alert('Error al buscar cliente: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '🔍 Buscar';
+    }
+  }
+
+  // ── GUARDAR O ACTUALIZAR CLIENTE ─────────────────────────
+  async function upsertCliente(orden) {
+    const cliente = {
+      doc_cliente:          orden.doc_cliente,
+      nombre_cliente:       orden.nombre_cliente,
+      telefono:             orden.telefono,
+      email:                orden.email,
+      direccion:            orden.direccion,
+      barrio:               orden.barrio,
+      ciudad:               orden.ciudad,
+      departamento:         orden.departamento,
+      ultima_actualizacion: new Date().toISOString()
+    };
+    await fetch(`${SUPABASE_URL}/rest/v1/clientes`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify(cliente)
+    });
+  }
+
+  // ── TOAST NOTIFICATION ───────────────────────────────────
+  function showToast(msg) {
+    let toast = document.getElementById('toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'toast';
+      toast.style.cssText = `
+        position:fixed; bottom:28px; left:50%; transform:translateX(-50%);
+        background:#0f172a; color:#fff; padding:12px 22px;
+        border-radius:10px; font-size:14px; font-weight:600;
+        box-shadow:0 8px 24px rgba(0,0,0,.25); z-index:9999;
+        transition:opacity .3s; white-space:nowrap;
+      `;
+      document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.style.opacity = '1';
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+  }
+
+  // ── TIPOS / TALLAS / MEDIDAS ─────────────────────────────
+  const tiposProducto = ['Camisetas','Hoodies','Pantalones','Cobijas','Mugs','Toallas con Capucha','Sudaderas','Shorts','Pijamas','Accesorios','Otro'];
+  const hormasOpc = ['UNISEX','OVERSIZE','JUNIOR','DAMA','CABALLERO','INFANTIL'];
+  const tallasStd = ['XS','S','M','L','XL','2XL','3XL','4XL','80x100','90x110','100x120','110x130','120x140','Única'];
+
+  function buildSelect(name, opciones, placeholder) {
+    let html = `<select name="${name}" required><option value="">— ${placeholder} —</option>`;
+    opciones.forEach(o => html += `<option value="${o}">${o}</option>`);
+    html += '</select>';
+    return html;
+  }
+
+  // ── AGREGAR PRODUCTO ─────────────────────────────────────
+  function agregarProducto() {
+    productCounter++;
+    const id = 'prod_' + productCounter;
+    const num = productCounter;
+
+    // Ocultar empty state
+    document.getElementById('empty-msg').style.display = 'none';
+
+    const div = document.createElement('div');
+    div.className = 'product-item';
+    div.id = id;
+    div.innerHTML = `
+      <div class="product-item-header">
+        <span class="product-item-title">📦 Producto #${num}</span>
+        <button class="btn-remove" onclick="eliminarProducto('${id}')" title="Eliminar">✕</button>
+      </div>
+      <div class="grid-3">
+        <div class="field">
+          <label>Tipo de Producto <span class="req">*</span></label>
+          ${buildSelect('tipo_'+id, tiposProducto, 'Tipo')}
+        </div>
+        <div class="field">
+          <label>Horma</label>
+          ${buildSelect('horma_'+id, hormasOpc, 'Horma')}
+        </div>
+        <div class="field">
+          <label>Talla / Medida <span class="req">*</span></label>
+          ${buildSelect('talla_'+id, tallasStd, 'Talla')}
+        </div>
+      </div>
+      <div class="grid-3" style="margin-top:10px">
+        <div class="field">
+          <label>Cantidad <span class="req">*</span></label>
+          <input type="number" name="cantidad_${id}" min="1" value="1" placeholder="1">
+        </div>
+        <div class="field col-span-2">
+          <label>URL de Referencia / Imagen</label>
+          <input type="url" name="url_${id}" placeholder="https://...">
+        </div>
+      </div>
+      <div class="field" style="margin-top:10px">
+        <label>Notas del Diseño</label>
+        <textarea name="notas_${id}" placeholder="Ej. Diseño Anime Productos Crisa, color negro, estampado en frente..."></textarea>
+      </div>
+    `;
+
+    document.getElementById('products-list').appendChild(div);
+  }
+
+  // ── ELIMINAR PRODUCTO ────────────────────────────────────
+  function eliminarProducto(id) {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+    // Mostrar empty si no hay productos
+    const lista = document.getElementById('products-list');
+    const items = lista.querySelectorAll('.product-item');
+    if (items.length === 0) {
+      document.getElementById('empty-msg').style.display = '';
+    }
+  }
+
+  // ── SUPABASE CONFIG ─────────────────────────────────────
+  const SUPABASE_URL = 'https://umlzaupnuvarrnakcbdo.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtbHphdXBudXZhcnJuYWtjYmRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTM4NTYsImV4cCI6MjA4OTg2OTg1Nn0.7Z5q3vvAIGDKFmjMjt6kra-3wHxNHyNjTfEj8GamdFA';
+
+  async function obtenerSiguienteNumero() {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/ordenes?select=numero_orden&order=id.desc&limit=1`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+    });
+    const data = await res.json();
+    if (!data || data.length === 0) return '0001';
+    const ultimo = data[0].numero_orden || '0000';
+    // Extraer solo dígitos y sumar 1, siempre 4 dígitos con ceros a la izquierda
+    const num = parseInt(ultimo.replace(/\D/g,'') || '0') + 1;
+    return String(num).padStart(4, '0');
+  }
+
+  async function guardarEnSupabase(orden) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/ordenes`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify(orden)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Error al guardar en Supabase');
+    }
+    return await res.json();
+  }
+
+  function recolectarProductos() {
+    const items = document.querySelectorAll('.product-item');
+    const lista = [];
+    items.forEach(item => {
+      const id = item.id;
+      lista.push({
+        tipo:     item.querySelector(`[name="tipo_${id}"]`) ? item.querySelector(`[name="tipo_${id}"]`).value : '',
+        horma:    item.querySelector(`[name="horma_${id}"]`) ? item.querySelector(`[name="horma_${id}"]`).value : '',
+        talla:    item.querySelector(`[name="talla_${id}"]`) ? item.querySelector(`[name="talla_${id}"]`).value : '',
+        cantidad: item.querySelector(`[name="cantidad_${id}"]`) ? item.querySelector(`[name="cantidad_${id}"]`).value : '1',
+        url:      item.querySelector(`[name="url_${id}"]`) ? item.querySelector(`[name="url_${id}"]`).value : '',
+        notas:    item.querySelector(`[name="notas_${id}"]`) ? item.querySelector(`[name="notas_${id}"]`).value : '',
+      });
+    });
+    return lista;
+  }
+
+  // ── GENERAR ORDEN ────────────────────────────────────────
+  async function generarOrden() {
+    const campos = [
+      { id: 'doc_id',        label: 'Documento de Identidad' },
+      { id: 'nombre',        label: 'Nombre Completo' },
+      { id: 'telefono',      label: 'Teléfono' },
+      { id: 'direccion',     label: 'Dirección' },
+      { id: 'barrio',        label: 'Barrio' },
+      { id: 'ciudad',        label: 'Ciudad' },
+      { id: 'departamento',  label: 'Departamento' },
+      { id: 'canal',         label: 'Canal de Venta' },
+      { id: 'vendedora',     label: 'Vendedora' },
+      { id: 'fecha_entrega', label: 'Fecha de Entrega' },
+      { id: 'total',         label: 'Valor Total' },
+      { id: 'tipo_pago',     label: 'Tipo de Pago' },
+      { id: 'pagado',        label: 'Monto Pagado' },
+      { id: 'medio_pago',    label: 'Medio de Pago' },
+    ];
+    for (const c of campos) {
+      const el = document.getElementById(c.id);
+      if (!el || !el.value.trim()) {
+        alert('Campo requerido: ' + c.label);
+        if (el) el.focus();
+        return;
+      }
+    }
+    const items = document.querySelectorAll('.product-item');
+    if (items.length === 0) {
+      alert('Debes agregar al menos un producto al pedido.');
+      return;
+    }
+
+    const btn = document.querySelector('.btn-submit');
+    btn.disabled = true;
+    btn.textContent = 'Guardando orden...';
+
+    try {
+      const numeroOrden = await obtenerSiguienteNumero();
+      const total  = parseFloat(document.getElementById('total').value)  || 0;
+      const pagado = parseFloat(document.getElementById('pagado').value) || 0;
+
+      const orden = {
+        numero_orden:    numeroOrden,
+        vendedora:       document.getElementById('vendedora').value,
+        marca:           document.getElementById('marca').value,
+        es_contraentrega: document.getElementById('es_contraentrega').value === 'true',
+        usuario_red:     document.getElementById('usuario_red').value,
+        canal:           document.getElementById('canal').value,
+        doc_cliente:     document.getElementById('doc_id').value,
+        nombre_cliente:  document.getElementById('nombre').value,
+        telefono:        document.getElementById('telefono').value,
+        email:           document.getElementById('email').value,
+        direccion:       document.getElementById('direccion').value,
+        barrio:          document.getElementById('barrio').value,
+        ciudad:          document.getElementById('ciudad').value,
+        departamento:    document.getElementById('departamento').value,
+        fecha_entrega:   document.getElementById('fecha_entrega').value,
+        es_prioritario:  isPriority,
+        productos:       recolectarProductos(),
+        valor_total:     total,
+        tipo_pago:       document.getElementById('tipo_pago').value,
+        monto_pagado:    pagado,
+        saldo_pendiente: Math.max(0, total - pagado),
+        medio_pago:      document.getElementById('medio_pago').value,
+        obs_pago:        document.getElementById('obs_pago').value,
+        estado:          'EN_ANALISIS'
+      };
+
+      await guardarEnSupabase(orden);
+      await upsertCliente(orden);
+
+      alert('Orden guardada! N: ' + numeroOrden + ' - Cliente: ' + orden.nombre_cliente + ' - Total: $' + total.toLocaleString('es-CO') + ' COP - Enviada a ANALISIS');
+
+      // Limpiar formulario
+      document.querySelectorAll('input, select, textarea').forEach(function(el) { el.value = ''; });
+      document.getElementById('products-list').innerHTML = '<div class="empty-products" id="empty-msg"><span>📦</span>Aún no hay productos. Presiona el botón para agregar el primero.</div>';
+      productCounter = 0;
+      if (isPriority) togglePriority();
+      document.getElementById('saldo-field').classList.remove('highlight','zero');
+
+    } catch (err) {
+      alert('Error al guardar la orden: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '🚀 GENERAR ORDEN Y ENVIAR A ANÁLISIS';
+    }
+  }
+
+  // ── SEGUIMIENTO DE PEDIDO ───────────────────────────────
+  const RUTAS_SEG = {
+    'Ruta 1':['Ventas','Análisis','Diseño','Sublimación','Corte','Confección','Terminación','Almacén'],
+    'Ruta 2':['Ventas','Análisis','Corte','Confección','Terminación','Almacén'],
+    'Ruta 3':['Ventas','Análisis','Compras','Diseño','Estampado','Almacén'],
+    'Ruta 4':['Análisis','Diseño','Sublimación','Almacén'],
+    'Ruta 5':['Ventas','Análisis','Diseño','Confección','Bordado','Terminación','Almacén'],
+    'Ruta 6':['Ventas','Análisis','Diseño','Bordado','Confección','Terminación','Almacén'],
+  };
+
+  async function buscarSeguimiento() {
+    const num = document.getElementById('seg-orden').value.trim().toUpperCase();
+    const el  = document.getElementById('seg-resultado');
+    if (!num) { el.innerHTML = '<p style="color:#94a3b8;font-size:13px">Ingresa un número de orden.</p>'; return; }
+
+    el.innerHTML = '<p style="color:#94a3b8;font-size:13px">⏳ Buscando...</p>';
+
+    // Buscar por número de orden, teléfono o nombre
+    let url = '';
+    if (/^\d+$/.test(num) && num.length <= 6) {
+      // Es número de orden corto
+      url = `${SUPABASE_URL}/rest/v1/ordenes?numero_orden=eq.${encodeURIComponent(num)}&limit=5`;
+    } else if (/^[0-9+\s]{7,}$/.test(num)) {
+      // Es teléfono
+      url = `${SUPABASE_URL}/rest/v1/ordenes?telefono=ilike.*${encodeURIComponent(num.replace(/\s/g,''))}*&limit=5`;
+    } else {
+      // Es nombre o usuario red social
+      if (num.startsWith('@')) {
+        url = `${SUPABASE_URL}/rest/v1/ordenes?usuario_red=ilike.*${encodeURIComponent(num.replace('@',''))}*&order=fecha_creacion.desc&limit=5`;
+      } else {
+        url = `${SUPABASE_URL}/rest/v1/ordenes?or=(nombre_cliente.ilike.*${encodeURIComponent(num)}*,usuario_red.ilike.*${encodeURIComponent(num)}*)&order=fecha_creacion.desc&limit=5`;
+      }
+    }
+
+    const r    = await fetch(url, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+    });
+    const data = await r.json();
+
+    if (!data || !data.length) {
+      el.innerHTML = '<p style="color:#ef4444;font-size:13px;font-weight:600">❌ No se encontraron resultados para <strong>' + num + '</strong></p>';
+      return;
+    }
+
+    // Si hay múltiples resultados mostrarlos todos
+    if (data.length > 1) {
+      el.innerHTML = '<div style="margin-bottom:12px;font-size:13px;font-weight:600;color:#64748b">Se encontraron '+data.length+' pedidos:</div>'
+        + data.map(o => renderSeguimientoCard(o)).join('');
+      return;
+    }
+
+    const o     = data[0];
+    const prods = o.productos || [];
+    const estadoLabel = o.estado === 'DESPACHADO' ? '✅ Despachado' : o.estado === 'EN_PRODUCCION' ? '⚙️ En Producción' : '📊 En Análisis';
+    const estadoColor = o.estado === 'DESPACHADO' ? '#10b981' : o.estado === 'EN_PRODUCCION' ? '#f59e0b' : '#7c3aed';
+
+    let prendasHTML = prods.map((p, idx) => {
+      const se       = (o.sub_estados||[]).find(s => s.prenda_idx === idx);
+      const ruta     = RUTAS_SEG[p.ruta] || [];
+      const areaActual = se?.area_actual || (ruta.find(a => a !== 'Ventas' && a !== 'Análisis') || '—');
+      const estado   = se?.estado || 'pendiente';
+      const tieneError = se?.error_desc;
+
+      const flujoHTML = ruta.map((area, i) => {
+        const iActual = ruta.indexOf(areaActual);
+        let bg = '#f1f5f9', color = '#64748b', border = '#e2e8f0';
+        if (i < iActual)        { bg='#dcfce7'; color='#16a34a'; border='#86efac'; }
+        else if (i === iActual) { bg='#2563eb'; color='#fff'; border='#2563eb'; }
+        return `<span style="padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;background:${bg};color:${color};border:1px solid ${border};white-space:nowrap">${area}</span>`
+          + (i < ruta.length-1 ? '<span style="color:#94a3b8;font-size:10px">→</span>' : '');
+      }).join('');
+
+      return `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-bottom:8px${tieneError?';border-left:3px solid #ef4444':''}">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <span style="font-size:13px;font-weight:700">${p.tipo||'Prenda'} ${p.horma?'· '+p.horma:''} ${p.talla?'· '+p.talla:''} <span style="background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;padding:1px 7px;border-radius:20px;font-size:11px">x${p.cantidad||1}</span></span>
+          <span style="font-size:11px;font-weight:700;background:#f1f5f9;padding:3px 9px;border-radius:20px;color:#475569">📍 ${areaActual}</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center">${flujoHTML}</div>
+        ${tieneError ? `<div style="margin-top:8px;font-size:11px;color:#ef4444;font-weight:600">⚠️ Error reportado: ${se.error_desc}</div>` : ''}
+      </div>`;
+    }).join('');
+
+    el.innerHTML = renderSeguimientoCard(o);
+  }
+
+  function renderSeguimientoCard(o) {
+    const prods      = o.productos || [];
+    const estadoLabel = o.estado === 'DESPACHADO' ? '✅ Despachado' : o.estado === 'EN_PRODUCCION' ? '⚙️ En Producción' : '📊 En Análisis';
+    const estadoColor = o.estado === 'DESPACHADO' ? '#10b981' : o.estado === 'EN_PRODUCCION' ? '#f59e0b' : '#7c3aed';
+    const fechaCreacion = o.fecha_creacion ? new Date(o.fecha_creacion).toLocaleDateString('es-CO') : '—';
+    const fechaEntrega  = o.fecha_entrega  ? new Date(o.fecha_entrega + 'T12:00:00').toLocaleDateString('es-CO') : '—';
+
+    // Prendas
+    let prendasHTML = prods.map((p, idx) => {
+      const se          = (o.sub_estados||[]).find(s => s.prenda_idx === idx);
+      const ruta        = RUTAS_SEG[p.ruta] || [];
+      const areaActual  = se && se.area_actual ? se.area_actual : (ruta.find(a => a !== 'Ventas' && a !== 'Análisis') || '—');
+      const tieneError  = se && se.error_desc;
+      const iActual     = ruta.indexOf(areaActual);
+
+      const flujoHTML = ruta.map((area, i) => {
+        let bg = '#f1f5f9', color = '#64748b', border = '#e2e8f0';
+        if (i < iActual)       { bg='#dcfce7'; color='#16a34a'; border='#86efac'; }
+        else if (i === iActual){ bg='#2563eb'; color='#fff';    border='#2563eb'; }
+        return '<span style="padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;'
+          + 'background:' + bg + ';color:' + color + ';border:1px solid ' + border + ';white-space:nowrap">'
+          + area + '</span>'
+          + (i < ruta.length-1 ? '<span style="color:#94a3b8;font-size:10px"> → </span>' : '');
+      }).join('');
+
+      return '<div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:14px;margin-bottom:10px'
+        + (tieneError ? ';border-left:4px solid #ef4444' : '') + '">'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">'
+          + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
+            + '<span style="font-size:14px;font-weight:800">' + (p.tipo||'Prenda') + '</span>'
+            + (p.horma ? '<span style="background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600">' + p.horma + '</span>' : '')
+            + (p.talla ? '<span style="background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600">' + p.talla + '</span>' : '')
+            + '<span style="background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700">x' + (p.cantidad||1) + '</span>'
+            + (p.ruta ? '<span style="background:#f5f3ff;color:#7c3aed;border:1px solid #ede9fe;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700">' + p.ruta + '</span>' : '')
+          + '</div>'
+          + '<span style="font-size:12px;font-weight:700;background:#e2e8f0;padding:4px 10px;border-radius:20px;color:#0f172a">📍 ' + areaActual + '</span>'
+        + '</div>'
+        + (p.notas ? '<div style="font-size:12px;color:#92400e;background:#fffbeb;padding:6px 10px;border-radius:6px;border-left:3px solid #f59e0b;margin-bottom:10px">📝 ' + p.notas + '</div>' : '')
+        + '<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center">' + flujoHTML + '</div>'
+        + (tieneError ? '<div style="margin-top:8px;font-size:12px;color:#ef4444;font-weight:600;background:#fff1f2;padding:6px 10px;border-radius:6px">⚠️ ' + se.error_desc + '</div>' : '')
+      + '</div>';
+    }).join('');
+
+    // Info de guía si fue despachado
+    const guiaHTML = o.guia_numero
+      ? '<div style="margin-top:10px;padding:10px 14px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'
+          + '<span style="font-size:13px;font-weight:700;color:#059669">📬 Guía: ' + o.guia_numero + '</span>'
+          + (o.guia_url ? ' &nbsp;·&nbsp; <a href="' + o.guia_url + '" target="_blank" style="font-size:13px;font-weight:700;color:#2563eb">🔗 Rastrear envío</a>' : '')
+        + '</div>'
+      : '';
+
+    // Usuario red social
+    const redHTML = o.usuario_red
+      ? ' &nbsp;·&nbsp; <span style="color:#7c3aed">@' + o.usuario_red + '</span>'
+      : '';
+
+    return '<div style="background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;padding:16px;margin-bottom:12px">'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #f1f5f9;flex-wrap:wrap;gap:8px">'
+        + '<div>'
+          + '<div style="font-family:JetBrains Mono,monospace;font-size:15px;font-weight:700;color:#2563eb">' + o.numero_orden + '</div>'
+          + '<div style="font-size:12px;color:#64748b;margin-top:2px">'
+            + '📅 ' + fechaCreacion
+            + ' &nbsp;·&nbsp; 🚚 Entrega: ' + fechaEntrega
+            + ' &nbsp;·&nbsp; 🏷️ ' + (o.marca||'—')
+            + redHTML
+          + '</div>'
+          + guiaHTML
+        + '</div>'
+        + '<span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;background:' + estadoColor + '20;color:' + estadoColor + '">' + estadoLabel + '</span>'
+      + '</div>'
+      + '<div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">📦 Prendas del Pedido</div>'
+      + (prendasHTML || '<p style="color:#94a3b8;font-size:13px">Sin prendas registradas</p>')
+    + '</div>';
+  }
+
+  // ── INIT: fecha mínima hoy ───────────────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    const hoy = new Date().toISOString().split('T')[0];
+    document.getElementById('fecha_entrega').min = hoy;
+  });
+</script>
+</body>
+</html>
