@@ -1136,78 +1136,50 @@
   };
 
   async function buscarSeguimiento() {
-    const num = document.getElementById('seg-orden').value.trim().toUpperCase();
+    const num = document.getElementById('seg-orden').value.trim();
     const el  = document.getElementById('seg-resultado');
-    if (!num) { el.innerHTML = '<p style="color:#94a3b8;font-size:13px">Ingresa un número de orden.</p>'; return; }
 
+    // Si está vacío limpiar resultado
+    if (!num) {
+      el.innerHTML = '';
+      return;
+    }
+
+    // Mínimo 1 caracter para buscar
     el.innerHTML = '<p style="color:#94a3b8;font-size:13px">⏳ Buscando...</p>';
 
-    // Buscar por número de orden, teléfono o nombre
     let url = '';
-    if (/^\d+$/.test(num) && num.length <= 6) {
-      // Es número de orden - búsqueda parcial con ilike
+    const HEADERS = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY };
+
+    if (/^[0-9]+$/.test(num) && num.length <= 6) {
+      // Número de orden — búsqueda parcial desde el inicio
+      const padded = num.padStart ? num : num;
       url = `${SUPABASE_URL}/rest/v1/ordenes?numero_orden=ilike.*${encodeURIComponent(num)}*&order=fecha_creacion.desc&limit=10`;
-    } else if (/^[0-9+\s]{7,}$/.test(num)) {
-      // Es teléfono
-      url = `${SUPABASE_URL}/rest/v1/ordenes?telefono=ilike.*${encodeURIComponent(num.replace(/\s/g,''))}*&limit=5`;
+    } else if (/^[0-9+\s]{7,}$/.test(num.replace(/\s/g,''))) {
+      // Teléfono
+      url = `${SUPABASE_URL}/rest/v1/ordenes?telefono=ilike.*${encodeURIComponent(num.replace(/\s/g,''))}*&order=fecha_creacion.desc&limit=5`;
+    } else if (num.startsWith('@')) {
+      // Usuario red social con @
+      url = `${SUPABASE_URL}/rest/v1/ordenes?usuario_red=ilike.*${encodeURIComponent(num.replace('@',''))}*&order=fecha_creacion.desc&limit=5`;
     } else {
-      // Es nombre o usuario red social
-      if (num.startsWith('@')) {
-        url = `${SUPABASE_URL}/rest/v1/ordenes?usuario_red=ilike.*${encodeURIComponent(num.replace('@',''))}*&order=fecha_creacion.desc&limit=5`;
-      } else {
-        url = `${SUPABASE_URL}/rest/v1/ordenes?or=(nombre_cliente.ilike.*${encodeURIComponent(num)}*,usuario_red.ilike.*${encodeURIComponent(num)}*)&order=fecha_creacion.desc&limit=5`;
+      // Nombre o usuario red social sin @
+      url = `${SUPABASE_URL}/rest/v1/ordenes?or=(nombre_cliente.ilike.*${encodeURIComponent(num)}*,usuario_red.ilike.*${encodeURIComponent(num)}*)&order=fecha_creacion.desc&limit=5`;
+    }
+
+    try {
+      const r    = await fetch(url, { headers: HEADERS });
+      const data = await r.json();
+
+      if (!data || !data.length) {
+        el.innerHTML = '<p style="color:#ef4444;font-size:13px;font-weight:600">❌ Sin resultados para <strong>' + num + '</strong></p>';
+        return;
       }
+
+      el.innerHTML = data.map(o => renderSeguimientoCard(o)).join('');
+
+    } catch(e) {
+      el.innerHTML = '<p style="color:#ef4444;font-size:13px">❌ Error: ' + e.message + '</p>';
     }
-
-    const r    = await fetch(url, {
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
-    });
-    const data = await r.json();
-
-    if (!data || !data.length) {
-      el.innerHTML = '<p style="color:#ef4444;font-size:13px;font-weight:600">❌ No se encontraron resultados para <strong>' + num + '</strong></p>';
-      return;
-    }
-
-    // Si hay múltiples resultados mostrarlos todos
-    if (data.length > 1) {
-      el.innerHTML = '<div style="margin-bottom:12px;font-size:13px;font-weight:600;color:#64748b">Se encontraron '+data.length+' pedidos:</div>'
-        + data.map(o => renderSeguimientoCard(o)).join('');
-      return;
-    }
-
-    const o     = data[0];
-    const prods = o.productos || [];
-    const estadoLabel = o.estado === 'DESPACHADO' ? '✅ Despachado' : o.estado === 'EN_PRODUCCION' ? '⚙️ En Producción' : '📊 En Análisis';
-    const estadoColor = o.estado === 'DESPACHADO' ? '#10b981' : o.estado === 'EN_PRODUCCION' ? '#f59e0b' : '#7c3aed';
-
-    let prendasHTML = prods.map((p, idx) => {
-      const se       = (o.sub_estados||[]).find(s => s.prenda_idx === idx);
-      const ruta     = RUTAS_SEG[p.ruta] || [];
-      const areaActual = se?.area_actual || (ruta.find(a => a !== 'Ventas' && a !== 'Análisis') || '—');
-      const estado   = se?.estado || 'pendiente';
-      const tieneError = se?.error_desc;
-
-      const flujoHTML = ruta.map((area, i) => {
-        const iActual = ruta.indexOf(areaActual);
-        let bg = '#f1f5f9', color = '#64748b', border = '#e2e8f0';
-        if (i < iActual)        { bg='#dcfce7'; color='#16a34a'; border='#86efac'; }
-        else if (i === iActual) { bg='#2563eb'; color='#fff'; border='#2563eb'; }
-        return `<span style="padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;background:${bg};color:${color};border:1px solid ${border};white-space:nowrap">${area}</span>`
-          + (i < ruta.length-1 ? '<span style="color:#94a3b8;font-size:10px">→</span>' : '');
-      }).join('');
-
-      return `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-bottom:8px${tieneError?';border-left:3px solid #ef4444':''}">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <span style="font-size:13px;font-weight:700">${p.tipo||'Prenda'} ${p.horma?'· '+p.horma:''} ${p.talla?'· '+p.talla:''} <span style="background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;padding:1px 7px;border-radius:20px;font-size:11px">x${p.cantidad||1}</span></span>
-          <span style="font-size:11px;font-weight:700;background:#f1f5f9;padding:3px 9px;border-radius:20px;color:#475569">📍 ${areaActual}</span>
-        </div>
-        <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center">${flujoHTML}</div>
-        ${tieneError ? `<div style="margin-top:8px;font-size:11px;color:#ef4444;font-weight:600">⚠️ Error reportado: ${se.error_desc}</div>` : ''}
-      </div>`;
-    }).join('');
-
-    el.innerHTML = renderSeguimientoCard(o);
   }
 
   function renderSeguimientoCard(o) {
