@@ -181,7 +181,6 @@ function contarPrendas(o) {
 }
 
 async function cargar() {
-  var tabAntes = tabActual; // Recordar tab actual
   document.getElementById("container").innerHTML = '<div class="state-box"><div class="icon">⏳</div><p>Cargando...</p></div>';
   try {
     var r = await fetch(SB_URL + "/rest/v1/ordenes?estado=in.(EN_PRODUCCION,DESPACHADO)&select=id,numero_orden,nombre_cliente,telefono,doc_cliente,direccion,barrio,ciudad,departamento,usuario_red,marca,vendedora,productos,sub_estados,es_prioritario,fecha_entrega,fecha_creacion,valor_total,monto_pagado,saldo_pendiente,es_contraentrega,pago_confirmado,confirmado_por,guia_numero,guia_url,fecha_despacho,tipo_envio,transportadora&order=es_prioritario.desc,fecha_creacion.asc", { headers: HDR });
@@ -196,10 +195,6 @@ async function cargar() {
       });
     });
     actualizarStats();
-    // Restaurar la tab en que estaba el usuario
-    tabActual = tabAntes;
-    document.getElementById("tab-pendientes").classList.toggle("active", tabActual === "pendientes");
-    document.getElementById("tab-despachados").classList.toggle("active", tabActual === "despachados");
     renderTab();
   } catch(e) {
     document.getElementById("container").innerHTML = '<div class="state-box"><div class="icon">❌</div><p>' + e.message + '</p></div>';
@@ -228,6 +223,9 @@ function cambiarTab(tab) {
 }
 
 function renderTab() {
+  // Sincronizar botones de tab con tabActual
+  document.getElementById("tab-pendientes").classList.toggle("active", tabActual === "pendientes");
+  document.getElementById("tab-despachados").classList.toggle("active", tabActual === "despachados");
   var lista = tabActual === "pendientes"
     ? ordenes.filter(function(o) { return o.estado !== "DESPACHADO"; })
     : ordenes.filter(function(o) { return o.estado === "DESPACHADO"; });
