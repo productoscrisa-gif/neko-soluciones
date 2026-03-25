@@ -1,7 +1,11 @@
+<!-- NEKO v2.1.0 -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Neko Soluciones – Login</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet">
@@ -268,6 +272,23 @@
   }
 
   // Si ya hay sesión activa, redirigir directo
+  // Anti-caché: verificar versión y recargar si hay versión nueva
+  (function() {
+    var VERSION = '2.1.0';
+    var stored = localStorage.getItem('nk_version');
+    if (stored && stored !== VERSION) {
+      localStorage.setItem('nk_version', VERSION);
+      // Limpiar caché de service workers si existe
+      if ('caches' in window) {
+        caches.keys().then(function(names) {
+          names.forEach(function(name) { caches.delete(name); });
+        });
+      }
+    } else {
+      localStorage.setItem('nk_version', VERSION);
+    }
+  })();
+
   window.addEventListener('DOMContentLoaded', () => {
     const session = sessionStorage.getItem('nk_user');
     if (session) {
