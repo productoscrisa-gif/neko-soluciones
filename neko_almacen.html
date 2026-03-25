@@ -3,435 +3,445 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Neko Soluciones – Almacén</title>
+<title>Neko Soluciones - Almacen</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
-  :root{--bg:#f0f4f8;--surface:#fff;--surface2:#f8fafc;--border:#e2e8f0;--text-primary:#0f172a;--text-secondary:#64748b;--text-muted:#94a3b8;--blue:#2563eb;--blue-light:#eff6ff;--blue-mid:#bfdbfe;--red:#ef4444;--red-light:#fff1f2;--red-border:#fca5a5;--green:#10b981;--green-light:#ecfdf5;--green-border:#6ee7b7;--amber:#f59e0b;--amber-light:#fffbeb;--indigo:#4f46e5;--indigo-light:#eef2ff;--indigo-mid:#c7d2fe;--shadow-sm:0 1px 3px rgba(0,0,0,.06);--shadow-md:0 4px 16px rgba(0,0,0,.08);--radius:14px;--radius-sm:8px;}
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text-primary);min-height:100vh;}
-  .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-sm);}
-  .topbar-left{display:flex;align-items:center;gap:12px;}
-  .logo-icon{width:36px;height:36px;background:var(--indigo);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 3px 10px rgba(79,70,229,.3);}
-  .topbar h1{font-size:16px;font-weight:800;}.topbar h1 span{color:var(--indigo);}
-  .area-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--indigo-light);color:var(--indigo);text-transform:uppercase;letter-spacing:.05em;}
-  .topbar-right{display:flex;align-items:center;gap:10px;}
-  .user-info{font-size:13px;font-weight:600;color:var(--text-secondary);}
-  .btn-sm{padding:6px 12px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--text-secondary);}
-  .btn-sm.blue{background:var(--indigo-light);color:var(--indigo);border-color:var(--indigo-mid);}
-  .main{padding:24px;max-width:1000px;margin:0 auto;}
-  .stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
-  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow-sm);}
-  .stat-label{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;}
-  .stat-value{font-size:26px;font-weight:800;margin-top:4px;font-family:'JetBrains Mono',monospace;}
-  .stat-value.blue{color:var(--indigo);}.stat-value.amber{color:var(--amber);}.stat-value.green{color:var(--green);}.stat-value.red{color:var(--red);}
-  .tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:6px;margin-bottom:20px;box-shadow:var(--shadow-sm);}
-  .tab{flex:1;padding:8px;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:var(--text-secondary);transition:all .2s;}
-  .tab.active{background:var(--indigo);color:#fff;}
-  .orders-list{display:flex;flex-direction:column;gap:16px;}
-  .order-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-md);overflow:hidden;}
-  .order-card.completo{border-color:var(--green-border);}
-  .order-card.incompleto{border-left:4px solid var(--amber);}
-  .order-card.priority{border-left:4px solid var(--red);}
-  .order-card.despachado{border-color:var(--indigo-mid);}
-  .order-header{padding:14px 20px;display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border-bottom:1px solid var(--border);cursor:pointer;user-select:none;}
-  .order-num{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:var(--indigo);}
-  .order-meta{font-size:12px;color:var(--text-muted);margin-top:2px;}
-  .order-header-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-  .badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
-  .badge-completo{background:var(--green-light);color:var(--green);}
-  .badge-incompleto{background:var(--amber-light);color:var(--amber);}
-  .badge-despachado{background:var(--indigo-light);color:var(--indigo);}
-  .badge-priority{background:var(--red-light);color:var(--red);}
-  .chevron{font-size:13px;color:var(--text-muted);transition:transform .25s;}
-  .chevron.open{transform:rotate(180deg);}
-  .order-body{display:none;padding:20px;}
-  .order-body.open{display:block;}
-  .section-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:12px;display:flex;align-items:center;gap:6px;}
-  .section-title::after{content:'';flex:1;height:1px;background:var(--border);}
-  .alert-box{padding:12px 16px;border-radius:var(--radius-sm);margin-bottom:16px;display:flex;align-items:flex-start;gap:10px;font-size:13px;font-weight:600;}
-  .alert-box.warning{background:var(--amber-light);border:1px solid #fcd34d;color:#92400e;}
-  .alert-box.success{background:var(--green-light);border:1px solid var(--green-border);color:#065f46;}
-  .alert-icon{font-size:18px;flex-shrink:0;}
-  .prendas-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:20px;}
-  .prendas-table th{background:var(--surface2);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;border-bottom:1px solid var(--border);}
-  .prendas-table td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle;}
-  .prendas-table tr:last-child td{border-bottom:none;}
-  .ep{padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;}
-  .ep-listo{background:var(--green-light);color:var(--green);}
-  .ep-ruta{background:var(--amber-light);color:var(--amber);}
-  .ep-error{background:var(--red-light);color:var(--red);}
-  .guia-section{background:var(--indigo-light);border:1px solid var(--indigo-mid);border-radius:var(--radius-sm);padding:16px;margin-bottom:16px;}
-  .guia-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;}
-  .field label{display:block;font-size:11px;font-weight:700;color:var(--text-secondary);margin-bottom:5px;text-transform:uppercase;}
-  .field input{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:'Plus Jakarta Sans',sans-serif;background:var(--surface);color:var(--text-primary);outline:none;transition:border-color .2s;}
-  .field input:focus{border-color:var(--indigo);}
-  .field input[readonly]{background:var(--surface2);color:var(--text-secondary);}
-  .order-actions{display:flex;gap:10px;justify-content:flex-end;padding-top:16px;border-top:1px solid var(--border);}
-  .btn-action{padding:10px 18px;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;transition:transform .15s,opacity .2s;}
-  .btn-action:hover{transform:translateY(-1px);}
-  .btn-action:disabled{opacity:.5;cursor:not-allowed;transform:none;}
-  .btn-despachar{background:linear-gradient(135deg,#4f46e5,#4338ca);color:#fff;box-shadow:0 3px 12px rgba(79,70,229,.35);}
-  .btn-error{background:var(--red-light);color:var(--red);border:1.5px solid var(--red-border);}
-  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;padding:20px;}
-  .modal-overlay.show{display:flex;}
-  .modal{background:var(--surface);border-radius:var(--radius);padding:28px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2);}
-  .modal h3{font-size:17px;font-weight:800;margin-bottom:6px;}
-  .modal p{font-size:13px;color:var(--text-secondary);margin-bottom:18px;}
-  .modal select,.modal textarea{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:'Plus Jakarta Sans',sans-serif;background:var(--surface2);outline:none;margin-bottom:12px;appearance:none;}
-  .modal textarea{resize:vertical;min-height:80px;}
-  .modal-actions{display:flex;gap:10px;justify-content:flex-end;}
-  .btn-cancel{padding:9px 16px;background:var(--surface2);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;}
-  .btn-confirm-error{padding:9px 16px;background:var(--red);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:700;cursor:pointer;}
-  .state-box{text-align:center;padding:60px 20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);}
-  .state-box .icon{font-size:40px;margin-bottom:12px;}
-  .state-box p{font-size:15px;font-weight:600;color:var(--text-secondary);}
-  /* CLIENTE INFO */
-  .cliente-info{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;padding:14px;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border);}
-  .ci-block{display:flex;flex-direction:column;gap:2px;}
-  .ci-label{font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;}
-  .ci-value{font-size:13px;font-weight:600;color:var(--text-primary);}
-  .ci-value a{color:var(--blue);text-decoration:none;}
-  /* CONTRAENTREGA */
-  .alert-contraentrega{padding:14px 16px;border-radius:var(--radius-sm);margin-bottom:16px;background:#fff7ed;border:2px solid #fed7aa;display:flex;align-items:flex-start;gap:10px;}
-  .alert-contraentrega .ac-icon{font-size:24px;flex-shrink:0;}
-  .alert-contraentrega .ac-title{font-size:14px;font-weight:800;color:#c2410c;margin-bottom:4px;}
-  .alert-contraentrega .ac-body{font-size:13px;color:#92400e;}
-  .alert-contraentrega .ac-monto{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:800;color:#c2410c;margin-top:6px;}
-  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 22px;border-radius:10px;font-size:14px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:9999;opacity:0;transition:opacity .3s;white-space:nowrap;pointer-events:none;}
-  @media(max-width:650px){.stats-bar{grid-template-columns:1fr 1fr;}.guia-grid{grid-template-columns:1fr;}}
+:root{--bg:#f0f4f8;--surface:#fff;--surface2:#f8fafc;--border:#e2e8f0;--text-primary:#0f172a;--text-secondary:#64748b;--text-muted:#94a3b8;--blue:#2563eb;--blue-light:#eff6ff;--blue-mid:#bfdbfe;--red:#ef4444;--red-light:#fff1f2;--red-border:#fca5a5;--green:#10b981;--green-light:#ecfdf5;--green-border:#6ee7b7;--amber:#f59e0b;--amber-light:#fffbeb;--indigo:#4f46e5;--indigo-light:#eef2ff;--indigo-mid:#c7d2fe;--shadow-sm:0 1px 3px rgba(0,0,0,.06);--shadow-md:0 4px 16px rgba(0,0,0,.08);--radius:14px;--radius-sm:8px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(--text-primary);min-height:100vh;}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-sm);}
+.topbar-left{display:flex;align-items:center;gap:12px;}
+.logo-icon{width:36px;height:36px;background:var(--indigo);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.topbar h1{font-size:16px;font-weight:800;}.topbar h1 span{color:var(--indigo);}
+.area-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--indigo-light);color:var(--indigo);text-transform:uppercase;letter-spacing:.05em;}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.user-info{font-size:13px;font-weight:600;color:var(--text-secondary);}
+.btn-sm{padding:6px 12px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--text-secondary);}
+.btn-sm.blue{background:var(--indigo-light);color:var(--indigo);border-color:var(--indigo-mid);}
+.main{padding:24px;max-width:1000px;margin:0 auto;}
+.stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow-sm);}
+.stat-label{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;}
+.stat-value{font-size:26px;font-weight:800;margin-top:4px;font-family:"JetBrains Mono",monospace;}
+.stat-value.blue{color:var(--indigo);}.stat-value.amber{color:var(--amber);}.stat-value.green{color:var(--green);}.stat-value.red{color:var(--red);}
+.tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:6px;margin-bottom:20px;box-shadow:var(--shadow-sm);}
+.tab{flex:1;padding:8px;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:var(--text-secondary);transition:all .2s;}
+.tab.active{background:var(--indigo);color:#fff;}
+.orders-list{display:flex;flex-direction:column;gap:16px;}
+.order-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-md);overflow:hidden;}
+.order-card.completo{border-color:var(--green-border);}
+.order-card.incompleto{border-left:4px solid var(--amber);}
+.order-card.priority{border-left:4px solid var(--red);}
+.order-card.despachado{border-color:var(--indigo-mid);}
+.order-header{padding:14px 20px;display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border-bottom:1px solid var(--border);cursor:pointer;user-select:none;}
+.order-num{font-family:"JetBrains Mono",monospace;font-size:15px;font-weight:700;color:var(--indigo);}
+.order-meta{font-size:12px;color:var(--text-muted);margin-top:2px;}
+.order-header-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+.badge-completo{background:var(--green-light);color:var(--green);}
+.badge-incompleto{background:var(--amber-light);color:var(--amber);}
+.badge-despachado{background:var(--indigo-light);color:var(--indigo);}
+.badge-priority{background:var(--red-light);color:var(--red);}
+.chevron{font-size:13px;color:var(--text-muted);transition:transform .25s;}
+.chevron.open{transform:rotate(180deg);}
+.order-body{display:none;padding:20px;}
+.order-body.open{display:block;}
+.section-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+.section-title::after{content:"";flex:1;height:1px;background:var(--border);}
+.alert-box{padding:12px 16px;border-radius:var(--radius-sm);margin-bottom:16px;display:flex;align-items:flex-start;gap:10px;font-size:13px;font-weight:600;}
+.alert-box.warning{background:var(--amber-light);border:1px solid #fcd34d;color:#92400e;}
+.alert-box.success{background:var(--green-light);border:1px solid var(--green-border);color:#065f46;}
+.alert-contraentrega{padding:14px 16px;border-radius:var(--radius-sm);margin-bottom:16px;background:#fff7ed;border:2px solid #fed7aa;display:flex;align-items:flex-start;gap:10px;}
+.ac-icon{font-size:24px;flex-shrink:0;}
+.ac-title{font-size:14px;font-weight:800;color:#c2410c;margin-bottom:4px;}
+.ac-monto{font-family:"JetBrains Mono",monospace;font-size:18px;font-weight:800;color:#c2410c;margin-top:6px;}
+.cliente-info{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;padding:14px;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border);}
+.ci-block{display:flex;flex-direction:column;gap:2px;}
+.ci-label{font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;}
+.ci-value{font-size:13px;font-weight:600;color:var(--text-primary);}
+.ci-value a{color:var(--blue);text-decoration:none;}
+.prendas-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:20px;}
+.prendas-table th{background:var(--surface2);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;border-bottom:1px solid var(--border);}
+.prendas-table td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.prendas-table tr:last-child td{border-bottom:none;}
+.ep{padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;}
+.ep-listo{background:var(--green-light);color:var(--green);}
+.ep-ruta{background:var(--amber-light);color:var(--amber);}
+.ep-error{background:var(--red-light);color:var(--red);}
+.guia-section{background:var(--indigo-light);border:1px solid var(--indigo-mid);border-radius:var(--radius-sm);padding:16px;margin-bottom:16px;}
+.guia-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;}
+.field label{display:block;font-size:11px;font-weight:700;color:var(--text-secondary);margin-bottom:5px;text-transform:uppercase;}
+.field input{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:"Plus Jakarta Sans",sans-serif;background:var(--surface);color:var(--text-primary);outline:none;transition:border-color .2s;}
+.field input:focus{border-color:var(--indigo);}
+.field input[readonly]{background:var(--surface2);color:var(--text-secondary);}
+.order-actions{display:flex;gap:10px;justify-content:flex-end;padding-top:16px;border-top:1px solid var(--border);}
+.btn-action{padding:10px 18px;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;transition:transform .15s,opacity .2s;}
+.btn-action:hover{transform:translateY(-1px);}
+.btn-action:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+.btn-despachar{background:linear-gradient(135deg,#4f46e5,#4338ca);color:#fff;box-shadow:0 3px 12px rgba(79,70,229,.35);}
+.btn-error{background:var(--red-light);color:var(--red);border:1.5px solid var(--red-border);}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.show{display:flex;}
+.modal{background:var(--surface);border-radius:var(--radius);padding:28px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+.modal h3{font-size:17px;font-weight:800;margin-bottom:6px;}
+.modal p{font-size:13px;color:var(--text-secondary);margin-bottom:18px;}
+.modal select,.modal textarea{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:"Plus Jakarta Sans",sans-serif;background:var(--surface2);outline:none;margin-bottom:12px;appearance:none;}
+.modal textarea{resize:vertical;min-height:80px;}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;}
+.btn-cancel{padding:9px 16px;background:var(--surface2);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;}
+.btn-confirm-error{padding:9px 16px;background:var(--red);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:700;cursor:pointer;}
+.state-box{text-align:center;padding:60px 20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);}
+.state-box .icon{font-size:40px;margin-bottom:12px;}
+.state-box p{font-size:15px;font-weight:600;color:var(--text-secondary);}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 22px;border-radius:10px;font-size:14px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:9999;opacity:0;transition:opacity .3s;white-space:nowrap;pointer-events:none;}
+@media(max-width:650px){.stats-bar{grid-template-columns:1fr 1fr;}.guia-grid{grid-template-columns:1fr;}.cliente-info{grid-template-columns:1fr 1fr;}}
 </style>
 </head>
 <body>
 <div class="topbar">
   <div class="topbar-left">
-    <div class="logo-icon">📦</div>
+    <div class="logo-icon">&#128230;</div>
     <h1>Neko <span>Soluciones</span></h1>
-    <span class="area-badge">📦 Almacén</span>
+    <span class="area-badge">&#128230; Almacen</span>
   </div>
   <div class="topbar-right">
     <span class="user-info" id="user-info"></span>
-    <button class="btn-sm blue" onclick="cargar()">🔄 Actualizar</button>
-    <button class="btn-sm" onclick="cerrarSesion()">🚪 Salir</button>
+    <button class="btn-sm blue" onclick="cargar()">&#128260; Actualizar</button>
+    <button class="btn-sm" onclick="cerrarSesion()">&#128682; Salir</button>
   </div>
 </div>
 <div class="main">
   <div class="stats-bar">
-    <div class="stat-card"><div class="stat-label">En Almacén</div><div class="stat-value blue" id="stat-total">—</div></div>
-    <div class="stat-card"><div class="stat-label">Completos</div><div class="stat-value green" id="stat-completos">—</div></div>
-    <div class="stat-card"><div class="stat-label">Incompletos</div><div class="stat-value amber" id="stat-incompletos">—</div></div>
-    <div class="stat-card"><div class="stat-label">Despachados</div><div class="stat-value red" id="stat-despachados">—</div></div>
+    <div class="stat-card"><div class="stat-label">En Almacen</div><div class="stat-value blue" id="stat-total">-</div></div>
+    <div class="stat-card"><div class="stat-label">Completos</div><div class="stat-value green" id="stat-completos">-</div></div>
+    <div class="stat-card"><div class="stat-label">Incompletos</div><div class="stat-value amber" id="stat-incompletos">-</div></div>
+    <div class="stat-card"><div class="stat-label">Despachados</div><div class="stat-value red" id="stat-despachados">-</div></div>
   </div>
   <div class="tabs">
-    <button class="tab active" id="tab-pendientes" onclick="cambiarTab('pendientes')">📦 Por Despachar</button>
-    <button class="tab" id="tab-despachados" onclick="cambiarTab('despachados')">✅ Despachados</button>
+    <button class="tab active" id="tab-pendientes" onclick="cambiarTab('pendientes')">&#128230; Por Despachar</button>
+    <button class="tab" id="tab-despachados" onclick="cambiarTab('despachados')">&#9989; Despachados</button>
   </div>
-  <div id="container"><div class="state-box"><div class="icon">⏳</div><p>Cargando...</p></div></div>
+  <div id="container"><div class="state-box"><div class="icon">&#9203;</div><p>Cargando...</p></div></div>
 </div>
 <div class="modal-overlay" id="modal-error">
   <div class="modal">
-    <h3>🔴 Reportar Problema</h3>
-    <p>Selecciona la prenda, a qué área regresa y describe el problema.</p>
-    <select id="error-prenda-idx"><option value="">— Seleccionar prenda —</option></select>
+    <h3>&#128308; Reportar Problema</h3>
+    <p>Selecciona la prenda, el area destino y describe el problema.</p>
+    <select id="error-prenda-idx"><option value="">- Seleccionar prenda -</option></select>
     <select id="error-area-destino">
-      <option value="">— Área destino —</option>
-      <option>Análisis</option><option>Diseño</option><option>Sublimación</option>
-      <option>Corte</option><option>Confección</option><option>Bordado</option>
-      <option>Terminación</option><option>Estampado</option><option>Compras</option>
+      <option value="">- Area destino -</option>
+      <option>Analisis</option><option>Diseno</option><option>Sublimacion</option>
+      <option>Corte</option><option>Confeccion</option><option>Bordado</option>
+      <option>Terminacion</option><option>Estampado</option><option>Compras</option>
     </select>
     <textarea id="error-desc" placeholder="Describe el problema..."></textarea>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="cerrarModal()">Cancelar</button>
-      <button class="btn-confirm-error" onclick="confirmarError()">🔴 Devolver Prenda</button>
+      <button class="btn-confirm-error" onclick="confirmarError()">&#128308; Devolver Prenda</button>
     </div>
   </div>
 </div>
 <div id="toast"></div>
-<script>
-  const SB_URL='https://umlzaupnuvarrnakcbdo.supabase.co';
-  const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtbHphdXBudXZhcnJuYWtjYmRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTM4NTYsImV4cCI6MjA4OTg2OTg1Nn0.7Z5q3vvAIGDKFmjMjt6kra-3wHxNHyNjTfEj8GamdFA';
-  const HDR={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
-  let sesion=null,tabActual='pendientes',ordenes=[],errorTarget=null;
 
-  window.addEventListener('DOMContentLoaded',()=>{
-    const raw=sessionStorage.getItem('nk_user');
-    if(!raw){window.location.href='neko_login.html';return;}
-    sesion=JSON.parse(raw);
-    document.getElementById('user-info').textContent='👤 '+sesion.nombre;
-    cargar();
+<script>
+var SB_URL = "https://umlzaupnuvarrnakcbdo.supabase.co";
+var SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtbHphdXBudXZhcnJuYWtjYmRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTM4NTYsImV4cCI6MjA4OTg2OTg1Nn0.7Z5q3vvAIGDKFmjMjt6kra-3wHxNHyNjTfEj8GamdFA";
+var HDR = { "apikey": SB_KEY, "Authorization": "Bearer " + SB_KEY };
+var sesion = null;
+var tabActual = "pendientes";
+var ordenes = [];
+var errorTarget = null;
+
+window.addEventListener("DOMContentLoaded", function() {
+  var raw = sessionStorage.getItem("nk_user");
+  if (!raw) { window.location.href = "neko_login.html"; return; }
+  sesion = JSON.parse(raw);
+  document.getElementById("user-info").textContent = "👤 " + sesion.nombre;
+  cargar();
+});
+
+function cerrarSesion() {
+  sessionStorage.removeItem("nk_user");
+  window.location.href = "neko_login.html";
+}
+
+function contarPrendas(o) {
+  var prods = o.productos || [];
+  var enAlmacen = 0;
+  prods.forEach(function(p, idx) {
+    var se = (o.sub_estados || []).find(function(s) { return s.prenda_idx === idx; });
+    if (se && se.area_actual === "Almacen") enAlmacen++;
+    if (se && se.area_actual === "Almacén") enAlmacen++;
+  });
+  return { total: prods.length, enAlmacen: enAlmacen };
+}
+
+async function cargar() {
+  document.getElementById("container").innerHTML = '<div class="state-box"><div class="icon">⏳</div><p>Cargando...</p></div>';
+  try {
+    var r = await fetch(SB_URL + "/rest/v1/ordenes?estado=in.(EN_PRODUCCION,DESPACHADO)&select=id,numero_orden,nombre_cliente,telefono,doc_cliente,direccion,barrio,ciudad,departamento,usuario_red,marca,vendedora,productos,sub_estados,es_prioritario,fecha_entrega,fecha_creacion,valor_total,monto_pagado,saldo_pendiente,es_contraentrega,pago_confirmado,confirmado_por,guia_numero,guia_url,fecha_despacho&order=es_prioritario.desc,fecha_creacion.asc", { headers: HDR });
+    var all = await r.json();
+    if (!Array.isArray(all)) all = [];
+    ordenes = all.filter(function(o) {
+      if (o.estado === "DESPACHADO") return true;
+      var prods = o.productos || [];
+      return prods.some(function(p, idx) {
+        var se = (o.sub_estados || []).find(function(s) { return s.prenda_idx === idx; });
+        return se && (se.area_actual === "Almacen" || se.area_actual === "Almacén");
+      });
+    });
+    actualizarStats();
+    renderTab();
+  } catch(e) {
+    document.getElementById("container").innerHTML = '<div class="state-box"><div class="icon">❌</div><p>' + e.message + '</p></div>';
+  }
+}
+
+function actualizarStats() {
+  var enAlmacenList = ordenes.filter(function(o) { return o.estado !== "DESPACHADO"; });
+  var despachados   = ordenes.filter(function(o) { return o.estado === "DESPACHADO"; });
+  var completos = 0, incompletos = 0;
+  enAlmacenList.forEach(function(o) {
+    var c = contarPrendas(o);
+    if (c.total === c.enAlmacen) completos++; else incompletos++;
+  });
+  document.getElementById("stat-total").textContent       = enAlmacenList.length;
+  document.getElementById("stat-completos").textContent   = completos;
+  document.getElementById("stat-incompletos").textContent = incompletos;
+  document.getElementById("stat-despachados").textContent = despachados.length;
+}
+
+function cambiarTab(tab) {
+  tabActual = tab;
+  document.getElementById("tab-pendientes").classList.toggle("active", tab === "pendientes");
+  document.getElementById("tab-despachados").classList.toggle("active", tab === "despachados");
+  renderTab();
+}
+
+function renderTab() {
+  var lista = tabActual === "pendientes"
+    ? ordenes.filter(function(o) { return o.estado !== "DESPACHADO"; })
+    : ordenes.filter(function(o) { return o.estado === "DESPACHADO"; });
+  var cont = document.getElementById("container");
+  if (!lista.length) {
+    var msg = tabActual === "pendientes" ? "No hay pedidos en Almacen" : "No hay pedidos despachados";
+    cont.innerHTML = '<div class="state-box"><div class="icon">📭</div><p>' + msg + '</p></div>';
+    return;
+  }
+  var html = '<div class="orders-list">';
+  lista.forEach(function(o) { html += renderOrden(o); });
+  html += "</div>";
+  cont.innerHTML = html;
+}
+
+function renderOrden(o) {
+  var c = contarPrendas(o);
+  var total = c.total, enAlmacen = c.enAlmacen;
+  var faltantes = total - enAlmacen;
+  var completo  = faltantes === 0;
+  var despachado = o.estado === "DESPACHADO";
+  var oid = o.id;
+
+  var fecha   = o.fecha_creacion ? new Date(o.fecha_creacion).toLocaleDateString("es-CO",{day:"2-digit",month:"short",year:"numeric"}) : "-";
+  var entrega = o.fecha_entrega  ? new Date(o.fecha_entrega+"T12:00:00").toLocaleDateString("es-CO",{day:"2-digit",month:"short",year:"numeric"}) : "-";
+
+  var cardClass = despachado ? "despachado" : completo ? "completo" : o.es_prioritario ? "priority" : "incompleto";
+
+  var statusBadge = despachado
+    ? '<span class="badge badge-despachado">✅ Despachado</span>'
+    : completo
+      ? '<span class="badge badge-completo">✅ Listo para despachar</span>'
+      : '<span class="badge badge-incompleto">⏳ Faltan ' + faltantes + ' prenda(s)</span>';
+
+  var pagoConfBadge = o.pago_confirmado
+    ? '<span class="badge" style="background:var(--green-light);color:var(--green);border:1px solid var(--green-border)">✅ Pago OK</span>'
+    : "";
+
+  // Tabla prendas
+  var prendasRows = "";
+  (o.productos || []).forEach(function(p, idx) {
+    var se    = (o.sub_estados || []).find(function(s) { return s.prenda_idx === idx; });
+    var area  = se && se.area_actual ? se.area_actual : "En ruta";
+    var enAlm = area === "Almacen" || area === "Almacén";
+    var cls   = enAlm ? "ep-listo" : (se && se.estado === "error") ? "ep-error" : "ep-ruta";
+    var label = enAlm ? "✅ En Almacen" : "📍 " + area;
+    prendasRows += "<tr>"
+      + "<td><strong>" + (p.tipo||"-") + "</strong><br><small style='color:var(--text-muted)'>" + (p.horma||"") + (p.talla?" · "+p.talla:"") + "</small></td>"
+      + "<td><span style='background:var(--blue-light);color:var(--blue);padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700'>x" + (p.cantidad||1) + "</span></td>"
+      + "<td><span class='ep " + cls + "'>" + label + "</span></td>"
+      + "<td style='font-size:11px;color:var(--red)'>" + (se && se.error_desc ? "⚠️ "+se.error_desc : "-") + "</td>"
+      + "</tr>";
   });
 
-  function cerrarSesion(){sessionStorage.removeItem('nk_user');window.location.href='neko_login.html';}
+  // Datos cliente
+  var wp = (o.telefono||"").replace(/\D/g,"");
+  var clienteHTML = "<div class='section-title'>👤 Datos del Cliente</div>"
+    + "<div class='cliente-info'>"
+    + "<div class='ci-block'><span class='ci-label'>Cliente</span><span class='ci-value'>" + (o.nombre_cliente||"-") + "</span></div>"
+    + "<div class='ci-block'><span class='ci-label'>Telefono</span><span class='ci-value'><a href='https://wa.me/"+wp+"'>💬 "+(o.telefono||"-")+"</a></span></div>"
+    + "<div class='ci-block'><span class='ci-label'>Documento</span><span class='ci-value'>" + (o.doc_cliente||"-") + "</span></div>"
+    + "<div class='ci-block'><span class='ci-label'>Direccion</span><span class='ci-value'>" + (o.direccion||"-") + "</span></div>"
+    + "<div class='ci-block'><span class='ci-label'>Ciudad</span><span class='ci-value'>" + (o.ciudad||"-") + "</span></div>"
+    + "<div class='ci-block'><span class='ci-label'>Departamento</span><span class='ci-value'>" + (o.departamento||"-") + "</span></div>"
+    + (o.usuario_red ? "<div class='ci-block'><span class='ci-label'>Red Social</span><span class='ci-value'>@"+o.usuario_red+"</span></div>" : "")
+    + (o.marca ? "<div class='ci-block'><span class='ci-label'>Marca</span><span class='ci-value'>"+o.marca+"</span></div>" : "")
+    + "</div>";
 
-  async function cargar(){
-    document.getElementById('container').innerHTML='<div class="state-box"><div class="icon">⏳</div><p>Cargando...</p></div>';
-    try{
-      const r=await fetch(SB_URL+'/rest/v1/ordenes?estado=in.(EN_PRODUCCION,DESPACHADO)&select=id,numero_orden,nombre_cliente,telefono,doc_cliente,direccion,barrio,ciudad,departamento,usuario_red,marca,vendedora,productos,sub_estados,es_prioritario,fecha_entrega,fecha_creacion,valor_total,monto_pagado,saldo_pendiente,tipo_pago,es_contraentrega,pago_confirmado,confirmado_por,guia_numero,guia_url,fecha_despacho&order=es_prioritario.desc,fecha_creacion.asc',{headers:HDR});
-      const all=await r.json();
-      ordenes=all.filter(o=>{
-        // Órdenes DESPACHADAS siempre se incluyen
-        if(o.estado==='DESPACHADO') return true;
-        // Órdenes EN_PRODUCCION: solo si tienen prendas en Almacén
-        const prods=o.productos||[];
-        return prods.some((_,idx)=>{
-          const se=(o.sub_estados||[]).find(s=>s.prenda_idx===idx);
-          return se&&se.area_actual==='Almacén';
-        });
-      });
-      actualizarStats();
-      renderTab();
-    }catch(e){
-      document.getElementById('container').innerHTML='<div class="state-box"><div class="icon">❌</div><p>'+e.message+'</p></div>';
+  // Alerta pago
+  var pagoHTML = "";
+  if (!despachado && !o.pago_confirmado) {
+    if (o.es_contraentrega) {
+      pagoHTML = "<div class='alert-contraentrega'><span class='ac-icon'>🚚</span><div><div class='ac-title'>CONTRAENTREGA - Cobrar al entregar</div><div class='ac-monto'>$" + Number(o.valor_total||0).toLocaleString("es-CO") + " COP</div></div></div>";
+    } else if (o.saldo_pendiente > 0) {
+      pagoHTML = "<div class='alert-box warning'><span>💰</span><div><strong>Saldo Pendiente</strong> - Abono: $" + Number(o.monto_pagado||0).toLocaleString("es-CO") + " | Adeuda: <strong>$" + Number(o.saldo_pendiente||0).toLocaleString("es-CO") + " COP</strong></div></div>";
     }
   }
 
-  function contarPrendas(o){
-    const prods=o.productos||[];
-    let enAlmacen=0;
-    prods.forEach((_,idx)=>{
-      const se=(o.sub_estados||[]).find(s=>s.prenda_idx===idx);
-      if(se&&se.area_actual==='Almacén')enAlmacen++;
-    });
-    return{total:prods.length,enAlmacen};
+  // Alerta estado prendas
+  var alertHTML = "";
+  if (!despachado) {
+    alertHTML = completo
+      ? "<div class='alert-box success'><span>✅</span><div><strong>Pedido completo</strong> - Registra la guia y despacha.</div></div>"
+      : "<div class='alert-box warning'><span>⚠️</span><div><strong>Pedido incompleto</strong> - " + enAlmacen + "/" + total + " prendas. Faltan <strong>" + faltantes + "</strong> en produccion.</div></div>";
   }
 
-  function actualizarStats(){
-    const enAlmacen = ordenes.filter(o=>o.estado!=='DESPACHADO');
-    const despachados = ordenes.filter(o=>o.estado==='DESPACHADO');
-    let completos=0, incompletos=0;
-    enAlmacen.forEach(o=>{
-      const{total,enAlmacen:enAlm}=contarPrendas(o);
-      if(total===enAlm)completos++;else incompletos++;
-    });
-    document.getElementById('stat-total').textContent      = enAlmacen.length;
-    document.getElementById('stat-completos').textContent  = completos;
-    document.getElementById('stat-incompletos').textContent= incompletos;
-    document.getElementById('stat-despachados').textContent= despachados.length;
+  // Guia
+  var guiaNum = o.guia_numero || "";
+  var guiaUrl = o.guia_url || "";
+  var guiaSec = despachado
+    ? (guiaNum ? "<div class='guia-section'><div class='section-title'>📬 Guia de Envio</div><div class='guia-grid'><div class='field'><label>N de Guia</label><input type='text' value='" + guiaNum + "' readonly></div><div class='field'><label>URL Seguimiento</label><input type='text' value='" + guiaUrl + "' readonly></div></div></div>" : "")
+    : "<div class='guia-section'><div class='section-title'>📬 Registrar Guia</div><div class='guia-grid'><div class='field'><label>N de Guia *</label><input type='text' id='gn-" + oid + "' placeholder='Ej. 1234567890' value='" + guiaNum + "'></div><div class='field'><label>URL Seguimiento</label><input type='text' id='gu-" + oid + "' placeholder='https://...' value='" + guiaUrl + "'></div></div></div>";
+
+  // Acciones
+  var accionesHTML = "";
+  if (despachado) {
+    var fdp = o.fecha_despacho ? new Date(o.fecha_despacho).toLocaleDateString("es-CO",{day:"2-digit",month:"short",year:"numeric"}) : "-";
+    accionesHTML = "<span style='font-size:13px;font-weight:700;color:var(--indigo)'>📦 Despachado el " + fdp + (o.guia_numero ? " · Guia: "+o.guia_numero : "") + "</span>";
+  } else {
+    var disAttr = completo ? "" : "disabled";
+    accionesHTML = "<button class='btn-action btn-despachar' id='btn-d-" + oid + "' " + disAttr + " onclick='doDespachar(" + JSON.stringify(oid) + ")'>📤 Confirmar Despacho</button>"
+      + "<button class='btn-action btn-error' onclick='doAbrirError(" + JSON.stringify(oid) + ")'>🔴 Reportar Problema</button>";
   }
 
-  function cambiarTab(tab){
-    tabActual=tab;
-    ['pendientes','despachados'].forEach(t=>document.getElementById('tab-'+t).classList.toggle('active',t===tab));
+  return "<div class='order-card " + cardClass + "' id='card-" + oid + "'>"
+    + "<div class='order-header' id='oh-" + oid + "' onclick='doToggle(" + JSON.stringify(oid) + ")'>"
+      + "<div>"
+        + "<div class='order-num'>" + o.numero_orden + " &nbsp;·&nbsp; <span style='font-size:13px;font-weight:600;color:var(--text-primary)'>" + (o.nombre_cliente||"-") + "</span></div>"
+        + "<div class='order-meta'>📅 " + fecha + " &nbsp;·&nbsp; 🚚 Entrega: " + entrega + " &nbsp;·&nbsp; 📦 " + enAlmacen + "/" + total + (o.es_prioritario ? " &nbsp;·&nbsp; 🔴 PRIORITARIO" : "") + "</div>"
+      + "</div>"
+      + "<div class='order-header-right'>" + pagoConfBadge + statusBadge + (o.es_prioritario && !despachado ? '<span class="badge badge-priority">🔴</span>' : "") + "<span class='chevron' id='chev-" + oid + "'>▼</span></div>"
+    + "</div>"
+    + "<div class='order-body' id='body-" + oid + "'>"
+      + clienteHTML
+      + pagoHTML
+      + alertHTML
+      + "<div class='section-title'>📦 Estado de Prendas</div>"
+      + "<table class='prendas-table'><thead><tr><th>Prenda</th><th>Cant</th><th>Ubicacion</th><th>Observacion</th></tr></thead><tbody>" + prendasRows + "</tbody></table>"
+      + guiaSec
+      + "<div class='order-actions'>" + accionesHTML + "</div>"
+    + "</div>"
+  + "</div>";
+}
+
+// Funciones globales llamadas desde onclick - usan nombres simples sin conflicto
+function doToggle(oid) {
+  var body = document.getElementById("body-" + oid);
+  var chev = document.getElementById("chev-" + oid);
+  if (body) body.classList.toggle("open");
+  if (chev) chev.classList.toggle("open");
+}
+
+function doDespachar(oid) {
+  var guiaNum = document.getElementById("gn-" + oid);
+  var guiaUrl = document.getElementById("gu-" + oid);
+  var gn = guiaNum ? guiaNum.value.trim() : "";
+  var gu = guiaUrl ? guiaUrl.value.trim() : "";
+  if (!gn) { alert("Ingresa el numero de guia antes de despachar."); return; }
+  var btn = document.getElementById("btn-d-" + oid);
+  if (btn) { btn.disabled = true; btn.textContent = "⏳ Despachando..."; }
+  fetch(SB_URL + "/rest/v1/ordenes?id=eq." + oid, {
+    method: "PATCH",
+    headers: Object.assign({}, HDR, { "Content-Type": "application/json", "Prefer": "return=minimal" }),
+    body: JSON.stringify({ estado: "DESPACHADO", guia_numero: gn, guia_url: gu, fecha_despacho: new Date().toISOString() })
+  }).then(function(r) {
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    // Actualizar en memoria
+    var o = ordenes.find(function(x) { return String(x.id) === String(oid); });
+    if (o) {
+      o.estado = "DESPACHADO";
+      o.guia_numero = gn;
+      o.guia_url = gu;
+      o.fecha_despacho = new Date().toISOString();
+    }
+    actualizarStats();
+    tabActual = "despachados";
+    document.getElementById("tab-pendientes").classList.remove("active");
+    document.getElementById("tab-despachados").classList.add("active");
     renderTab();
-  }
+    showToast("🚀 Pedido despachado - Guia: " + gn);
+  }).catch(function(e) {
+    alert("Error: " + e.message);
+    if (btn) { btn.disabled = false; btn.textContent = "📤 Confirmar Despacho"; }
+  });
+}
 
-  function renderTab(){
-    const lista=tabActual==='pendientes'?ordenes.filter(o=>o.estado!=='DESPACHADO'):ordenes.filter(o=>o.estado==='DESPACHADO');
-    const cont=document.getElementById('container');
-    if(!lista.length){
-      const msg=tabActual==='pendientes'?['📦','No hay pedidos en Almacén aún']:['✅','No hay pedidos despachados aún'];
-      cont.innerHTML='<div class="state-box"><div class="icon">'+msg[0]+'</div><p>'+msg[1]+'</p></div>';
-      return;
-    }
-    cont.innerHTML='<div class="orders-list">'+lista.map(renderOrden).join('')+'</div>';
-  }
+function doAbrirError(oid) {
+  errorTarget = { oid: oid };
+  var orden = ordenes.find(function(x) { return String(x.id) === String(oid); });
+  var sel = document.getElementById("error-prenda-idx");
+  sel.innerHTML = "<option value=''>- Seleccionar prenda -</option>";
+  (orden ? orden.productos || [] : []).forEach(function(p, idx) {
+    sel.innerHTML += "<option value='" + idx + "'>" + (p.tipo||"Prenda "+(idx+1)) + " - " + (p.talla||"Sin talla") + "</option>";
+  });
+  document.getElementById("error-desc").value = "";
+  document.getElementById("error-area-destino").value = "";
+  document.getElementById("modal-error").classList.add("show");
+}
 
-  function renderOrden(o){
-    const{total,enAlmacen}=contarPrendas(o);
-    const faltantes = total - enAlmacen;
-    const completo  = faltantes === 0;
-    const despachado= o.estado === 'DESPACHADO';
-    const fecha   = o.fecha_creacion ? new Date(o.fecha_creacion).toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'}) : '—';
-    const entrega = o.fecha_entrega  ? new Date(o.fecha_entrega+'T12:00:00').toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'}) : '—';
-    const oid     = o.id;
+function cerrarModal() {
+  document.getElementById("modal-error").classList.remove("show");
+  errorTarget = null;
+}
 
-    const cardClass = despachado ? 'despachado' : completo ? 'completo' : o.es_prioritario ? 'priority' : 'incompleto';
+function confirmarError() {
+  if (!errorTarget) return;
+  var oid       = errorTarget.oid;
+  var prendaIdx = parseInt(document.getElementById("error-prenda-idx").value);
+  var areaDestino = document.getElementById("error-area-destino").value;
+  var desc      = document.getElementById("error-desc").value.trim();
+  if (isNaN(prendaIdx)) { alert("Selecciona la prenda."); return; }
+  if (!areaDestino)     { alert("Selecciona el area destino."); return; }
+  if (!desc)            { alert("Describe el problema."); return; }
 
-    const pagoConfirmadoBadge = o.pago_confirmado
-      ? '<span class="badge" style="background:var(--green-light);color:var(--green);border:1px solid var(--green-border)">✅ Pago Confirmado' + (o.confirmado_por ? ' por ' + o.confirmado_por : '') + '</span>'
-      : '';
-
-    const statusBadge = despachado
-      ? '<span class="badge badge-despachado">✅ Despachado</span>'
-      : completo
-        ? '<span class="badge badge-completo">✅ Listo para despachar</span>'
-        : '<span class="badge badge-incompleto">⏳ Faltan ' + faltantes + ' prenda(s)</span>';
-
-    // Tabla de prendas
-    const prods = o.productos || [];
-    const prendasRows = prods.map((p,idx) => {
-      const se    = (o.sub_estados||[]).find(s => s.prenda_idx === idx);
-      const area  = se && se.area_actual ? se.area_actual : 'En ruta';
-      const enAlm = area === 'Almacén';
-      const cls   = enAlm ? 'ep-listo' : se && se.estado === 'error' ? 'ep-error' : 'ep-ruta';
-      const label = enAlm ? '✅ En Almacén' : '📍 ' + area;
-      return '<tr>'
-        + '<td><strong>' + (p.tipo||'—') + '</strong><br><span style="font-size:11px;color:var(--text-muted)">' + (p.horma||'') + (p.talla?' · '+p.talla:'') + '</span></td>'
-        + '<td><span style="background:var(--blue-light);color:var(--blue);border:1px solid var(--blue-mid);padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700">x' + (p.cantidad||1) + '</span></td>'
-        + '<td><span class="ep ' + cls + '">' + label + '</span></td>'
-        + (se && se.error_desc ? '<td style="font-size:11px;color:var(--red)">⚠️ ' + se.error_desc + '</td>' : '<td style="color:var(--text-muted)">—</td>')
-      + '</tr>';
-    }).join('');
-
-    // Sección guía
-    const guiaNum = o.guia_numero || '';
-    const guiaUrl = o.guia_url || '';
-    const guiaSec = despachado
-      ? (guiaNum
-          ? '<div class="guia-section"><div class="section-title">📬 Guía de Envío</div>'
-            + '<div class="guia-grid">'
-            + '<div class="field"><label>N° de Guía</label><input type="text" value="' + guiaNum + '" readonly></div>'
-            + '<div class="field"><label>URL de Seguimiento</label><input type="text" value="' + guiaUrl + '" readonly></div>'
-            + '</div></div>'
-          : '')
-      : '<div class="guia-section"><div class="section-title">📬 Registrar Guía de Envío</div>'
-          + '<div class="guia-grid">'
-          + '<div class="field"><label>N° de Guía *</label><input type="text" id="guia-num-' + oid + '" placeholder="Ej. 1234567890" value="' + guiaNum + '"></div>'
-          + '<div class="field"><label>URL de Seguimiento</label><input type="text" id="guia-url-' + oid + '" placeholder="https://..." value="' + guiaUrl + '"></div>'
-          + '</div></div>';
-
-    // Datos del cliente
-    const whatsapp = (o.telefono||'').replace(/\D/g,'');
-    const clienteHTML = '<div class="section-title">👤 Datos del Cliente y Envío</div>'
-      + '<div class="cliente-info">'
-        + '<div class="ci-block"><span class="ci-label">Cliente</span><span class="ci-value">' + (o.nombre_cliente||'—') + '</span></div>'
-        + '<div class="ci-block"><span class="ci-label">Teléfono</span><span class="ci-value"><a href="https://wa.me/' + whatsapp + '">💬 ' + (o.telefono||'—') + '</a></span></div>'
-        + '<div class="ci-block"><span class="ci-label">Documento</span><span class="ci-value">' + (o.doc_cliente||'—') + '</span></div>'
-        + '<div class="ci-block"><span class="ci-label">Dirección</span><span class="ci-value">' + (o.direccion||'—') + '</span></div>'
-        + '<div class="ci-block"><span class="ci-label">Ciudad</span><span class="ci-value">' + (o.barrio ? o.barrio+', ' : '') + (o.ciudad||'—') + '</span></div>'
-        + '<div class="ci-block"><span class="ci-label">Departamento</span><span class="ci-value">' + (o.departamento||'—') + '</span></div>'
-        + (o.usuario_red ? '<div class="ci-block"><span class="ci-label">Red Social</span><span class="ci-value">@' + o.usuario_red + '</span></div>' : '')
-        + (o.marca ? '<div class="ci-block"><span class="ci-label">Marca</span><span class="ci-value">' + o.marca + '</span></div>' : '')
-      + '</div>';
-
-    // Pago
-    const esContraentrega = o.es_contraentrega === true;
-    const saldo           = o.saldo_pendiente || 0;
-    const pagoConfirmado  = o.pago_confirmado === true;
-    let pagoHTML = '';
-    if ((esContraentrega || saldo > 0) && !despachado && !pagoConfirmado) {
-      pagoHTML = esContraentrega
-        ? '<div class="alert-contraentrega"><span class="ac-icon">🚚</span><div><div class="ac-title">⚠️ CONTRAENTREGA — Cobrar al entregar</div><div class="ac-monto">$' + Number(o.valor_total||0).toLocaleString('es-CO') + ' COP</div></div></div>'
-        : '<div class="alert-box warning" style="margin-bottom:16px"><span class="alert-icon">💰</span><div><strong>Saldo Pendiente</strong> — Abono: $' + Number(o.monto_pagado||0).toLocaleString('es-CO') + ' · Adeuda: <strong>$' + Number(saldo).toLocaleString('es-CO') + ' COP</strong></div></div>';
-    }
-
-    let alertHTML = '';
-    if (!despachado) {
-      alertHTML = completo
-        ? '<div class="alert-box success"><span class="alert-icon">✅</span><div><strong>Pedido completo</strong> — Registra la guía y despacha.</div></div>'
-        : '<div class="alert-box warning"><span class="alert-icon">⚠️</span><div><strong>Pedido incompleto</strong> — ' + enAlmacen + '/' + total + ' prendas. Faltan <strong>' + faltantes + '</strong>.</div></div>';
-    }
-
-    // Acciones — usar data-oid para evitar problemas de escapes
-    let accionesHTML = '';
-    if (despachado) {
-      const fechaDesp = o.fecha_despacho ? new Date(o.fecha_despacho).toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'}) : '—';
-      accionesHTML = `<span style="font-size:13px;font-weight:700;color:var(--indigo)">📦 Despachado el ${fechaDesp}${o.guia_numero ? ' · Guía: ' + o.guia_numero : ''}</span>`;
-    } else {
-      const disabledAttr = completo ? '' : 'disabled title="Faltan prendas"';
-      accionesHTML = `<button class="btn-action btn-despachar" data-oid="${oid}" ${disabledAttr} onclick="despacharPorDataOid(this)">📤 Confirmar Despacho</button>`
-        + `<button class="btn-action btn-error" data-oid="${oid}" onclick="abrirErrorPorDataOid(this)">🔴 Reportar Problema</button>`;
-    }
-
-    const html = [
-      `<div class="order-card ${cardClass}" id="card-${oid}">`,
-        `<div class="order-header" data-oid="${oid}" onclick="toggleCardByData(this)">`,
-          `<div>`,
-            `<div class="order-num">${o.numero_orden} &nbsp;·&nbsp; <span style="font-size:13px;font-weight:600;color:var(--text-primary)">${o.nombre_cliente||'—'}</span></div>`,
-            `<div class="order-meta">📅 ${fecha} &nbsp;·&nbsp; 🚚 ${entrega} &nbsp;·&nbsp; 📦 ${enAlmacen}/${total} prendas${o.es_prioritario?' &nbsp;·&nbsp; 🔴 PRIORITARIO':''}</div>`,
-          `</div>`,
-          `<div class="order-header-right">${pagoConfirmadoBadge}${statusBadge}`,
-            o.es_prioritario && !despachado ? `<span class="badge badge-priority">🔴 Prioritario</span>` : '',
-            `<span class="chevron" id="chev-${oid}">▼</span>`,
-          `</div>`,
-        `</div>`,
-        `<div class="order-body" id="body-${oid}">`,
-          clienteHTML,
-          pagoHTML,
-          alertHTML,
-          `<div class="section-title">📦 Estado de cada Prenda</div>`,
-          `<table class="prendas-table"><thead><tr><th>Prenda</th><th>Cant.</th><th>Ubicación</th><th>Observación</th></tr></thead><tbody>${prendasRows}</tbody></table>`,
-          guiaSec,
-          `<div class="order-actions">${accionesHTML}</div>`,
-        `</div>`,
-      `</div>`
-    ].join('');
-    return html;
-  }
-
-  function despacharPorDataOid(btn) {
-    const oid = btn.getAttribute('data-oid');
-    despachar(oid);
-  }
-
-  function abrirErrorPorDataOid(btn) {
-    const oid = btn.getAttribute('data-oid');
-    abrirError(oid);
-  }
-
-  function toggleCardByData(el) {
-    const id = el.getAttribute('data-oid');
-    toggleCard(id);
-  }
-
-  function toggleCard(id){
-    document.getElementById('body-'+id).classList.toggle('open');
-    document.getElementById('chev-'+id).classList.toggle('open');
-  }
-
-  async function despachar(ordenId){
-    const guiaNum=document.getElementById('guia-num-'+ordenId)?.value.trim();
-    const guiaUrl=document.getElementById('guia-url-'+ordenId)?.value.trim();
-    if(!guiaNum){alert('⚠️ Ingresa el número de guía antes de despachar.');return;}
-    const btn=document.querySelector('#card-'+ordenId+' .btn-despachar');
-    if(btn){btn.disabled=true;btn.textContent='⏳ Despachando...';}
-    try{
-      await fetch(SB_URL+'/rest/v1/ordenes?id=eq.'+ordenId,{
-        method:'PATCH',headers:{...HDR,'Content-Type':'application/json','Prefer':'return=minimal'},
-        body:JSON.stringify({estado:'DESPACHADO',guia_numero:guiaNum,guia_url:guiaUrl,fecha_despacho:new Date().toISOString()})
-      });
-      showToast('🚀 Pedido despachado — Guía: '+guiaNum);
-      // Actualizar en memoria inmediatamente
-      const oLocal = ordenes.find(o=>String(o.id)===String(ordenId));
-      if(oLocal){
-        oLocal.estado = 'DESPACHADO';
-        oLocal.guia_numero = guiaNum;
-        oLocal.guia_url = guiaUrl;
-        oLocal.fecha_despacho = new Date().toISOString();
-      }
-      actualizarStats();
-      tabActual = 'despachados';
-      ['pendientes','despachados'].forEach(t=>document.getElementById('tab-'+t).classList.toggle('active',t==='despachados'));
-      renderTab();
-      // Recargar desde Supabase en background
-      cargar();
-    }catch(e){alert('Error: '+e.message);if(btn){btn.disabled=false;btn.textContent='📤 Confirmar Despacho';}}
-  }
-
-  function abrirError(ordenId){
-    errorTarget={ordenId};
-    const orden=ordenes.find(o=>String(o.id)===String(ordenId));
-    const sel=document.getElementById('error-prenda-idx');
-    sel.innerHTML='<option value="">— Seleccionar prenda —</option>';
-    (orden?.productos||[]).forEach((p,idx)=>{sel.innerHTML+='<option value="'+idx+'">'+(p.tipo||'Prenda '+(idx+1))+' — '+(p.talla||'Sin talla')+'</option>';});
-    document.getElementById('error-desc').value='';
-    document.getElementById('error-area-destino').value='';
-    document.getElementById('modal-error').classList.add('show');
-  }
-
-  function cerrarModal(){document.getElementById('modal-error').classList.remove('show');errorTarget=null;}
-
-  async function confirmarError(){
-    if(!errorTarget)return;
-    const{ordenId}=errorTarget;
-    const prendaIdx=parseInt(document.getElementById('error-prenda-idx').value);
-    const areaDestino=document.getElementById('error-area-destino').value;
-    const desc=document.getElementById('error-desc').value.trim();
-    if(isNaN(prendaIdx)){alert('Selecciona la prenda.');return;}
-    if(!areaDestino){alert('Selecciona el área destino.');return;}
-    if(!desc){alert('Describe el problema.');return;}
-    const r=await fetch(SB_URL+'/rest/v1/ordenes?id=eq.'+ordenId+'&select=sub_estados',{headers:HDR});
-    const data=await r.json();
-    let sub=data[0]?.sub_estados||[];
-    const cambio={prenda_idx:prendaIdx,area_actual:areaDestino,estado:'pendiente',error_desc:desc,error_area:'Almacén',error_fecha:new Date().toISOString()};
-    const i=sub.findIndex(s=>s.prenda_idx===prendaIdx);
-    if(i>=0)sub[i]={...sub[i],...cambio};else sub.push(cambio);
-    await fetch(SB_URL+'/rest/v1/ordenes?id=eq.'+ordenId,{method:'PATCH',headers:{...HDR,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({sub_estados:sub})});
+  fetch(SB_URL + "/rest/v1/ordenes?id=eq." + oid + "&select=sub_estados", { headers: HDR })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    var sub = data[0] ? (data[0].sub_estados || []) : [];
+    var cambio = { prenda_idx: prendaIdx, area_actual: areaDestino, estado: "pendiente", error_desc: desc, error_area: "Almacen", error_fecha: new Date().toISOString() };
+    var i = sub.findIndex(function(s) { return s.prenda_idx === prendaIdx; });
+    if (i >= 0) sub[i] = Object.assign({}, sub[i], cambio);
+    else sub.push(cambio);
+    return fetch(SB_URL + "/rest/v1/ordenes?id=eq." + oid, {
+      method: "PATCH",
+      headers: Object.assign({}, HDR, { "Content-Type": "application/json", "Prefer": "return=minimal" }),
+      body: JSON.stringify({ sub_estados: sub })
+    });
+  })
+  .then(function() {
     cerrarModal();
-    showToast('🔴 Prenda devuelta a '+areaDestino);
-    await cargar();
-  }
+    showToast("🔴 Prenda devuelta a " + areaDestino);
+    cargar();
+  })
+  .catch(function(e) { alert("Error: " + e.message); });
+}
 
-  function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.opacity='1';clearTimeout(t._tid);t._tid=setTimeout(()=>{t.style.opacity='0';},3500);}
+function showToast(msg) {
+  var t = document.getElementById("toast");
+  t.textContent = msg;
+  t.style.opacity = "1";
+  clearTimeout(t._tid);
+  t._tid = setTimeout(function() { t.style.opacity = "0"; }, 3500);
+}
 </script>
 </body>
 </html>
