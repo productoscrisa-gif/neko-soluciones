@@ -161,6 +161,13 @@ window.addEventListener("DOMContentLoaded", function() {
   if (!raw) { window.location.href = "neko_login.html"; return; }
   sesion = JSON.parse(raw);
   document.getElementById("user-info").textContent = "👤 " + sesion.nombre;
+  // Restaurar tab guardada
+  var tabGuardada = localStorage.getItem("almacen_tab");
+  if (tabGuardada) {
+    tabActual = tabGuardada;
+    document.getElementById("tab-pendientes").classList.toggle("active", tabActual === "pendientes");
+    document.getElementById("tab-despachados").classList.toggle("active", tabActual === "despachados");
+  }
   cargar();
 });
 
@@ -217,6 +224,7 @@ function actualizarStats() {
 
 function cambiarTab(tab) {
   tabActual = tab;
+  localStorage.setItem("almacen_tab", tab);
   document.getElementById("tab-pendientes").classList.toggle("active", tab === "pendientes");
   document.getElementById("tab-despachados").classList.toggle("active", tab === "despachados");
   renderTab();
