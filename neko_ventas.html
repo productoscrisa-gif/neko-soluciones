@@ -1226,18 +1226,27 @@
           + '<span style="font-size:12px;font-weight:700;background:#e2e8f0;padding:4px 10px;border-radius:20px;color:#0f172a">📍 ' + areaActual + '</span>'
         + '</div>'
         + (p.notas ? '<div style="font-size:12px;color:#92400e;background:#fffbeb;padding:6px 10px;border-radius:6px;border-left:3px solid #f59e0b;margin-bottom:10px">📝 ' + p.notas + '</div>' : '')
+        + (p.medidas ? '<div style="font-size:12px;color:#065f46;background:#f0fdf4;padding:6px 10px;border-radius:6px;border-left:3px solid #10b981;margin-bottom:10px">📐 Medidas: ' + p.medidas + '</div>' : '')
         + '<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center">' + flujoHTML + '</div>'
         + (tieneError ? '<div style="margin-top:8px;font-size:12px;color:#ef4444;font-weight:600;background:#fff1f2;padding:6px 10px;border-radius:6px">⚠️ ' + se.error_desc + '</div>' : '')
       + '</div>';
     }).join('');
 
     // Info de guía si fue despachado
-    const guiaHTML = o.guia_numero
-      ? '<div style="margin-top:10px;padding:10px 14px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'
-          + '<span style="font-size:13px;font-weight:700;color:#059669">📬 Guía: ' + o.guia_numero + '</span>'
-          + (o.guia_url ? ' &nbsp;·&nbsp; <a href="' + o.guia_url + '" target="_blank" style="font-size:13px;font-weight:700;color:#2563eb">🔗 Rastrear envío</a>' : '')
-        + '</div>'
-      : '';
+    // Info de guía y links
+    var extraLinks = '';
+    if (o.guia_numero) {
+      extraLinks += '<div style="margin-top:10px;padding:10px 14px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">';
+      extraLinks += '<span style="font-size:13px;font-weight:700;color:#059669">📬 Guía: ' + o.guia_numero + '</span>';
+      if (o.guia_url) extraLinks += ' &nbsp;·&nbsp; <a href="' + o.guia_url + '" target="_blank" style="font-size:13px;font-weight:700;color:#2563eb">🔗 Rastrear envío</a>';
+      if (o.link_drive) extraLinks += ' &nbsp;·&nbsp; <a href="' + o.link_drive + '" target="_blank" style="font-size:13px;font-weight:700;color:#7c3aed">📁 Ver Drive</a>';
+      extraLinks += '</div>';
+    } else if (o.link_drive) {
+      extraLinks += '<div style="margin-top:10px;padding:8px 14px;background:#f5f3ff;border:1px solid #ede9fe;border-radius:8px">';
+      extraLinks += '<a href="' + o.link_drive + '" target="_blank" style="font-size:13px;font-weight:700;color:#7c3aed">📁 Ver Drive</a>';
+      extraLinks += '</div>';
+    }
+    const guiaHTML = extraLinks;
 
     // Usuario red social
     const redHTML = o.usuario_red

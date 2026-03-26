@@ -313,7 +313,10 @@ function buildCard(o, isDespachado) {
     var enAlm = area === "Almacen" || area === "Almacén";
     var cls = enAlm ? "ep-listo" : (se && se.estado === "error" ? "ep-error" : "ep-ruta");
     prendasRows += "<tr>"
-      + "<td><strong>" + (p.tipo||"-") + "</strong><br><small style='color:var(--text-muted)'>" + (p.horma||"") + (p.talla?" · "+p.talla:"") + "</small></td>"
+      + "<td><strong>" + (p.tipo||"-") + "</strong><br><small style='color:var(--text-muted)'>" + (p.horma||"") + (p.talla?" · "+p.talla:"") + "</small>"
+      + (p.notas ? "<br><span style=\"font-size:11px;color:#92400e;background:#fffbeb;padding:2px 6px;border-radius:4px;border-left:2px solid #f59e0b\">📝 "+p.notas+"</span>" : "")
+      + (p.medidas ? "<br><span style=\"font-size:11px;color:#065f46;background:#f0fdf4;padding:2px 6px;border-radius:4px;border-left:2px solid #10b981\">📐 "+p.medidas+"</span>" : "")
+      + "</td>"
       + "<td><span style='background:var(--blue-light);color:var(--blue);padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700'>x"+(p.cantidad||1)+"</span></td>"
       + "<td><span class='ep "+cls+"'>"+(enAlm?"✅ En Almacen":"📍 "+area)+"</span></td>"
       + "<td style='font-size:11px;color:var(--red)'>"+(se&&se.error_desc?"⚠️ "+se.error_desc:"-")+"</td>"
@@ -349,7 +352,14 @@ function buildCard(o, isDespachado) {
   // Alerta estado
   var alertHTML = "";
   if (!isDespachado) {
-    alertHTML = completo
+    // Alerta saldo pendiente sin contraentrega — bloquea despacho
+    if (tieneSaldoSinContra) {
+      alertHTML += "<div class='alert-box warning' style='background:#fff1f2;border-color:#fca5a5;margin-bottom:12px'>"
+        + "<span>🔒</span><div><strong>Despacho bloqueado</strong> — Saldo pendiente de <strong>$"
+        + Number(o.saldo_pendiente||0).toLocaleString("es-CO")
+        + " COP</strong>. La vendedora debe confirmar el pago antes de despachar.</div></div>";
+    }
+    alertHTML += completo
       ? "<div class='alert-box success'><span>✅</span><div><strong>Pedido completo</strong> - Registra la guia y despacha.</div></div>"
       : "<div class='alert-box warning'><span>⚠️</span><div><strong>Pedido incompleto</strong> - "+enAlmacen+"/"+total+" prendas llegaron. Faltan "+faltantes+" en produccion.</div></div>";
   }
@@ -395,7 +405,12 @@ function buildCard(o, isDespachado) {
     var fdp = o.fecha_despacho ? new Date(o.fecha_despacho).toLocaleDateString("es-CO",{day:"2-digit",month:"short",year:"numeric"}) : "-";
     accionesHTML = "<span style='font-size:13px;font-weight:700;color:var(--indigo)'>📦 Despachado el "+fdp+(o.guia_numero?" · Guia: "+o.guia_numero:"")+"</span>";
   } else {
-    var disAttr = completo ? "" : "disabled";
+    // Bloquear si saldo pendiente sin contraentrega (pago parcial sin confirmar)
+  var tieneSaldoSinContra = (o.saldo_pendiente > 0) && !o.es_contraentrega && !o.pago_confirmado;
+  var disAttr = (!completo || tieneSaldoSinContra) ? "disabled" : "";
+  var tooltipAttr = !completo ? 'title="Faltan prendas en produccion"'
+    : tieneSaldoSinContra ? 'title="Saldo pendiente - El cliente debe pagar antes de despachar"'
+    : '';
     accionesHTML = "<button class='btn-despachar' id='btn-d-"+oid+"' "+disAttr+" onclick='doDespachar(\""+oid+"\")'>📤 Confirmar Despacho</button>"
       + "<button class='btn-error-rep' onclick='doError(\""+oid+"\")'>🔴 Reportar Problema</button>";
   }
