@@ -205,7 +205,7 @@ function mostrarTab(tab) {
 async function cargarPendientes() {
   document.getElementById("panel-pendientes").innerHTML = '<div class="state-box"><div class="icon">⏳</div><p>Cargando...</p></div>';
   try {
-    var r = await fetch(SB + "/rest/v1/ordenes?estado=eq.EN_PRODUCCION&select=id,numero_orden,nombre_cliente,telefono,doc_cliente,direccion,barrio,ciudad,departamento,usuario_red,marca,vendedora,productos,sub_estados,es_prioritario,fecha_entrega,fecha_creacion,valor_total,monto_pagado,saldo_pendiente,es_contraentrega,pago_confirmado,confirmado_por,guia_numero,guia_url,tipo_envio,transportadora&order=es_prioritario.desc,fecha_creacion.asc", { headers: H });
+    var r = await fetch(SB + "/rest/v1/ordenes?estado=eq.EN_PRODUCCION&select=id,numero_orden,nombre_cliente,telefono,doc_cliente,direccion,barrio,ciudad,departamento,usuario_red,marca,vendedora,productos,sub_estados,es_prioritario,fecha_entrega,fecha_creacion,valor_total,monto_pagado,saldo_pendiente,es_contraentrega,pago_confirmado,confirmado_por,guia_numero,guia_url,link_drive,tipo_envio,transportadora&order=es_prioritario.desc,fecha_creacion.asc", { headers: H });
     var all = await r.json();
     if (!Array.isArray(all)) all = [];
     // Solo las que tienen prendas en Almacén
@@ -226,7 +226,7 @@ async function cargarPendientes() {
 async function cargarDespachados() {
   document.getElementById("panel-despachados").innerHTML = '<div class="state-box"><div class="icon">⏳</div><p>Cargando despachados...</p></div>';
   try {
-    var r = await fetch(SB + "/rest/v1/ordenes?estado=eq.DESPACHADO&select=id,numero_orden,nombre_cliente,telefono,doc_cliente,direccion,barrio,ciudad,productos,guia_numero,guia_url,fecha_despacho,tipo_envio,transportadora,valor_total,es_prioritario,fecha_entrega&order=fecha_despacho.desc&limit=50", { headers: H });
+    var r = await fetch(SB + "/rest/v1/ordenes?estado=eq.DESPACHADO&select=id,numero_orden,nombre_cliente,telefono,doc_cliente,direccion,barrio,ciudad,productos,guia_numero,guia_url,link_drive,fecha_despacho,tipo_envio,transportadora,valor_total,es_prioritario,fecha_entrega&order=fecha_despacho.desc&limit=50", { headers: H });
     ordenesDespachadas = await r.json();
     if (!Array.isArray(ordenesDespachadas)) ordenesDespachadas = [];
     document.getElementById("stat-despachados").textContent = ordenesDespachadas.length;
@@ -370,8 +370,24 @@ function buildCard(o, isDespachado) {
     : (isDespachado && trans ? "<div style='margin-top:8px;font-size:13px;font-weight:600;color:var(--indigo)'>🚚 " + trans + "</div>" : "");
 
   var guiaSec = isDespachado
-    ? (gn ? "<div class='guia-section'><div class='section-title'>📬 Guia de Envio</div><div class='guia-grid'><div class='field'><label>N de Guia</label><input type='text' value='"+gn+"' readonly></div><div class='field'><label>URL Seguimiento</label><input type='text' value='"+gu+"' readonly></div></div>"+(gu?"<div style='margin-top:10px'><a href='"+gu+"' target='_blank' style='font-size:13px;font-weight:700;color:var(--blue)'>🔗 Rastrear envio</a></div>":"")+"</div>" : "")
-    : "<div class='guia-section'><div class='section-title'>📬 Registrar Guia y Envio</div><div class='guia-grid'><div class='field'><label>N de Guia *</label><input type='text' id='gn-"+oid+"' placeholder='Ej. 1234567890' value='"+gn+"'></div><div class='field'><label>URL Seguimiento</label><input type='text' id='gu-"+oid+"' placeholder='https://...' value='"+gu+"'></div></div>"+selectorTrans+"</div>";
+    ? (gn ? "<div class='guia-section'><div class='section-title'>📬 Guia de Envio</div><div class='guia-grid'>"
+        + "<div class='field'><label>N de Guia</label><input type='text' value='"+gn+"' readonly></div>"
+        + "<div class='field'><label>URL Rastreo</label><input type='text' value='"+gu+"' readonly></div>"
+        + (o.link_drive ? "<div class='field'><label>Link Drive</label><input type='text' value='"+(o.link_drive||"")+"' readonly></div>" : "")
+        + "</div>"
+        + "<div style='margin-top:10px;display:flex;gap:14px;flex-wrap:wrap'>"
+          + (gu ? "<a href='"+gu+"' target='_blank' style='font-size:13px;font-weight:700;color:var(--indigo)'>🔗 Rastrear envio</a>" : "")
+          + (o.link_drive ? "<a href='"+(o.link_drive||"")+"' target='_blank' style='font-size:13px;font-weight:700;color:var(--green)'>📁 Ver Drive</a>" : "")
+        + "</div>"
+      + "</div>" : "")
+    : "<div class='guia-section'><div class='section-title'>📬 Registrar Guia y Envio</div>"
+      + "<div class='guia-grid'>"
+        + "<div class='field'><label>N de Guia *</label><input type='text' id='gn-"+oid+"' placeholder='Ej. 1234567890' value='"+gn+"'></div>"
+        + "<div class='field'><label>URL Rastreo de Guia</label><input type='text' id='gu-"+oid+"' placeholder='https://...' value='"+gu+"'></div>"
+        + "<div class='field'><label>Link Drive (Diseños/Archivos)</label><input type='text' id='ld-"+oid+"' placeholder='https://drive.google.com/...' value='"+(o.link_drive||"")+"'></div>"
+      + "</div>"
+      + selectorTrans
+    + "</div>";
 
   // Acciones
   var accionesHTML = "";
@@ -421,10 +437,12 @@ function doDespachar(oid) {
   if (btn) { btn.disabled = true; btn.textContent = "⏳ Despachando..."; }
   var transEl2 = document.getElementById("trans-"+oid);
   var transVal = transEl2 ? transEl2.value : "";
+  var ldEl = document.getElementById("ld-"+oid);
+  var ldVal = ldEl ? ldEl.value.trim() : "";
   fetch(SB+"/rest/v1/ordenes?id=eq."+oid, {
     method: "PATCH",
     headers: Object.assign({}, H, {"Content-Type":"application/json","Prefer":"return=minimal"}),
-    body: JSON.stringify({estado:"DESPACHADO", guia_numero:gn, guia_url:gu, transportadora:transVal, fecha_despacho:new Date().toISOString()})
+    body: JSON.stringify({estado:"DESPACHADO", guia_numero:gn, guia_url:gu, transportadora:transVal, link_drive:ldVal, fecha_despacho:new Date().toISOString()})
   }).then(function(r) {
     if (!r.ok) throw new Error("HTTP "+r.status);
     showToast("🚀 Pedido despachado - Guia: "+gn);
