@@ -107,6 +107,7 @@
     <button class="nav-tab" onclick="cambiarTab('ordenes')">📋 Órdenes</button>
     <button class="nav-tab" onclick="cambiarTab('usuarios')">👥 Usuarios</button>
     <button class="nav-tab" onclick="cambiarTab('errores')" style="color:var(--red)">🔴 Errores <span id="badge-err-admin" style="display:none;background:var(--red);color:#fff;border-radius:20px;padding:1px 7px;font-size:10px">0</span></button>
+    <button class="nav-tab" id="ntab-compras-admin" onclick="cambiarTab('compras-admin')" style="color:#0891b2">🛍️ Compras <span id="badge-compras-admin" style="display:none;background:#0891b2;color:#fff;border-radius:20px;padding:1px 6px;font-size:10px;margin-left:3px">0</span></button>
   </div>
 
   <!-- DASHBOARD -->
@@ -253,7 +254,7 @@
   </div>
 
   <!-- COMPRAS -->
-  <div class="tab-content" id="tab-compras-admin" style="display:none">
+  <div class="tab-content" id="tab-compras-admin">
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-md);overflow:hidden;margin-bottom:20px">
       <div style="padding:14px 20px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
         <span style="font-size:14px;font-weight:800">🛍️ Verificación de Compras</span>
@@ -283,6 +284,7 @@
     document.getElementById('user-info').textContent='⚙️ '+sesion.nombre;
     cargarDashboard();
     cargarOrdenes();
+    cargarComprasAdmin(); // Para badge inicial
     cargarUsuarios();
     cargarErroresAdmin();
   });
