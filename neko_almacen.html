@@ -357,9 +357,21 @@ function buildCard(o, isDespachado) {
   // Guia
   var gn = o.guia_numero || "";
   var gu = o.guia_url || "";
+  var trans = o.transportadora || "";
+  var esTransportadora = o.tipo_envio === "Transportadora";
+  var selectorTrans = esTransportadora && !isDespachado
+    ? "<div class='field' style='margin-top:10px'><label>🚚 Transportadora *</label>"
+      + "<select id='trans-"+oid+"' style='width:100%;padding:9px 12px;border:1.5px solid var(--indigo-mid);border-radius:var(--radius-sm);font-size:13px;font-family:Plus Jakarta Sans,sans-serif;background:var(--indigo-light);outline:none;appearance:none'>"
+      + "<option value=''>— Seleccionar —</option>"
+      + ["Interrapidisimo","Servientrega","Envia","Coordinadora"].map(function(t){
+          return "<option value='"+t+"'"+(trans===t?" selected":"")+">" + t + "</option>";
+        }).join("")
+      + "</select></div>"
+    : (isDespachado && trans ? "<div style='margin-top:8px;font-size:13px;font-weight:600;color:var(--indigo)'>🚚 " + trans + "</div>" : "");
+
   var guiaSec = isDespachado
     ? (gn ? "<div class='guia-section'><div class='section-title'>📬 Guia de Envio</div><div class='guia-grid'><div class='field'><label>N de Guia</label><input type='text' value='"+gn+"' readonly></div><div class='field'><label>URL Seguimiento</label><input type='text' value='"+gu+"' readonly></div></div>"+(gu?"<div style='margin-top:10px'><a href='"+gu+"' target='_blank' style='font-size:13px;font-weight:700;color:var(--blue)'>🔗 Rastrear envio</a></div>":"")+"</div>" : "")
-    : "<div class='guia-section'><div class='section-title'>📬 Registrar Guia</div><div class='guia-grid'><div class='field'><label>N de Guia *</label><input type='text' id='gn-"+oid+"' placeholder='Ej. 1234567890' value='"+gn+"'></div><div class='field'><label>URL Seguimiento</label><input type='text' id='gu-"+oid+"' placeholder='https://...' value='"+gu+"'></div></div></div>";
+    : "<div class='guia-section'><div class='section-title'>📬 Registrar Guia y Envio</div><div class='guia-grid'><div class='field'><label>N de Guia *</label><input type='text' id='gn-"+oid+"' placeholder='Ej. 1234567890' value='"+gn+"'></div><div class='field'><label>URL Seguimiento</label><input type='text' id='gu-"+oid+"' placeholder='https://...' value='"+gu+"'></div></div>"+selectorTrans+"</div>";
 
   // Acciones
   var accionesHTML = "";
@@ -407,10 +419,12 @@ function doDespachar(oid) {
   if (!gn) { alert("Ingresa el numero de guia antes de despachar."); return; }
   var btn = document.getElementById("btn-d-"+oid);
   if (btn) { btn.disabled = true; btn.textContent = "⏳ Despachando..."; }
+  var transEl2 = document.getElementById("trans-"+oid);
+  var transVal = transEl2 ? transEl2.value : "";
   fetch(SB+"/rest/v1/ordenes?id=eq."+oid, {
     method: "PATCH",
     headers: Object.assign({}, H, {"Content-Type":"application/json","Prefer":"return=minimal"}),
-    body: JSON.stringify({estado:"DESPACHADO", guia_numero:gn, guia_url:gu, fecha_despacho:new Date().toISOString()})
+    body: JSON.stringify({estado:"DESPACHADO", guia_numero:gn, guia_url:gu, transportadora:transVal, fecha_despacho:new Date().toISOString()})
   }).then(function(r) {
     if (!r.ok) throw new Error("HTTP "+r.status);
     showToast("🚀 Pedido despachado - Guia: "+gn);
