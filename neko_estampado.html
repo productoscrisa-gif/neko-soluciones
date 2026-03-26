@@ -1,11 +1,7 @@
-<!-- NEKO v2.1.0 -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Neko Soluciones – Producción</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -438,6 +434,7 @@
       + '</div>'
       + '<div class="prenda-body">'
         + (prenda.notas ? '<div class="prenda-notas">📝 ' + prenda.notas + '</div>' : '')
+        + (prenda.medidas ? '<div class="prenda-notas" style="background:#f0fdf4;border-left-color:#10b981;color:#065f46">📐 Medidas: ' + prenda.medidas + '</div>' : '')
         + (prenda.url   ? '<div class="prenda-url">🔗 <a href="' + prenda.url + '" target="_blank">Ver referencia del diseño</a></div>' : '')
         + '<div class="flujo-wrap">' + flujoHTML + '</div>'
         + (tieneError ? '<div class="error-alert"><div class="error-alert-title">⚠️ Error reportado por: ' + errorAreaReporta + '</div><div class="error-alert-desc">' + errorDesc + '</div></div>' : '')

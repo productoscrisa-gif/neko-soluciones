@@ -894,9 +894,37 @@
   }
 
   // ── TIPOS / TALLAS / MEDIDAS ─────────────────────────────
-  const tiposProducto = ['Camisetas','Hoodies','Pantalones','Cobijas','Mugs','Toallas con Capucha','Sudaderas','Shorts','Pijamas','Accesorios','Otro'];
-  const hormasOpc = ['UNISEX','OVERSIZE','JUNIOR','DAMA','CABALLERO','INFANTIL'];
-  const tallasStd = ['XS','S','M','L','XL','2XL','3XL','4XL','80x100','90x110','100x120','110x130','120x140','Única'];
+  const tiposProducto = [
+    'Bandera','Banderin','BAO BAO','Bermuda','Blusa','Camibuzo','Camisa',
+    'Camiseta','Camiseta con mangas','Camisilla','Capa','Cartuchera','Chaleco',
+    'Chaqueta','Choker','Cobija','Cojin','Cojin para cuello','Cojines para pintar',
+    'Corbata','Correa','Croptop','Dakimakuras','Delantal','DTF','Estola','Falda',
+    'Gafas','Gorro','Hoodie','Impresion','Kimono','Manga','Maxibuzo','Medias',
+    'MousePad','Mug','Overol','Pantalon','Pantaloneta','Pañoleta','Pendon',
+    'Peto','Ruana','Short','Sublimacion','Sudadera','Tapaboca','Termos','Toalla',
+    'Toalla con capota','Totebag','Tula','Tula para pintar','Uniforme',
+    'Vaso','Vestido','Otros'
+  ];
+  const hormasOpc = ['Unisex','Masculino','Femenino','Oversize','Junior','Varias','Otras'];
+  const tallasStd = ['4','6','8','10','12','14','16','XS','S','M','L','XL','XXL','XXXL','XXXXL','Personalizada'];
+
+  function buildSelectTalla(name) {
+    let html = `<select name="${name}" id="${name}" onchange="toggleMedidas('${name}')" required>`;
+    html += '<option value="">— Talla —</option>';
+    tallasStd.forEach(t => html += `<option value="${t}">${t}</option>`);
+    html += '</select>';
+    return html;
+  }
+
+  function toggleMedidas(selectId) {
+    const sel = document.getElementById(selectId);
+    if (!sel) return;
+    const prodId = selectId.replace('talla_', '');
+    const box = document.getElementById('medidas-box-' + prodId);
+    if (box) {
+      box.style.display = sel.value === 'Personalizada' ? 'block' : 'none';
+    }
+  }
 
   function buildSelect(name, opciones, placeholder) {
     let html = `<select name="${name}" required><option value="">— ${placeholder} —</option>`;
@@ -933,8 +961,14 @@
         </div>
         <div class="field">
           <label>Talla / Medida <span class="req">*</span></label>
-          ${buildSelect('talla_'+id, tallasStd, 'Talla')}
+          ${buildSelectTalla('talla_'+id)}
         </div>
+      </div>
+      <div class="field" id="medidas-box-${id}" style="margin-top:10px;display:none">
+        <label>📐 Medidas Personalizadas <span class="req">*</span></label>
+        <textarea name="medidas_${id}" id="medidas_${id}" rows="2"
+          placeholder="Ej: Pecho 100cm, Largo 70cm, Manga 60cm..."
+          style="width:100%;padding:9px 12px;border:1.5px solid #f59e0b;border-radius:8px;font-size:13px;font-family:'Plus Jakarta Sans',sans-serif;background:#fffbeb;resize:vertical"></textarea>
       </div>
       <div class="grid-3" style="margin-top:10px">
         <div class="field">
@@ -1013,6 +1047,7 @@
         cantidad: item.querySelector(`[name="cantidad_${id}"]`) ? item.querySelector(`[name="cantidad_${id}"]`).value : '1',
         url:      item.querySelector(`[name="url_${id}"]`) ? item.querySelector(`[name="url_${id}"]`).value : '',
         notas:    item.querySelector(`[name="notas_${id}"]`) ? item.querySelector(`[name="notas_${id}"]`).value : '',
+        medidas:  item.querySelector(`[name="medidas_${id}"]`) ? item.querySelector(`[name="medidas_${id}"]`).value : '',
       });
     });
     return lista;

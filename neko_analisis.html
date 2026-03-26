@@ -293,6 +293,7 @@
       </div>
       <div class="prenda-body">
         ${p.notas?`<div class="prenda-notas">📝 ${p.notas}</div>`:''}
+        ${p.medidas?`<div class="prenda-notas" style="background:#f0fdf4;border-left-color:#10b981;color:#065f46">📐 Medidas: ${p.medidas}</div>`:''}
         ${p.url?`<div class="prenda-url">🔗 <a href="${p.url}" target="_blank">Ver referencia del diseño</a></div>`:''}
         <div class="ruta-label">Seleccionar Ruta de Producción</div>
         <div class="ruta-grid-mini">${btns}</div>
