@@ -195,6 +195,7 @@
     <button class="nav-tab active" id="ntab-seguimiento" onclick="cambiarNavTab('seguimiento')">👁️ Seguimiento General</button>
     <button class="nav-tab" id="ntab-analisis" onclick="cambiarNavTab('analisis')">📊 Análisis</button>
     <button class="nav-tab" id="ntab-confeccion" onclick="cambiarNavTab('confeccion')">🧵 Confección</button>
+    <button class="nav-tab" id="ntab-compras" onclick="cambiarNavTab('compras')">🛍️ Compras</button>
   </div>
 
   <!-- ══ PESTAÑA 1: SEGUIMIENTO GENERAL ══ -->
@@ -283,6 +284,25 @@
     </div>
   </div>
 
+  <!-- ══ PESTAÑA 4: COMPRAS ══ -->
+  <div class="tab-content" id="tab-compras">
+    <div class="conf-wrap">
+      <div class="stats-bar" style="grid-template-columns:repeat(2,1fr)">
+        <div class="stat-card"><div class="stat-label">Pendientes de Compra</div><div class="stat-value amber" id="cmp-pendientes">—</div></div>
+        <div class="stat-card"><div class="stat-label">Compras Realizadas</div><div class="stat-value green" id="cmp-realizadas">—</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">🛍️ Prendas en Compras</span>
+          <button class="btn-refresh" onclick="cargarCompras()">🔄</button>
+        </div>
+        <div class="card-body">
+          <div id="lista-compras"><div class="empty"><div class="icon">⏳</div><p>Cargando...</p></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ══ PESTAÑA 3: CONFECCIÓN ══ -->
   <div class="tab-content" id="tab-confeccion">
     <div class="conf-wrap">
@@ -352,15 +372,17 @@
     cargarSeguimiento();
     cargarAnalisis();
     cargarConfeccion();
+    cargarCompras();
   }
 
   // ── NAV TABS ─────────────────────────────────────────────
   function cambiarNavTab(tab) {
     navActual = tab;
-    ['seguimiento','analisis','confeccion'].forEach(t => {
+    ['seguimiento','analisis','confeccion','compras'].forEach(t => {
       document.getElementById('ntab-' + t).classList.toggle('active', t === tab);
       document.getElementById('tab-' + t).classList.toggle('active', t === tab);
     });
+    if (tab === 'compras') cargarCompras();
   }
 
   // ════════════════════════════════════════════════════════
@@ -804,6 +826,227 @@
       orden.productos[idx].diseñador = usuario;
     }
     showToast(usuario ? '🎨 Diseñador asignado: ' + usuario : '🎨 Asignación removida');
+  }
+
+  // ════════════════════════════════════════════════════════
+  // MÓDULO COMPRAS (Supervisor inicia, Admin verifica)
+  // ════════════════════════════════════════════════════════
+  let prendasCompras = [];
+
+  async function cargarCompras() {
+    const el = document.getElementById('lista-compras');
+    if (!el) return;
+    el.innerHTML = '<div class="empty"><div class="icon">⏳</div><p>Cargando...</p></div>';
+    try {
+      const r = await fetch(SB_URL + '/rest/v1/ordenes?estado=eq.EN_PRODUCCION'
+        + '&select=id,numero_orden,productos,sub_estados,compras_estado,marca,es_prioritario,fecha_entrega'
+        + '&order=es_prioritario.desc,fecha_creacion.asc', { headers: HDR });
+      const ordenes = await r.json();
+
+      prendasCompras = [];
+      ordenes.forEach(orden => {
+        (orden.productos || []).forEach((p, idx) => {
+          const se = (orden.sub_estados || []).find(s => s.prenda_idx === idx);
+          if (!se || se.area_actual !== 'Compras') return;
+          const ce = (orden.compras_estado || []).find(c => c.prenda_idx === idx) || {};
+          prendasCompras.push({
+            ordenId:    orden.id,
+            ordenNum:   orden.numero_orden,
+            prendaIdx:  idx,
+            prenda:     p,
+            marca:      orden.marca || '',
+            prioritario: orden.es_prioritario,
+            entrega:    orden.fecha_entrega,
+            estado:     ce.estado || 'pendiente',   // pendiente | en_compra | verificado
+            verificadoPor: ce.verificado_por || '',
+            diseñador:  se.diseñador_asignado || p.diseñador || '',
+            seObj:      se,
+            _subs:      orden.sub_estados || [],
+            _compras:   orden.compras_estado || [],
+          });
+        });
+      });
+
+      const pendientes  = prendasCompras.filter(p => p.estado === 'pendiente');
+      const enCompra    = prendasCompras.filter(p => p.estado === 'en_compra');
+      const verificados = prendasCompras.filter(p => p.estado === 'verificado');
+
+      document.getElementById('cmp-pendientes').textContent  = pendientes.length + enCompra.length;
+      document.getElementById('cmp-realizadas').textContent  = verificados.length;
+
+      renderCompras();
+    } catch(e) {
+      el.innerHTML = '<div class="empty"><div class="icon">❌</div><p>' + e.message + '</p></div>';
+    }
+  }
+
+  function renderCompras() {
+    const el = document.getElementById('lista-compras');
+    if (!el) return;
+    if (!prendasCompras.length) {
+      el.innerHTML = '<div class="empty"><div class="icon">🛍️</div><p>No hay prendas en Compras</p></div>';
+      return;
+    }
+
+    // Agrupar por orden
+    const grupos = {};
+    prendasCompras.forEach(item => {
+      if (!grupos[item.ordenNum]) grupos[item.ordenNum] = { ordenId: item.ordenId, ordenNum: item.ordenNum, prendas: [] };
+      grupos[item.ordenNum].prendas.push(item);
+    });
+
+    el.innerHTML = '<div class="prendas-list">' + Object.values(grupos).map(g => renderGrupoCompras(g)).join('') + '</div>';
+  }
+
+  function renderGrupoCompras(g) {
+    const cards = g.prendas.map(item => renderPrendaCompras(item)).join('');
+    return '<div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-md);overflow:hidden;margin-bottom:16px">'
+      + '<div style="padding:12px 18px;background:var(--surface2);border-bottom:1px solid var(--border)">'
+        + '<span style="font-family:JetBrains Mono,monospace;font-size:14px;font-weight:700;color:var(--blue)">' + g.ordenNum + '</span>'
+      + '</div>'
+      + '<div style="padding:14px 18px;display:flex;flex-direction:column;gap:12px">' + cards + '</div>'
+    + '</div>';
+  }
+
+  function renderPrendaCompras(item) {
+    var oid        = item.ordenId;
+    var prendaIdx  = item.prendaIdx;
+    var prenda     = item.prenda;
+    var estado     = item.estado;
+    var diseñador  = item.diseñador;
+    var entregaF   = item.entrega ? new Date(item.entrega+'T12:00:00').toLocaleDateString('es-CO',{day:'2-digit',month:'short'}) : '—';
+
+    var rutaSig    = (RUTAS[prenda.ruta] && RUTAS[prenda.ruta].pasos) ? RUTAS[prenda.ruta].pasos : [];
+    var idxComp    = rutaSig.indexOf('Compras');
+    var areaSig    = (idxComp >= 0 && idxComp < rutaSig.length-1) ? rutaSig[idxComp+1] : null;
+    var necesitaDiseno = areaSig === 'Diseño';
+
+    // Badge estado
+    var estadoBadge = estado === 'verificado'
+      ? '<span style="padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;background:var(--green-light);color:var(--green)">✅ Verificado</span>'
+      : estado === 'en_compra'
+        ? '<span style="padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;background:var(--amber-light);color:var(--amber)">🛍️ En Compra</span>'
+        : '<span style="padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;background:var(--blue-light);color:var(--blue)">📥 Pendiente</span>';
+
+    // Selector diseñador
+    var selectorDiseno = '';
+    if (estado === 'verificado' && necesitaDiseno) {
+      var opts = '<option value="">— Asignar diseñador —</option>';
+      diseñadoresSup.forEach(function(d) {
+        opts += '<option value="' + d.usuario + '"' + (diseñador === d.usuario ? ' selected' : '') + '>' + d.nombre + ' (' + d.usuario + ')</option>';
+      });
+      selectorDiseno = '<div style="margin-top:10px">'
+        + '<div style="font-size:11px;font-weight:700;color:var(--purple);text-transform:uppercase;margin-bottom:6px">🎨 Asignar Diseñador</div>'
+        + '<select data-oid="' + oid + '" data-idx="' + prendaIdx + '" onchange="asignarDisCmp(this)"'
+          + ' style="width:100%;padding:8px 12px;border:1.5px solid #ede9fe;border-radius:8px;font-size:13px;background:var(--purple-light);outline:none;appearance:none">'
+          + opts
+        + '</select></div>';
+    }
+
+    // Acciones
+    var acciones = '';
+    if (estado === 'pendiente') {
+      acciones = '<button data-oid="' + oid + '" data-idx="' + prendaIdx + '" onclick="iniciarCmpBtn(this)"'
+        + ' style="padding:9px 16px;background:var(--amber-light);color:var(--amber);border:1.5px solid #fcd34d;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">'
+        + '🛍️ Iniciar Compra</button>';
+    } else if (estado === 'en_compra') {
+      acciones = '<span style="font-size:13px;color:var(--amber);font-weight:600">⏳ Esperando verificación del Admin...</span>';
+    } else if (estado === 'verificado') {
+      var puedeEnviar = necesitaDiseno ? !!diseñador : true;
+      var btnLabel = areaSig ? '📤 Enviar a ' + areaSig : '📤 Enviar';
+      var btnStyle = puedeEnviar
+        ? 'padding:9px 16px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 3px 10px rgba(37,99,235,.3)'
+        : 'padding:9px 16px;background:#e2e8f0;color:#94a3b8;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:not-allowed';
+      acciones = '<button data-oid="' + oid + '" data-idx="' + prendaIdx + '" data-area="' + (areaSig||'') + '" onclick="enviarCmpBtn(this)"'
+        + (puedeEnviar ? '' : ' disabled')
+        + ' style="' + btnStyle + '">' + btnLabel + '</button>';
+    }
+
+    return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px">'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">'
+        + '<div>'
+          + '<div style="font-size:14px;font-weight:800">' + (prenda.tipo||'Prenda') + '</div>'
+          + '<div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">'
+            + (prenda.horma ? '<span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;background:var(--surface);border:1px solid var(--border);color:var(--text-secondary)">' + prenda.horma + '</span>' : '')
+            + (prenda.talla ? '<span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;background:var(--surface);border:1px solid var(--border);color:var(--text-secondary)">' + prenda.talla + '</span>' : '')
+            + '<span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;background:var(--blue-light);border:1px solid var(--blue-mid);color:var(--blue)">x' + (prenda.cantidad||1) + '</span>'
+            + '<span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;background:var(--amber-light);color:var(--amber)">🚚 ' + entregaF + '</span>'
+            + (item.prioritario ? '<span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;background:var(--red-light);color:var(--red)">🔴 Prioritario</span>' : '')
+          + '</div>'
+        + '</div>'
+        + estadoBadge
+      + '</div>'
+      + (prenda.notas ? '<div style="font-size:12px;color:#92400e;background:var(--amber-light);padding:6px 10px;border-radius:6px;border-left:3px solid var(--amber);margin-bottom:8px">📝 ' + prenda.notas + '</div>' : '')
+      + selectorDiseno
+      + '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">' + acciones + '</div>'
+    + '</div>';
+  }
+
+  // Funciones auxiliares via data-attributes (evitan problemas de escape)
+  function iniciarCmpBtn(btn) {
+    iniciarCompraCmp(btn.getAttribute('data-oid'), parseInt(btn.getAttribute('data-idx')));
+  }
+  function enviarCmpBtn(btn) {
+    enviarDesdeCmp(btn.getAttribute('data-oid'), parseInt(btn.getAttribute('data-idx')), btn.getAttribute('data-area'));
+  }
+
+  // Supervisor inicia la compra
+  async function iniciarCompraCmp(ordenId, prendaIdx) {
+    const item = prendasCompras.find(p => String(p.ordenId)===String(ordenId) && p.prendaIdx===prendaIdx);
+    if (!item) return;
+    // Actualizar en memoria
+    item.estado = 'en_compra';
+    renderCompras();
+    showToast('🛍️ Compra iniciada');
+    // Guardar en Supabase
+    await actualizarComprasEstado(ordenId, prendaIdx, { estado: 'en_compra', iniciado_por: sesion.nombre, fecha_inicio: new Date().toISOString() });
+  }
+
+  // Asignar diseñador desde compras
+  function asignarDisCmp(sel) {
+    const ordenId  = sel.getAttribute('data-oid');
+    const prendaIdx= parseInt(sel.getAttribute('data-idx'));
+    const usuario  = sel.value;
+    const item = prendasCompras.find(p => String(p.ordenId)===String(ordenId) && p.prendaIdx===prendaIdx);
+    if (item) { item.diseñador = usuario; renderCompras(); }
+    showToast(usuario ? '🎨 Diseñador asignado: ' + usuario : '🎨 Asignación removida');
+  }
+
+  // Enviar a siguiente área desde compras
+  async function enviarDesdeCmp(ordenId, prendaIdx, areaSig) {
+    if (!areaSig) return;
+    const item = prendasCompras.find(p => String(p.ordenId)===String(ordenId) && p.prendaIdx===prendaIdx);
+    if (!item) return;
+    const subs = [...item._subs];
+    const i = subs.findIndex(s => s.prenda_idx === prendaIdx);
+    const cambio = { area_actual: areaSig, estado: 'pendiente', estado_diseno: 'diseno' };
+    if (item.diseñador) cambio.diseñador_asignado = item.diseñador;
+    if (i >= 0) subs[i] = { ...subs[i], ...cambio };
+    else subs.push({ prenda_idx: prendaIdx, ...cambio });
+
+    await fetch(SB_URL + '/rest/v1/ordenes?id=eq.' + ordenId, {
+      method: 'PATCH',
+      headers: { ...HDR, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ sub_estados: subs })
+    });
+    showToast('📤 Prenda enviada a ' + areaSig);
+    await cargarCompras();
+  }
+
+  // Actualizar compras_estado en Supabase
+  async function actualizarComprasEstado(ordenId, prendaIdx, cambios) {
+    const r = await fetch(SB_URL + '/rest/v1/ordenes?id=eq.' + ordenId + '&select=compras_estado', { headers: HDR });
+    const data = await r.json();
+    let arr = data[0]?.compras_estado || [];
+    const i = arr.findIndex(c => c.prenda_idx === prendaIdx);
+    const nuevo = { prenda_idx: prendaIdx, ...cambios };
+    if (i >= 0) arr[i] = { ...arr[i], ...nuevo };
+    else arr.push(nuevo);
+    await fetch(SB_URL + '/rest/v1/ordenes?id=eq.' + ordenId, {
+      method: 'PATCH',
+      headers: { ...HDR, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ compras_estado: arr })
+    });
   }
 
   // ── UTILIDADES ────────────────────────────────────────────

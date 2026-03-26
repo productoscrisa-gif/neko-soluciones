@@ -208,6 +208,7 @@
         <div id="tabla-usuarios"><div class="empty">Cargando usuarios...</div></div>
       </div>
     </div>
+    <button class="nav-tab" id="ntab-compras-admin" onclick="cambiarTab('compras-admin')" style="color:#0891b2">🛍️ Compras <span id="badge-compras-admin" style="display:none;background:#0891b2;color:#fff;border-radius:20px;padding:1px 6px;font-size:10px;margin-left:3px">0</span></button>
   </div>
   <!-- ERRORES -->
   <div class="tab-content" id="tab-errores">
@@ -250,6 +251,20 @@
       </div>
     </div>
   </div>
+
+  <!-- COMPRAS -->
+  <div class="tab-content" id="tab-compras-admin" style="display:none">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-md);overflow:hidden;margin-bottom:20px">
+      <div style="padding:14px 20px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:14px;font-weight:800">🛍️ Verificación de Compras</span>
+        <button onclick="cargarComprasAdmin()" style="padding:6px 14px;background:#ecfeff;color:#0891b2;border:1px solid #a5f3fc;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">🔄 Actualizar</button>
+      </div>
+      <div style="padding:20px">
+        <div id="lista-compras-admin"><div class="empty">Cargando...</div></div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <div id="toast"></div>
@@ -277,11 +292,12 @@
   function cambiarTab(tab){
     tabActiva=tab;
     document.querySelectorAll('.nav-tab').forEach((t,i)=>{
-      t.classList.toggle('active',['dashboard','ordenes','usuarios','errores'][i]===tab);
+      t.classList.toggle('active',['dashboard','ordenes','usuarios','errores','compras-admin'][i]===tab);
     });
     document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
     document.getElementById('tab-'+tab).classList.add('active');
     if(tab==='errores') cargarErroresAdmin();
+    if(tab==='compras-admin') cargarComprasAdmin();
   }
 
   // ── ERRORES ADMIN ─────────────────────────────────────────
@@ -550,6 +566,103 @@
       body:JSON.stringify({password:nueva})
     });
     showToast('🔑 Contraseña actualizada');
+  }
+
+  // ══ MÓDULO COMPRAS ADMIN ══════════════════════════════
+  async function cargarComprasAdmin() {
+    const el = document.getElementById('lista-compras-admin');
+    if (!el) return;
+    el.innerHTML = '<div class="empty">Cargando...</div>';
+    try {
+      const r = await fetch(SB_URL + '/rest/v1/ordenes?estado=eq.EN_PRODUCCION'
+        + '&select=id,numero_orden,productos,sub_estados,compras_estado,marca,es_prioritario'
+        + '&order=es_prioritario.desc,fecha_creacion.asc', { headers: HDR });
+      const ordenes = await r.json();
+
+      const items = [];
+      ordenes.forEach(orden => {
+        (orden.productos || []).forEach((p, idx) => {
+          const se = (orden.sub_estados || []).find(s => s.prenda_idx === idx);
+          if (!se || se.area_actual !== 'Compras') return;
+          const ce = (orden.compras_estado || []).find(c => c.prenda_idx === idx) || {};
+          if (ce.estado === 'verificado') return; // ya verificadas no mostrar
+          items.push({
+            ordenId:   orden.id,
+            ordenNum:  orden.numero_orden,
+            prendaIdx: idx,
+            prenda:    p,
+            marca:     orden.marca || '',
+            estado:    ce.estado || 'pendiente',
+            _compras:  orden.compras_estado || [],
+          });
+        });
+      });
+
+      // Badge
+      const badge = document.getElementById('badge-compras-admin');
+      if (badge) {
+        badge.textContent = items.length;
+        badge.style.display = items.length ? 'inline' : 'none';
+      }
+
+      if (!items.length) {
+        el.innerHTML = '<div class="empty" style="text-align:center;padding:40px;color:#94a3b8"><div style="font-size:32px;margin-bottom:10px">✅</div><p style="font-size:14px;font-weight:600">No hay compras pendientes de verificar</p></div>';
+        return;
+      }
+
+      el.innerHTML = '<div style="display:flex;flex-direction:column;gap:10px">' + items.map(item => {
+        const enCompra = item.estado === 'en_compra';
+        const estadoBadge = enCompra
+          ? '<span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:#fffbeb;color:#f59e0b">🛍️ En Compra - Pendiente verificar</span>'
+          : '<span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:var(--blue-light);color:var(--blue)">📥 Aún no iniciada</span>';
+
+        return '<div style="background:#f8fafc;border:1.5px solid ' + (enCompra ? '#fcd34d' : '#e2e8f0') + ';border-radius:10px;padding:14px 16px">'
+          + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">'
+            + '<div>'
+              + '<div style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:700;color:var(--blue)">' + item.ordenNum + '</div>'
+              + '<div style="font-size:14px;font-weight:800;margin-top:2px">' + (item.prenda.tipo||'Prenda') + '</div>'
+              + '<div style="font-size:12px;color:#64748b;margin-top:2px">'
+                + (item.prenda.horma ? item.prenda.horma + ' · ' : '')
+                + (item.prenda.talla || '') + ' · x' + (item.prenda.cantidad||1)
+                + (item.marca ? ' · 🏷️ ' + item.marca : '')
+              + '</div>'
+            + '</div>'
+            + estadoBadge
+          + '</div>'
+          + (item.prenda.notas ? '<div style="margin-top:8px;font-size:12px;color:#92400e;background:#fffbeb;padding:6px 10px;border-radius:6px;border-left:3px solid #f59e0b">📝 ' + item.prenda.notas + '</div>' : '')
+          + (enCompra ? '<div style="margin-top:10px"><button onclick="verificarCompra(\'' + item.ordenId + '\',' + item.prendaIdx + ')" '
+              + 'style="padding:9px 18px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 3px 10px rgba(16,185,129,.3)">'
+              + '✅ Verificar Compra Realizada</button></div>' : '')
+        + '</div>';
+      }).join('') + '</div>';
+
+    } catch(e) {
+      el.innerHTML = '<p style="color:red">Error: ' + e.message + '</p>';
+    }
+  }
+
+  async function verificarCompra(ordenId, prendaIdx) {
+    const btn = event.target;
+    btn.disabled = true; btn.textContent = '⏳ Verificando...';
+    try {
+      const r = await fetch(SB_URL + '/rest/v1/ordenes?id=eq.' + ordenId + '&select=compras_estado', { headers: HDR });
+      const data = await r.json();
+      let arr = data[0]?.compras_estado || [];
+      const i = arr.findIndex(c => c.prenda_idx === prendaIdx);
+      const nuevo = { prenda_idx: prendaIdx, estado: 'verificado', verificado_por: sesion.nombre, fecha_verificacion: new Date().toISOString() };
+      if (i >= 0) arr[i] = { ...arr[i], ...nuevo };
+      else arr.push(nuevo);
+      await fetch(SB_URL + '/rest/v1/ordenes?id=eq.' + ordenId, {
+        method: 'PATCH',
+        headers: { ...HDR, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ compras_estado: arr })
+      });
+      showToast('✅ Compra verificada — El supervisor puede enviar a diseño');
+      await cargarComprasAdmin();
+    } catch(e) {
+      alert('Error: ' + e.message);
+      btn.disabled = false; btn.textContent = '✅ Verificar Compra Realizada';
+    }
   }
 
   function showToast(msg){
