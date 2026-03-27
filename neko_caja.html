@@ -1,0 +1,605 @@
+<!-- NEKO v2.2.0 -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neko Soluciones - Caja</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f0f4f8;--surface:#fff;--surface2:#f8fafc;--border:#e2e8f0;--text-primary:#0f172a;--text-secondary:#64748b;--text-muted:#94a3b8;--blue:#2563eb;--blue-light:#eff6ff;--blue-mid:#bfdbfe;--red:#ef4444;--red-light:#fff1f2;--red-border:#fca5a5;--green:#10b981;--green-light:#ecfdf5;--green-border:#6ee7b7;--amber:#f59e0b;--amber-light:#fffbeb;--teal:#0d9488;--teal-light:#f0fdfa;--teal-mid:#99f6e4;--shadow-sm:0 1px 3px rgba(0,0,0,.06);--shadow-md:0 4px 16px rgba(0,0,0,.08);--radius:14px;--radius-sm:8px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(--text-primary);min-height:100vh;}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-sm);}
+.topbar-left{display:flex;align-items:center;gap:12px;}
+.logo-icon{width:36px;height:36px;background:var(--teal);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 3px 10px rgba(13,148,136,.3);}
+.topbar h1{font-size:16px;font-weight:800;}.topbar h1 span{color:var(--teal);}
+.area-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--teal-light);color:var(--teal);text-transform:uppercase;letter-spacing:.05em;}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.user-info{font-size:13px;font-weight:600;color:var(--text-secondary);}
+.btn-sm{padding:6px 12px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--text-secondary);}
+.main{padding:24px;max-width:900px;margin:0 auto;}
+
+/* ESTADO CAJA */
+.caja-estado{border-radius:var(--radius);padding:20px 24px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}
+.caja-cerrada{background:var(--red-light);border:2px solid var(--red-border);}
+.caja-abierta{background:var(--green-light);border:2px solid var(--green-border);}
+.caja-info{display:flex;flex-direction:column;gap:4px;}
+.caja-titulo{font-size:18px;font-weight:800;}
+.caja-sub{font-size:13px;color:var(--text-secondary);}
+.caja-monto{font-family:"JetBrains Mono",monospace;font-size:28px;font-weight:800;color:var(--teal);}
+
+/* BOTONES CAJA */
+.btn-apertura{padding:12px 24px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 3px 12px rgba(16,185,129,.3);}
+.btn-cierre{padding:12px 24px;background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 3px 12px rgba(239,68,68,.3);}
+
+/* STATS */
+.stats-bar{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow-sm);}
+.stat-label{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;}
+.stat-value{font-size:22px;font-weight:800;margin-top:4px;font-family:"JetBrains Mono",monospace;}
+.stat-value.green{color:var(--green);}.stat-value.blue{color:var(--blue);}.stat-value.teal{color:var(--teal);}
+
+/* CARD */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-md);overflow:hidden;margin-bottom:20px;}
+.card-header{padding:14px 20px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.card-title{font-size:14px;font-weight:800;}
+.card-body{padding:20px;}
+
+/* FORMULARIO VENTA RÁPIDA */
+.form-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;}
+.form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:12px;font-weight:700;color:var(--text-secondary);}
+.field input,.field select,.field textarea{padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:"Plus Jakarta Sans",sans-serif;background:var(--surface2);color:var(--text-primary);outline:none;transition:border-color .2s;}
+.field select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:30px;cursor:pointer;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,.1);}
+.field input[type=number]{font-family:"JetBrains Mono",monospace;}
+.field textarea{resize:vertical;min-height:60px;}
+.btn-registrar{width:100%;padding:13px;background:linear-gradient(135deg,var(--teal),#0f766e);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 3px 12px rgba(13,148,136,.3);margin-top:4px;}
+.btn-registrar:hover{transform:translateY(-1px);}
+.btn-registrar:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+
+/* LISTA VENTAS */
+.venta-item{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:8px;}
+.venta-item:last-child{margin-bottom:0;}
+.vi-left{display:flex;flex-direction:column;gap:3px;}
+.vi-servicio{font-size:14px;font-weight:800;}
+.vi-meta{font-size:12px;color:var(--text-muted);}
+.vi-desc{font-size:12px;color:var(--text-secondary);margin-top:2px;}
+.vi-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.vi-valor{font-family:"JetBrains Mono",monospace;font-size:16px;font-weight:800;color:var(--green);}
+.badge-pago{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+.bp-nequi{background:#f5f3ff;color:#7c3aed;}
+.bp-efectivo{background:var(--green-light);color:var(--green);}
+.bp-daviplata{background:#eff6ff;color:#2563eb;}
+.bp-transferencia{background:var(--amber-light);color:var(--amber);}
+.bp-default{background:var(--surface2);border:1px solid var(--border);color:var(--text-secondary);}
+.btn-eliminar{padding:5px 10px;background:var(--red-light);color:var(--red);border:1px solid var(--red-border);border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.show{display:flex;}
+.modal{background:var(--surface);border-radius:var(--radius);padding:28px;max-width:460px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+.modal h3{font-size:17px;font-weight:800;margin-bottom:6px;}
+.modal p{font-size:13px;color:var(--text-secondary);margin-bottom:18px;}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;}
+.btn-cancel{padding:9px 16px;background:var(--surface2);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;}
+.btn-confirm{padding:9px 20px;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:700;cursor:pointer;}
+.btn-confirm.green{background:linear-gradient(135deg,#10b981,#059669);color:#fff;box-shadow:0 3px 10px rgba(16,185,129,.3);}
+.btn-confirm.red{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;box-shadow:0 3px 10px rgba(239,68,68,.3);}
+
+/* RESUMEN CIERRE */
+.resumen-cierre{background:var(--teal-light);border:1px solid var(--teal-mid);border-radius:var(--radius-sm);padding:16px;margin-bottom:16px;}
+.rc-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--teal-mid);font-size:13px;}
+.rc-row:last-child{border-bottom:none;font-weight:800;font-size:15px;}
+.rc-label{color:var(--text-secondary);}
+.rc-valor{font-family:"JetBrains Mono",monospace;font-weight:700;color:var(--teal);}
+
+/* HISTORIAL */
+.turno-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:10px;}
+.turno-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px;}
+.turno-fecha{font-size:13px;font-weight:700;color:var(--teal);}
+.turno-por{font-size:12px;color:var(--text-muted);}
+.turno-total{font-family:"JetBrains Mono",monospace;font-size:16px;font-weight:800;color:var(--green);}
+.turno-estado{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+.te-abierto{background:var(--green-light);color:var(--green);}
+.te-cerrado{background:var(--surface2);color:var(--text-muted);border:1px solid var(--border);}
+.empty-state{text-align:center;padding:40px;color:var(--text-muted);}
+.empty-state .icon{font-size:36px;margin-bottom:10px;}
+
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 22px;border-radius:10px;font-size:14px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:9999;opacity:0;transition:opacity .3s;white-space:nowrap;pointer-events:none;}
+@media(max-width:600px){.stats-bar,.form-grid-3,.form-grid-2{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo-icon">💵</div>
+    <h1>Neko <span>Soluciones</span></h1>
+    <span class="area-badge">💵 Caja</span>
+  </div>
+  <div class="topbar-right">
+    <span class="user-info" id="user-info"></span>
+    <button class="btn-sm" onclick="cargar()">🔄 Actualizar</button>
+    <button class="btn-sm" onclick="cerrarSesion()">🚪 Salir</button>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- ESTADO CAJA -->
+  <div id="caja-estado-card"></div>
+
+  <!-- STATS DEL TURNO ACTUAL -->
+  <div id="stats-turno" style="display:none">
+    <div class="stats-bar">
+      <div class="stat-card"><div class="stat-label">Ventas del Turno</div><div class="stat-value teal" id="stat-count">0</div></div>
+      <div class="stat-card"><div class="stat-label">Total Recaudado</div><div class="stat-value green" id="stat-total">$0</div></div>
+      <div class="stat-card"><div class="stat-label">Efectivo</div><div class="stat-value blue" id="stat-efectivo">$0</div></div>
+    </div>
+  </div>
+
+  <!-- FORMULARIO VENTA RÁPIDA -->
+  <div class="card" id="card-nueva-venta" style="display:none">
+    <div class="card-header">
+      <span class="card-title">➕ Registrar Servicio</span>
+    </div>
+    <div class="card-body">
+      <div class="form-grid-3">
+        <div class="field">
+          <label>Servicio *</label>
+          <select id="nv-servicio">
+            <option value="">— Seleccionar —</option>
+            <option value="Sublimacion">♨️ Sublimación</option>
+            <option value="Diseno">🎨 Diseño</option>
+            <option value="Corte">✂️ Corte</option>
+            <option value="Confeccion">🧵 Confección</option>
+            <option value="DTF">🖨️ DTF</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Valor *</label>
+          <input type="number" id="nv-valor" placeholder="0" min="0" step="100">
+        </div>
+        <div class="field">
+          <label>Medio de Pago *</label>
+          <select id="nv-pago">
+            <option value="">— Seleccionar —</option>
+            <option value="Efectivo">💵 Efectivo</option>
+            <option value="NEQUI">📱 NEQUI</option>
+            <option value="DAVIPLATA">📱 DAVIPLATA</option>
+            <option value="BANCOLOMBIA">🏦 BANCOLOMBIA</option>
+            <option value="DAVIVIENDA">🏦 DAVIVIENDA</option>
+            <option value="ADDI">💳 ADDI</option>
+            <option value="Transferencia">🔄 Transferencia</option>
+          </select>
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:12px">
+        <label>Descripción / Observaciones</label>
+        <textarea id="nv-desc" placeholder="Ej: Arreglo de cremallera, diseño logo empresa, 10 tapabocas sublimados..."></textarea>
+      </div>
+      <button class="btn-registrar" id="btn-registrar" onclick="registrarVenta()">
+        💵 Registrar Servicio
+      </button>
+    </div>
+  </div>
+
+  <!-- LISTA VENTAS DEL TURNO -->
+  <div class="card" id="card-lista-ventas" style="display:none">
+    <div class="card-header">
+      <span class="card-title">📋 Servicios del Turno Actual</span>
+      <span style="font-size:12px;color:var(--text-muted)" id="turno-hora-info"></span>
+    </div>
+    <div class="card-body" id="lista-ventas-body">
+      <div class="empty-state"><div class="icon">📭</div><p>Sin ventas registradas aún</p></div>
+    </div>
+  </div>
+
+  <!-- HISTORIAL DE TURNOS -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">📅 Historial de Turnos</span>
+      <button onclick="cargarHistorial()" style="padding:5px 12px;background:var(--teal-light);color:var(--teal);border:1px solid var(--teal-mid);border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">Ver historial</button>
+    </div>
+    <div class="card-body" id="historial-body">
+      <div class="empty-state"><div class="icon">📅</div><p>Presiona "Ver historial" para cargar</p></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL APERTURA -->
+<div class="modal-overlay" id="modal-apertura">
+  <div class="modal">
+    <h3>🟢 Apertura de Caja</h3>
+    <p>Registra el monto inicial en efectivo para comenzar el turno.</p>
+    <div class="field" style="margin-bottom:14px">
+      <label>Monto Inicial en Efectivo (COP)</label>
+      <input type="number" id="ap-monto" placeholder="Ej: 50000" min="0" step="1000">
+    </div>
+    <div class="field" style="margin-bottom:0">
+      <label>Observaciones de Apertura</label>
+      <textarea id="ap-obs" placeholder="Opcional..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="cerrarModal('modal-apertura')">Cancelar</button>
+      <button class="btn-confirm green" onclick="confirmarApertura()">🟢 Abrir Caja</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CIERRE -->
+<div class="modal-overlay" id="modal-cierre">
+  <div class="modal">
+    <h3>🔴 Cierre de Caja</h3>
+    <p>Resumen del turno y confirmación de cierre.</p>
+    <div class="resumen-cierre" id="resumen-cierre-content"></div>
+    <div class="field" style="margin-bottom:12px">
+      <label>Efectivo real contado en caja</label>
+      <input type="number" id="cierre-monto-real" placeholder="Monto contado..." min="0" step="1000">
+    </div>
+    <div class="field" style="margin-bottom:0">
+      <label>Observaciones de Cierre</label>
+      <textarea id="cierre-obs" placeholder="Opcional..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="cerrarModal('modal-cierre')">Cancelar</button>
+      <button class="btn-confirm red" onclick="confirmarCierre()">🔴 Cerrar Caja</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+var SB = "https://umlzaupnuvarrnakcbdo.supabase.co";
+var KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtbHphdXBudXZhcnJuYWtjYmRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTM4NTYsImV4cCI6MjA4OTg2OTg1Nn0.7Z5q3vvAIGDKFmjMjt6kra-3wHxNHyNjTfEj8GamdFA";
+var H = { "apikey": KEY, "Authorization": "Bearer " + KEY };
+var sesion = null;
+var turnoActual = null;
+var ventasTurno = [];
+
+window.addEventListener("DOMContentLoaded", function() {
+  var raw = sessionStorage.getItem("nk_user");
+  if (!raw) { window.location.href = "neko_login.html"; return; }
+  sesion = JSON.parse(raw);
+  var areasPermitidas = ["Ventas","Admin","Supervisor","Almacen","Almacén"];
+  if (!areasPermitidas.includes(sesion.area)) {
+    window.location.href = "neko_login.html"; return;
+  }
+  document.getElementById("user-info").textContent = "👤 " + sesion.nombre;
+  cargar();
+});
+
+function cerrarSesion() {
+  sessionStorage.removeItem("nk_user");
+  window.location.href = "neko_login.html";
+}
+
+async function cargar() {
+  try {
+    // Buscar turno abierto
+    var r = await fetch(SB + "/rest/v1/caja_turnos?estado=eq.ABIERTO&order=apertura_hora.desc&limit=1", { headers: H });
+    var data = await r.json();
+    if (data && data.length > 0) {
+      turnoActual = data[0];
+      await cargarVentasTurno();
+      mostrarCajaAbierta();
+    } else {
+      turnoActual = null;
+      ventasTurno = [];
+      mostrarCajaCerrada();
+    }
+  } catch(e) {
+    showToast("❌ Error: " + e.message);
+  }
+}
+
+// ── ESTADO CAJA ───────────────────────────────────────────
+function mostrarCajaCerrada() {
+  document.getElementById("caja-estado-card").innerHTML =
+    "<div class=\"caja-estado caja-cerrada\">"
+      + "<div class=\"caja-info\">"
+        + "<div class=\"caja-titulo\" style=\"color:var(--red)\">🔴 Caja Cerrada</div>"
+        + "<div class=\"caja-sub\">No hay turno activo. Abre caja para comenzar a registrar servicios.</div>"
+      + "</div>"
+      + "<button class=\"btn-apertura\" onclick=\"abrirModalApertura()\">🟢 Abrir Caja</button>"
+    + "</div>";
+  document.getElementById("stats-turno").style.display = "none";
+  document.getElementById("card-nueva-venta").style.display = "none";
+  document.getElementById("card-lista-ventas").style.display = "none";
+}
+
+function mostrarCajaAbierta() {
+  var hora = turnoActual.apertura_hora ? new Date(turnoActual.apertura_hora).toLocaleTimeString("es-CO", {hour:"2-digit",minute:"2-digit"}) : "--";
+  var fecha = turnoActual.apertura_hora ? new Date(turnoActual.apertura_hora).toLocaleDateString("es-CO", {day:"2-digit",month:"short"}) : "--";
+  var totalTurno = ventasTurno.reduce(function(s, v) { return s + Number(v.valor); }, 0);
+  var efectivoTurno = ventasTurno.filter(function(v){ return v.medio_pago === "Efectivo"; }).reduce(function(s,v){ return s + Number(v.valor); }, 0);
+
+  document.getElementById("caja-estado-card").innerHTML =
+    "<div class=\"caja-estado caja-abierta\">"
+      + "<div class=\"caja-info\">"
+        + "<div class=\"caja-titulo\" style=\"color:var(--green)\">🟢 Caja Abierta</div>"
+        + "<div class=\"caja-sub\">Turno iniciado el " + fecha + " a las " + hora + " por <strong>" + (turnoActual.apertura_por||"--") + "</strong></div>"
+        + "<div class=\"caja-monto\">$" + Number(totalTurno).toLocaleString("es-CO") + " COP</div>"
+      + "</div>"
+      + "<button class=\"btn-cierre\" onclick=\"abrirModalCierre()\">🔴 Cerrar Caja</button>"
+    + "</div>";
+
+  // Stats
+  document.getElementById("stats-turno").style.display = "block";
+  document.getElementById("stat-count").textContent = ventasTurno.length;
+  document.getElementById("stat-total").textContent = "$" + Number(totalTurno).toLocaleString("es-CO");
+  document.getElementById("stat-efectivo").textContent = "$" + Number(efectivoTurno).toLocaleString("es-CO");
+
+  // Formulario y lista
+  document.getElementById("card-nueva-venta").style.display = "block";
+  document.getElementById("card-lista-ventas").style.display = "block";
+  document.getElementById("turno-hora-info").textContent = ventasTurno.length + " servicios registrados";
+
+  renderVentas();
+}
+
+// ── VENTAS DEL TURNO ──────────────────────────────────────
+async function cargarVentasTurno() {
+  var r = await fetch(SB + "/rest/v1/ventas_rapidas?turno_id=eq." + turnoActual.id + "&order=fecha.desc", { headers: H });
+  ventasTurno = await r.json();
+  if (!Array.isArray(ventasTurno)) ventasTurno = [];
+}
+
+function renderVentas() {
+  var el = document.getElementById("lista-ventas-body");
+  if (!ventasTurno.length) {
+    el.innerHTML = "<div class=\"empty-state\"><div class=\"icon\">📭</div><p>Sin servicios registrados aún</p></div>";
+    return;
+  }
+  el.innerHTML = ventasTurno.map(function(v) {
+    var hora = new Date(v.fecha).toLocaleTimeString("es-CO", {hour:"2-digit",minute:"2-digit"});
+    var badge = getBadgePago(v.medio_pago);
+    return "<div class=\"venta-item\">"
+      + "<div class=\"vi-left\">"
+        + "<div class=\"vi-servicio\">" + getIconServicio(v.servicio) + " " + v.servicio + "</div>"
+        + "<div class=\"vi-meta\">🕐 " + hora + " &nbsp;·&nbsp; 👤 " + (v.registrado_por||"--") + "</div>"
+        + (v.descripcion ? "<div class=\"vi-desc\">📝 " + v.descripcion + "</div>" : "")
+      + "</div>"
+      + "<div class=\"vi-right\">"
+        + "<span class=\"vi-valor\">+$" + Number(v.valor).toLocaleString("es-CO") + "</span>"
+        + "<span class=\"badge-pago " + badge.cls + "\">" + badge.label + "</span>"
+        + "<button class=\"btn-eliminar\" onclick=\"eliminarVenta(" + v.id + ")\">✕</button>"
+      + "</div>"
+    + "</div>";
+  }).join("");
+}
+
+function getIconServicio(s) {
+  var icons = {"Sublimacion":"♨️","Diseno":"🎨","Corte":"✂️","Confeccion":"🧵","DTF":"🖨️"};
+  return icons[s] || "📦";
+}
+
+function getBadgePago(medio) {
+  var map = {
+    "Efectivo":      {cls:"bp-efectivo",    label:"💵 Efectivo"},
+    "NEQUI":         {cls:"bp-nequi",       label:"📱 NEQUI"},
+    "DAVIPLATA":     {cls:"bp-daviplata",   label:"📱 DAVIPLATA"},
+    "BANCOLOMBIA":   {cls:"bp-transferencia",label:"🏦 BANCOLOMBIA"},
+    "DAVIVIENDA":    {cls:"bp-transferencia",label:"🏦 DAVIVIENDA"},
+    "ADDI":          {cls:"bp-nequi",       label:"💳 ADDI"},
+    "Transferencia": {cls:"bp-transferencia",label:"🔄 Transferencia"},
+  };
+  return map[medio] || {cls:"bp-default", label:medio||"--"};
+}
+
+// ── REGISTRAR VENTA ───────────────────────────────────────
+async function registrarVenta() {
+  var servicio = document.getElementById("nv-servicio").value;
+  var valor    = parseFloat(document.getElementById("nv-valor").value) || 0;
+  var pago     = document.getElementById("nv-pago").value;
+  var desc     = document.getElementById("nv-desc").value.trim();
+
+  if (!servicio) { alert("Selecciona el tipo de servicio."); return; }
+  if (!valor || valor <= 0) { alert("Ingresa el valor del servicio."); return; }
+  if (!pago) { alert("Selecciona el medio de pago."); return; }
+
+  var btn = document.getElementById("btn-registrar");
+  btn.disabled = true; btn.textContent = "⏳ Registrando...";
+
+  try {
+    var r = await fetch(SB + "/rest/v1/ventas_rapidas", {
+      method: "POST",
+      headers: Object.assign({}, H, {"Content-Type":"application/json","Prefer":"return=representation"}),
+      body: JSON.stringify({
+        turno_id:       turnoActual.id,
+        servicio:       servicio,
+        descripcion:    desc,
+        valor:          valor,
+        medio_pago:     pago,
+        registrado_por: sesion.nombre,
+        estado:         "REGISTRADO"
+      })
+    });
+    var nuevaVenta = await r.json();
+    if (Array.isArray(nuevaVenta)) nuevaVenta = nuevaVenta[0];
+    ventasTurno.unshift(nuevaVenta);
+
+    // Limpiar formulario
+    document.getElementById("nv-servicio").value = "";
+    document.getElementById("nv-valor").value = "";
+    document.getElementById("nv-pago").value = "";
+    document.getElementById("nv-desc").value = "";
+
+    mostrarCajaAbierta();
+    showToast("✅ Servicio registrado — $" + Number(valor).toLocaleString("es-CO"));
+  } catch(e) {
+    alert("Error: " + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = "💵 Registrar Servicio";
+  }
+}
+
+// ── ELIMINAR VENTA ────────────────────────────────────────
+async function eliminarVenta(id) {
+  if (!confirm("¿Eliminar este registro?")) return;
+  await fetch(SB + "/rest/v1/ventas_rapidas?id=eq." + id, {
+    method: "DELETE",
+    headers: Object.assign({}, H, {"Prefer":"return=minimal"})
+  });
+  ventasTurno = ventasTurno.filter(function(v){ return v.id !== id; });
+  mostrarCajaAbierta();
+  showToast("🗑️ Registro eliminado");
+}
+
+// ── APERTURA ──────────────────────────────────────────────
+function abrirModalApertura() {
+  document.getElementById("ap-monto").value = "";
+  document.getElementById("ap-obs").value = "";
+  document.getElementById("modal-apertura").classList.add("show");
+}
+
+async function confirmarApertura() {
+  var monto = parseFloat(document.getElementById("ap-monto").value) || 0;
+  var obs   = document.getElementById("ap-obs").value.trim();
+  var r = await fetch(SB + "/rest/v1/caja_turnos", {
+    method: "POST",
+    headers: Object.assign({}, H, {"Content-Type":"application/json","Prefer":"return=representation"}),
+    body: JSON.stringify({
+      apertura_monto: monto,
+      apertura_por:   sesion.nombre,
+      observaciones:  obs,
+      estado:         "ABIERTO"
+    })
+  });
+  var data = await r.json();
+  turnoActual = Array.isArray(data) ? data[0] : data;
+  ventasTurno = [];
+  cerrarModal("modal-apertura");
+  mostrarCajaAbierta();
+  showToast("🟢 Caja abierta — Turno iniciado");
+}
+
+// ── CIERRE ────────────────────────────────────────────────
+function abrirModalCierre() {
+  var totalTurno    = ventasTurno.reduce(function(s,v){ return s + Number(v.valor); }, 0);
+  var efectivo      = ventasTurno.filter(function(v){ return v.medio_pago === "Efectivo"; }).reduce(function(s,v){ return s + Number(v.valor); }, 0);
+  var digital       = totalTurno - efectivo;
+  var montoInicial  = Number(turnoActual.apertura_monto || 0);
+
+  // Resumen por servicio
+  var porServicio = {};
+  ventasTurno.forEach(function(v) {
+    if (!porServicio[v.servicio]) porServicio[v.servicio] = 0;
+    porServicio[v.servicio] += Number(v.valor);
+  });
+
+  var resumenServ = Object.entries(porServicio).map(function(e) {
+    return "<div class=\"rc-row\"><span class=\"rc-label\">" + getIconServicio(e[0]) + " " + e[0] + "</span><span class=\"rc-valor\">$" + Number(e[1]).toLocaleString("es-CO") + "</span></div>";
+  }).join("");
+
+  document.getElementById("resumen-cierre-content").innerHTML =
+    "<div class=\"rc-row\"><span class=\"rc-label\">Monto inicial</span><span class=\"rc-valor\">$" + Number(montoInicial).toLocaleString("es-CO") + "</span></div>"
+    + "<div class=\"rc-row\"><span class=\"rc-label\">N° de servicios</span><span class=\"rc-valor\">" + ventasTurno.length + "</span></div>"
+    + resumenServ
+    + "<div class=\"rc-row\"><span class=\"rc-label\">💳 Digital</span><span class=\"rc-valor\">$" + Number(digital).toLocaleString("es-CO") + "</span></div>"
+    + "<div class=\"rc-row\"><span class=\"rc-label\">💵 Efectivo</span><span class=\"rc-valor\">$" + Number(efectivo).toLocaleString("es-CO") + "</span></div>"
+    + "<div class=\"rc-row\"><span class=\"rc-label\">🏦 Total + Inicial</span><span class=\"rc-valor\">$" + Number(totalTurno + montoInicial).toLocaleString("es-CO") + "</span></div>";
+
+  document.getElementById("cierre-monto-real").value = "";
+  document.getElementById("cierre-obs").value = "";
+  document.getElementById("modal-cierre").classList.add("show");
+}
+
+async function confirmarCierre() {
+  var montoReal = parseFloat(document.getElementById("cierre-monto-real").value) || 0;
+  var obs       = document.getElementById("cierre-obs").value.trim();
+
+  await fetch(SB + "/rest/v1/caja_turnos?id=eq." + turnoActual.id, {
+    method: "PATCH",
+    headers: Object.assign({}, H, {"Content-Type":"application/json","Prefer":"return=minimal"}),
+    body: JSON.stringify({
+      estado:            "CERRADO",
+      cierre_hora:       new Date().toISOString(),
+      cierre_monto_real: montoReal,
+      cierre_por:        sesion.nombre,
+      observaciones:     (turnoActual.observaciones ? turnoActual.observaciones + " | " : "") + "Cierre: " + obs
+    })
+  });
+
+  cerrarModal("modal-cierre");
+  turnoActual = null;
+  ventasTurno = [];
+  mostrarCajaCerrada();
+  showToast("🔴 Caja cerrada correctamente");
+  cargarHistorial();
+}
+
+// ── HISTORIAL ─────────────────────────────────────────────
+async function cargarHistorial() {
+  var el = document.getElementById("historial-body");
+  el.innerHTML = "<div class=\"empty-state\"><div class=\"icon\">⏳</div><p>Cargando...</p></div>";
+  try {
+    var r = await fetch(SB + "/rest/v1/caja_turnos?order=apertura_hora.desc&limit=30", { headers: H });
+    var turnos = await r.json();
+    if (!Array.isArray(turnos) || !turnos.length) {
+      el.innerHTML = "<div class=\"empty-state\"><div class=\"icon\">📅</div><p>Sin historial de turnos</p></div>";
+      return;
+    }
+
+    // Cargar ventas de cada turno
+    var ids = turnos.map(function(t){ return t.id; }).join(",");
+    var rv = await fetch(SB + "/rest/v1/ventas_rapidas?turno_id=in.(" + ids + ")&select=turno_id,valor,medio_pago,servicio", { headers: H });
+    var allVentas = await rv.json();
+    if (!Array.isArray(allVentas)) allVentas = [];
+
+    el.innerHTML = turnos.map(function(t) {
+      var tvs = allVentas.filter(function(v){ return v.turno_id === t.id; });
+      var total = tvs.reduce(function(s,v){ return s + Number(v.valor); }, 0);
+      var efectivo = tvs.filter(function(v){ return v.medio_pago === "Efectivo"; }).reduce(function(s,v){ return s + Number(v.valor); }, 0);
+      var fechaAp = t.apertura_hora ? new Date(t.apertura_hora).toLocaleDateString("es-CO",{day:"2-digit",month:"short",year:"numeric"}) : "--";
+      var horaAp  = t.apertura_hora ? new Date(t.apertura_hora).toLocaleTimeString("es-CO",{hour:"2-digit",minute:"2-digit"}) : "--";
+      var horaC   = t.cierre_hora   ? new Date(t.cierre_hora).toLocaleTimeString("es-CO",{hour:"2-digit",minute:"2-digit"}) : "--";
+      var estCls  = t.estado === "ABIERTO" ? "te-abierto" : "te-cerrado";
+      var estTxt  = t.estado === "ABIERTO" ? "🟢 Abierto" : "✅ Cerrado";
+
+      return "<div class=\"turno-card\">"
+        + "<div class=\"turno-header\">"
+          + "<div>"
+            + "<div class=\"turno-fecha\">📅 " + fechaAp + "</div>"
+            + "<div class=\"turno-por\">👤 " + (t.apertura_por||"--") + " &nbsp;·&nbsp; 🕐 " + horaAp + (t.cierre_hora ? " → " + horaC : "") + "</div>"
+          + "</div>"
+          + "<div style=\"display:flex;align-items:center;gap:10px\">"
+            + "<span class=\"turno-estado " + estCls + "\">" + estTxt + "</span>"
+            + "<span class=\"turno-total\">$" + Number(total).toLocaleString("es-CO") + "</span>"
+          + "</div>"
+        + "</div>"
+        + "<div style=\"display:flex;gap:16px;font-size:12px;color:var(--text-muted);flex-wrap:wrap\">"
+          + "<span>📦 " + tvs.length + " servicios</span>"
+          + "<span>💵 Efectivo: $" + Number(efectivo).toLocaleString("es-CO") + "</span>"
+          + "<span>💳 Digital: $" + Number(total - efectivo).toLocaleString("es-CO") + "</span>"
+          + (t.cierre_monto_real ? "<span>🏦 Contado: $" + Number(t.cierre_monto_real).toLocaleString("es-CO") + "</span>" : "")
+        + "</div>"
+      + "</div>";
+    }).join("");
+  } catch(e) {
+    el.innerHTML = "<div class=\"empty-state\"><div class=\"icon\">❌</div><p>" + e.message + "</p></div>";
+  }
+}
+
+// ── UTILIDADES ────────────────────────────────────────────
+function cerrarModal(id) {
+  document.getElementById(id).classList.remove("show");
+}
+
+function showToast(msg) {
+  var t = document.getElementById("toast");
+  t.textContent = msg; t.style.opacity = "1";
+  clearTimeout(t._tid);
+  t._tid = setTimeout(function(){ t.style.opacity = "0"; }, 3500);
+}
+</script>
+</body>
+</html>
