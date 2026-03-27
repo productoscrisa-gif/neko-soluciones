@@ -624,16 +624,19 @@
     try {
       // Mover al área anterior con estado='error'
       // Así Diseño la ve en su pestaña Errores pero NO en Pendientes
-      // Conservar diseñador_asignado para que el filtro de usuario funcione en Diseño
-      await actualizarSubEstado(ordenId, prendaIdx, {
-        area_actual:        areaAnt,
-        estado:             'error',
-        error_desc:         desc,
-        error_area:         areaActual,
-        error_ant:          areaAnt,
-        error_fecha:        new Date().toISOString(),
-        diseñador_asignado: item?.diseñadorAsignado || undefined
-      });
+      // Conservar diseñador_asignado — actualizarSubEstado usa spread {...sub[i], ...cambios}
+      // así que no incluirlo si está vacío para no sobreescribir el valor existente
+      const cambiosError = {
+        area_actual: areaAnt,
+        estado:      'error',
+        error_desc:  desc,
+        error_area:  areaActual,
+        error_ant:   areaAnt,
+        error_fecha: new Date().toISOString()
+      };
+      // Solo agregar diseñador si existe para no borrar el original
+      if (item?.diseñadorAsignado) cambiosError.diseñador_asignado = item.diseñadorAsignado;
+      await actualizarSubEstado(ordenId, prendaIdx, cambiosError);
       await fetch(SB_URL + '/rest/v1/errores_produccion', {
         method: 'POST',
         headers: { ...HDR, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
@@ -648,6 +651,7 @@
           estado:             'PENDIENTE',
           diseñador_asignado: item?.diseñadorAsignado || ''
         })
+        // Nota: el filtro por usuario usa sub_estados.diseñador_asignado como fuente principal
       });
     } catch(e) {
       showToast('⚠️ Error al guardar: ' + e.message);
@@ -677,30 +681,47 @@
   // ── ERRORES DEL ÁREA ──────────────────────────────────────
   async function cargarErrores() {
     try {
-      // Traer errores del área
-      let url = SB_URL + '/rest/v1/errores_produccion?area_responsable=eq.' + encodeURIComponent(areaActual) + '&estado=eq.PENDIENTE&order=fecha_reporte.desc&limit=50';
-      const r = await fetch(url, { headers: HDR });
-      let todos = await r.json();
+      const usuActual = (sesion.usuario || sesion.nombre || '').trim().toLowerCase();
+
+      // 1. Traer errores pendientes del área
+      const rE = await fetch(
+        SB_URL + '/rest/v1/errores_produccion?area_responsable=eq.' + encodeURIComponent(areaActual) + '&estado=eq.PENDIENTE&order=fecha_reporte.desc&limit=100',
+        { headers: HDR }
+      );
+      let todos = await rE.json();
       if (!Array.isArray(todos)) todos = [];
 
-      // En Diseño: filtrar solo los errores asignados al usuario actual
-      if (areaActual === 'Diseño') {
-        const usuActual = (sesion.usuario || sesion.nombre || '').trim().toLowerCase();
+      if (!todos.length) { erroresArea = []; }
+      else {
+        // 2. Traer sub_estados de las órdenes involucradas para cruzar usuario
+        const ordenIds = [...new Set(todos.map(e => e.orden_id))];
+        const rO = await fetch(
+          SB_URL + '/rest/v1/ordenes?id=in.(' + ordenIds.join(',') + ')&select=id,sub_estados',
+          { headers: HDR }
+        );
+        const ordenes = await rO.json();
+        const subMap = {};
+        (Array.isArray(ordenes) ? ordenes : []).forEach(o => { subMap[o.id] = o.sub_estados || []; });
+
+        // 3. Cruzar cada error con su sub_estado para obtener el usuario asignado
         erroresArea = todos.filter(e => {
-          const dis = (e.diseñador_asignado || '').trim().toLowerCase();
-          // Si el error tiene diseñador asignado, solo mostrar al usuario correcto
-          // Si no tiene diseñador (errores viejos), mostrar a todos
-          return !dis || dis === usuActual;
+          const subs = subMap[e.orden_id] || [];
+          const se   = subs.find(s => s.prenda_idx === e.prenda_idx) || {};
+          const disenAsig = (se.diseñador_asignado || e.diseñador_asignado || '').trim().toLowerCase();
+
+          // Si tiene usuario asignado: solo el usuario que trabajó esa prenda la ve
+          if (disenAsig) return disenAsig === usuActual;
+
+          // Si NO tiene usuario asignado (área con un solo usuario): todos la ven
+          return true;
         });
-      } else {
-        erroresArea = todos;
       }
 
       const badgeEl = document.getElementById('badge-errores');
       if (erroresArea.length > 0) { badgeEl.textContent = erroresArea.length; badgeEl.style.display = 'inline'; }
       else { badgeEl.style.display = 'none'; }
       if (tabActual === 'errores') renderErrores();
-    } catch(e) {}
+    } catch(e) { console.error('cargarErrores:', e); }
   }
 
   function renderErrores() {
