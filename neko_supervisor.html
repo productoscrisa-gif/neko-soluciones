@@ -196,6 +196,7 @@
     <button class="nav-tab" id="ntab-analisis" onclick="cambiarNavTab('analisis')">📊 Análisis</button>
     <button class="nav-tab" id="ntab-confeccion" onclick="cambiarNavTab('confeccion')">🧵 Confección</button>
     <button class="nav-tab" id="ntab-compras" onclick="cambiarNavTab('compras')">🛍️ Compras</button>
+    <button class="nav-tab" id="ntab-materiales" onclick="cambiarNavTab('materiales')">🔩 Materiales <span id="badge-mat-sup" style="display:none;background:#7c3aed;color:#fff;border-radius:20px;padding:1px 6px;font-size:10px;margin-left:3px">0</span></button>
   </div>
 
   <!-- ══ PESTAÑA 1: SEGUIMIENTO GENERAL ══ -->
@@ -279,6 +280,69 @@
             <input type="text" id="a-buscar" placeholder="🔍 N° orden..." oninput="filtrarAnalisis()" style="min-width:160px">
           </div>
           <div id="lista-analisis"><div class="empty"><div class="icon">⏳</div><p>Cargando...</p></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PESTAÑA 5: MATERIALES ══ -->
+  <div class="tab-content" id="tab-materiales">
+    <div class="conf-wrap">
+      <!-- Formulario nueva solicitud -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header">
+          <span class="card-title">🔩 Solicitar Material Consumible</span>
+        </div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;margin-bottom:12px">
+            <div class="field">
+              <label>Material *</label>
+              <select id="mat-tipo">
+                <option value="">— Seleccionar —</option>
+                <option>Botones</option>
+                <option>Hilos</option>
+                <option>Chuflas</option>
+                <option>Ojaletes</option>
+                <option>Cremalleras</option>
+                <option>Broches</option>
+                <option>Elástico</option>
+                <option>Agujas</option>
+                <option>Etiquetas</option>
+                <option>Otro consumible</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Cantidad *</label>
+              <input type="number" id="mat-cantidad" placeholder="Ej: 100" min="1" step="1" style="font-family:JetBrains Mono,monospace">
+            </div>
+            <div class="field">
+              <label>Unidad</label>
+              <select id="mat-unidad">
+                <option>unidades</option>
+                <option>metros</option>
+                <option>rollos</option>
+                <option>paquetes</option>
+                <option>cajas</option>
+              </select>
+            </div>
+          </div>
+          <div class="field" style="margin-bottom:14px">
+            <label>Descripción / Referencia</label>
+            <textarea id="mat-desc" rows="2" placeholder="Ej: Botones negros 4 huecos tamaño mediano, referencia #..." style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:Plus Jakarta Sans,sans-serif;outline:none;resize:vertical"></textarea>
+          </div>
+          <button onclick="enviarSolicitudMaterial()" style="width:100%;padding:12px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 3px 12px rgba(124,58,237,.3)">
+            📤 Enviar Solicitud al Admin
+          </button>
+        </div>
+      </div>
+      <!-- Lista de solicitudes -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">📋 Mis Solicitudes</span>
+          <button class="btn-refresh" onclick="cargarMaterialesSup()">🔄</button>
+        </div>
+        <div class="card-body" id="lista-mat-sup">
+          <div class="empty"><div class="icon">⏳</div><p>Cargando...</p></div>
         </div>
       </div>
     </div>
@@ -379,11 +443,12 @@
   // ── NAV TABS ─────────────────────────────────────────────
   function cambiarNavTab(tab) {
     navActual = tab;
-    ['seguimiento','analisis','confeccion','compras'].forEach(t => {
+    ['seguimiento','analisis','confeccion','compras','materiales'].forEach(t => {
       document.getElementById('ntab-' + t).classList.toggle('active', t === tab);
       document.getElementById('tab-' + t).classList.toggle('active', t === tab);
     });
     if (tab === 'compras')  cargarCompras();
+    if (tab === 'materiales') cargarMaterialesSup();
     if (tab === 'analisis') {
       cargarCatalogoInsumos(); // Asegurar catálogo fresco al entrar a análisis
     }
@@ -1164,6 +1229,87 @@
       headers: { ...HDR, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
       body: JSON.stringify(rows)
     }).catch(() => {});
+  }
+
+  // ── MÓDULO MATERIALES CONSUMIBLES ───────────────────────
+  async function enviarSolicitudMaterial() {
+    const material  = document.getElementById('mat-tipo').value;
+    const cantidad  = parseFloat(document.getElementById('mat-cantidad').value) || 0;
+    const unidad    = document.getElementById('mat-unidad').value;
+    const descripcion = document.getElementById('mat-desc').value.trim();
+
+    if (!material) { alert('Selecciona el tipo de material.'); return; }
+    if (!cantidad || cantidad <= 0) { alert('Ingresa la cantidad.'); return; }
+
+    try {
+      await fetch(SB_URL + '/rest/v1/solicitudes_materiales', {
+        method: 'POST',
+        headers: { ...HDR, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify({
+          material,
+          tipo:           'Consumible',
+          cantidad,
+          unidad,
+          descripcion,
+          solicitado_por: sesion.nombre,
+          estado:         'PENDIENTE'
+        })
+      });
+      // Limpiar formulario
+      document.getElementById('mat-tipo').value     = '';
+      document.getElementById('mat-cantidad').value = '';
+      document.getElementById('mat-desc').value     = '';
+      showToast('📤 Solicitud enviada al Admin');
+      cargarMaterialesSup();
+    } catch(e) {
+      alert('Error: ' + e.message);
+    }
+  }
+
+  async function cargarMaterialesSup() {
+    const el = document.getElementById('lista-mat-sup');
+    if (!el) return;
+    el.innerHTML = '<div class="empty"><div class="icon">⏳</div><p>Cargando...</p></div>';
+    try {
+      const r = await fetch(SB_URL + '/rest/v1/solicitudes_materiales?order=fecha_solicitud.desc&limit=50', { headers: HDR });
+      const lista = await r.json();
+      if (!Array.isArray(lista) || !lista.length) {
+        el.innerHTML = '<div class="empty"><div class="icon">📭</div><p>Sin solicitudes aún</p></div>';
+        return;
+      }
+
+      // Badge con pendientes
+      const pendientes = lista.filter(s => s.estado === 'PENDIENTE').length;
+      const badge = document.getElementById('badge-mat-sup');
+      if (badge) { badge.textContent = pendientes; badge.style.display = pendientes ? 'inline' : 'none'; }
+
+      const colores = {
+        'PENDIENTE':  { bg: 'var(--blue-light)',   color: 'var(--blue)',   label: '⏳ Pendiente' },
+        'COMPRANDO':  { bg: 'var(--amber-light)',   color: 'var(--amber)',  label: '🛍️ Comprando' },
+        'RECIBIDO':   { bg: 'var(--green-light)',   color: 'var(--green)',  label: '✅ Recibido' },
+      };
+
+      el.innerHTML = '<div style="display:flex;flex-direction:column;gap:10px">'
+        + lista.map(s => {
+            const fecha = new Date(s.fecha_solicitud).toLocaleDateString('es-CO', { day:'2-digit', month:'short', year:'numeric' });
+            const cfg   = colores[s.estado] || colores['PENDIENTE'];
+            return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">'
+              + '<div>'
+                + '<div style="font-size:14px;font-weight:800">🔩 ' + s.material + '</div>'
+                + '<div style="font-size:12px;color:var(--text-muted);margin-top:2px">'
+                  + '<strong style="font-family:JetBrains Mono,monospace">' + s.cantidad + ' ' + s.unidad + '</strong>'
+                  + ' &nbsp;·&nbsp; 📅 ' + fecha
+                  + ' &nbsp;·&nbsp; 👤 ' + (s.solicitado_por||'--')
+                + '</div>'
+                + (s.descripcion ? '<div style="font-size:12px;color:var(--text-secondary);margin-top:3px">📝 ' + s.descripcion + '</div>' : '')
+              + '</div>'
+              + '<span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;background:' + cfg.bg + ';color:' + cfg.color + '">' + cfg.label + '</span>'
+            + '</div>';
+          }).join('')
+        + '</div>';
+    } catch(e) {
+      el.innerHTML = '<div class="empty"><div class="icon">❌</div><p>' + e.message + '</p></div>';
+    }
   }
 
   // ── UTILIDADES ────────────────────────────────────────────

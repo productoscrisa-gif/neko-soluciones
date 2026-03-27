@@ -753,6 +753,28 @@ function confirmarError() {
         html += '</div></div>';
       });
       html += '</div>';
+      // Solicitudes de materiales consumibles COMPRANDO
+      var rS = await fetch(SB + "/rest/v1/solicitudes_materiales?estado=eq.COMPRANDO&order=fecha_solicitud.asc", { headers: H });
+      var solicitudes = await rS.json();
+      if (Array.isArray(solicitudes) && solicitudes.length) {
+        html += '<div style="font-size:12px;font-weight:800;text-transform:uppercase;color:var(--purple);margin-bottom:12px;letter-spacing:.07em;margin-top:16px">🔩 Materiales Consumibles — Esperando Recepción (' + solicitudes.length + ')</div>';
+        html += '<div style="display:flex;flex-direction:column;gap:8px">';
+        solicitudes.forEach(function(s) {
+          html += '<div style="background:var(--purple-light);border:1.5px solid #ede9fe;border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">'
+            + '<div>'
+              + '<div style="font-size:14px;font-weight:800;color:var(--purple)">🔩 ' + s.material + '</div>'
+              + '<div style="font-size:12px;color:var(--text-muted);margin-top:2px">'
+                + '<strong style="font-family:JetBrains Mono,monospace">' + s.cantidad + ' ' + s.unidad + '</strong>'
+                + ' &nbsp;·&nbsp; Solicitado por: ' + (s.solicitado_por||'--')
+              + '</div>'
+              + (s.descripcion ? '<div style="font-size:12px;color:var(--text-secondary);margin-top:2px">📝 ' + s.descripcion + '</div>' : '')
+            + '</div>'
+            + '<button data-sid="' + s.id + '" onclick="recibirSolicitud(this)" style="padding:8px 16px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(16,185,129,.3)">📦 Recibido</button>'
+          + '</div>';
+        });
+        html += '</div>';
+      }
+
       el.innerHTML = html;
     } catch(e) {
       el.innerHTML = '<div class="state-box"><div class="icon">❌</div><p>' + e.message + '</p></div>';
@@ -817,6 +839,23 @@ function confirmarError() {
     });
     showToast('📦 Insumo marcado como recibido — ✅ Tela Asignada');
     cargarInsumosOrden(oid);
+  }
+
+  async function recibirSolicitud(btn) {
+    var sid = btn.getAttribute("data-sid");
+    btn.disabled = true; btn.textContent = "⏳...";
+    try {
+      await fetch(SB + "/rest/v1/solicitudes_materiales?id=eq." + sid, {
+        method: "PATCH",
+        headers: Object.assign({}, H, {"Content-Type":"application/json","Prefer":"return=minimal"}),
+        body: JSON.stringify({ estado: "RECIBIDO", recibido_por: sesion.nombre, fecha_recepcion: new Date().toISOString() })
+      });
+      showToast("✅ Material recibido — Solicitud completada");
+      cargarInsumosAlmacen();
+    } catch(e) {
+      alert("Error: " + e.message);
+      btn.disabled = false; btn.textContent = "📦 Recibido";
+    }
   }
 
   function showToast(msg) {
