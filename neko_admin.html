@@ -866,8 +866,8 @@
     if (!el) return;
     el.innerHTML = '<p style="color:var(--text-muted)">Cargando...</p>';
     try {
-      // Consumos PENDIENTES de compra
-      const rC = await fetch(SB_URL + '/rest/v1/consumos_insumo?estado_compra=eq.PENDIENTE&order=fecha_asignacion.desc', { headers: HDR });
+      // Consumos PENDIENTES y COMPRANDO
+      const rC = await fetch(SB_URL + '/rest/v1/consumos_insumo?estado_compra=in.(PENDIENTE,COMPRANDO)&order=nombre_insumo.asc,fecha_asignacion.asc', { headers: HDR });
       const consumos = await rC.json();
 
       // Catálogo de insumos
@@ -880,38 +880,97 @@
 
       let html = '';
 
-      // Sección: Órdenes pendientes de compra
       if (consumos.length) {
-        html += '<div style="font-size:12px;font-weight:800;text-transform:uppercase;color:#c2410c;margin-bottom:12px;letter-spacing:.07em">⚠️ Órdenes con Insumos Pendientes de Compra (' + consumos.length + ')</div>';
-        html += '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px">';
-        consumos.forEach(c => {
-          html += '<div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">'
-            + '<div>'
-              + '<div style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:700;color:var(--blue)">' + c.numero_orden + '</div>'
-              + '<div style="font-size:14px;font-weight:700;margin-top:2px">' + (c.tipo_prenda||'Prenda') + '</div>'
-              + '<div style="font-size:12px;color:#92400e;margin-top:2px">🧵 ' + (c.nombre_insumo||'Insumo') + ' — <strong>' + c.cantidad_estimada + ' ' + (c.unidad||'metros') + '</strong></div>'
-              + '<div style="font-size:11px;color:var(--text-muted);margin-top:2px">Asignado por: ' + (c.asignado_por||'--') + '</div>'
-            + '</div>'
-            + '<div style="display:flex;gap:8px">'
-              + '<button onclick="marcarComprando(' + c.id + ')" style="padding:8px 16px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(16,185,129,.3)">✅ Comprando</button>'
-            + '</div>'
-          + '</div>';
+        // ── AGRUPAR por insumo para totalizar ──────────────
+        const grupos = {};
+        consumos.forEach(function(c) {
+          const key = c.nombre_insumo || 'Sin nombre';
+          if (!grupos[key]) {
+            grupos[key] = {
+              nombre:    key,
+              insumo_id: c.insumo_id,
+              unidad:    c.unidad || 'metros',
+              total:     0,
+              ordenes:   []
+            };
+          }
+          grupos[key].total += parseFloat(c.cantidad_estimada) || 0;
+          grupos[key].ordenes.push(c);
         });
-        html += '</div>';
+
+        html += '<div style="font-size:12px;font-weight:800;text-transform:uppercase;color:#c2410c;margin-bottom:14px;letter-spacing:.07em">⚠️ Insumos Pendientes de Compra</div>';
+
+        Object.values(grupos).forEach(function(g) {
+          const totalFmt = g.total % 1 === 0 ? g.total : g.total.toFixed(2);
+          html += '<div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:12px;overflow:hidden;margin-bottom:14px">';
+
+          // ── Header: resumen totalizador ──────────────────
+          html += '<div style="padding:14px 16px;background:#ffedd5;border-bottom:1px solid #fed7aa;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">';
+          html += '<div>';
+          html += '<div style="font-size:15px;font-weight:800;color:#c2410c">🧵 ' + g.nombre + '</div>';
+          html += '<div style="font-size:13px;color:#92400e;margin-top:2px">'
+            + '<span style="font-family:JetBrains Mono,monospace;font-size:18px;font-weight:800;color:#c2410c">' + totalFmt + '</span>'
+            + ' <span style="font-size:13px;font-weight:600">' + g.unidad + '</span>'
+            + ' <span style="color:#92400e;font-size:12px">en total (' + g.ordenes.length + ' ' + (g.ordenes.length === 1 ? 'orden' : 'órdenes') + ')</span>';
+          html += '</div></div>';
+
+          // Botón comprar todo (si alguno está pendiente)
+          const hayPendientes = g.ordenes.some(function(o){ return o.estado_compra === 'PENDIENTE'; });
+          if (hayPendientes) {
+            const ids = g.ordenes.filter(function(o){ return o.estado_compra === 'PENDIENTE'; }).map(function(o){ return o.id; });
+            html += '<button onclick="marcarComprando([' + ids.join(',') + '])" '
+              + 'style="padding:9px 18px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(16,185,129,.3)">'
+              + '✅ Marcar Todo como Comprando</button>';
+          } else {
+            html += '<span style="padding:5px 12px;background:var(--amber-light);color:var(--amber);border-radius:20px;font-size:12px;font-weight:700">🛍️ Comprando</span>';
+          }
+          html += '</div>';
+
+          // ── Detalle: cada orden ──────────────────────────
+          html += '<div style="padding:0 16px">';
+          g.ordenes.forEach(function(c, i) {
+            const cantFmt = (parseFloat(c.cantidad_estimada)||0) % 1 === 0
+              ? (parseFloat(c.cantidad_estimada)||0)
+              : (parseFloat(c.cantidad_estimada)||0).toFixed(2);
+            const estadoBadge = c.estado_compra === 'COMPRANDO'
+              ? '<span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;background:var(--amber-light);color:var(--amber)">🛍️ Comprando</span>'
+              : '<span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;background:var(--blue-light);color:var(--blue)">⏳ Pendiente</span>';
+            html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;'
+              + (i < g.ordenes.length-1 ? 'border-bottom:1px solid #fed7aa;' : '') + 'flex-wrap:wrap;gap:8px">';
+            html += '<div>'
+              + '<span style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:700;color:var(--blue)">' + c.numero_orden + '</span>'
+              + ' &nbsp;·&nbsp; '
+              + '<span style="font-size:13px;font-weight:600">' + (c.tipo_prenda||'Prenda') + '</span>'
+              + '<div style="font-size:12px;color:#92400e;margin-top:2px">'
+                + '<strong style="font-family:JetBrains Mono,monospace">' + cantFmt + ' ' + (c.unidad||'metros') + '</strong>'
+                + ' — asignado por ' + (c.asignado_por||'--')
+              + '</div>'
+            + '</div>';
+            html += '<div style="display:flex;align-items:center;gap:8px">'
+              + estadoBadge
+              + (c.estado_compra === 'PENDIENTE'
+                  ? '<button onclick="marcarComprando([' + c.id + '])" style="padding:5px 12px;background:var(--green-light);color:var(--green);border:1px solid var(--green-border);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">✅ Comprando</button>'
+                  : '')
+            + '</div>';
+            html += '</div>';
+          });
+          html += '</div></div>';
+        });
+
       } else {
         html += '<div style="background:var(--green-light);border:1px solid var(--green-border);border-radius:10px;padding:14px;margin-bottom:20px;font-size:13px;font-weight:600;color:#065f46">✅ No hay insumos pendientes de compra</div>';
       }
 
-      // Catálogo
-      html += '<div style="font-size:12px;font-weight:800;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;letter-spacing:.07em">📦 Catálogo de Insumos</div>';
+      // ── Catálogo ─────────────────────────────────────────
+      html += '<div style="font-size:12px;font-weight:800;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;letter-spacing:.07em;margin-top:8px">📦 Catálogo de Insumos</div>';
       html += '<table style="width:100%;border-collapse:collapse;font-size:13px">'
         + '<thead><tr>'
           + '<th style="background:var(--surface2);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border)">Nombre</th>'
           + '<th style="background:var(--surface2);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border)">Tipo</th>'
-          + '<th style="background:var(--surface2);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border)">Stock Actual</th>'
+          + '<th style="background:var(--surface2);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border)">Stock</th>'
           + '<th style="background:var(--surface2);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border)">Unidad</th>'
         + '</tr></thead><tbody>';
-      insumos.forEach(i => {
+      insumos.forEach(function(i) {
         html += '<tr style="border-bottom:1px solid var(--border)">'
           + '<td style="padding:9px 12px;font-weight:600">' + i.nombre + '</td>'
           + '<td style="padding:9px 12px"><span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;background:#fff7ed;color:#c2410c">' + i.tipo + '</span></td>'
@@ -926,13 +985,16 @@
     }
   }
 
-  async function marcarComprando(consumoId) {
-    await fetch(SB_URL + '/rest/v1/consumos_insumo?id=eq.' + consumoId, {
+  async function marcarComprando(ids) {
+    // ids puede ser un número o array de números
+    if (!Array.isArray(ids)) ids = [ids];
+    const filtro = ids.length === 1 ? 'id=eq.' + ids[0] : 'id=in.(' + ids.join(',') + ')';
+    await fetch(SB_URL + '/rest/v1/consumos_insumo?' + filtro, {
       method: 'PATCH',
       headers: {...HDR, 'Content-Type':'application/json','Prefer':'return=minimal'},
       body: JSON.stringify({ estado_compra: 'COMPRANDO', comprado_por: sesion.nombre, fecha_compra: new Date().toISOString() })
     });
-    showToast('✅ Marcado como Comprando');
+    showToast('✅ Marcado como Comprando — ' + ids.length + ' registro(s)');
     cargarInsumos();
   }
 

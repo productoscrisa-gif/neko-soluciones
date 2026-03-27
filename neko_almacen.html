@@ -146,6 +146,7 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
     <button class="tab active" id="tab-btn-pendientes" onclick="mostrarTab('pendientes')">&#128230; Por Despachar</button>
     <button class="tab" id="tab-btn-despachados" onclick="mostrarTab('despachados')">&#9989; Despachados</button>
     <button class="tab" id="tab-btn-servicios" onclick="mostrarTab('servicios')">&#9889; Servicios <span id="badge-servicios" style="display:none;background:#0d9488;color:#fff;border-radius:20px;padding:1px 7px;font-size:10px;margin-left:3px">0</span></button>
+    <button class="tab" id="tab-btn-insumos" onclick="mostrarTab('insumos')">&#129525; Insumos <span id="badge-insumos-alm" style="display:none;background:#c2410c;color:#fff;border-radius:20px;padding:1px 7px;font-size:10px;margin-left:3px">0</span></button>
   </div>
 
   <!-- TAB POR DESPACHAR -->
@@ -177,7 +178,12 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
     </div>
   </div>
 </div>
-<!-- TAB SERVICIOS RÁPIDOS -->
+<!-- TAB INSUMOS -->
+  <div class="tab-panel" id="panel-insumos">
+    <div class="state-box"><div class="icon">&#9203;</div><p>Cargando insumos...</p></div>
+  </div>
+
+  <!-- TAB SERVICIOS RÁPIDOS -->
   <div class="tab-panel" id="panel-servicios">
     <div class="state-box"><div class="icon">&#9203;</div><p>Cargando servicios...</p></div>
   </div>
@@ -217,13 +223,14 @@ function actualizarTodo() {
 
 // Cambiar tab - solo cambia la visibilidad, NO recarga datos
 function mostrarTab(tab) {
-  document.getElementById("tab-btn-pendientes").classList.toggle("active", tab === "pendientes");
-  document.getElementById("tab-btn-despachados").classList.toggle("active", tab === "despachados");
-  document.getElementById("tab-btn-servicios").classList.toggle("active", tab === "servicios");
-  document.getElementById("panel-pendientes").classList.toggle("active", tab === "pendientes");
-  document.getElementById("panel-despachados").classList.toggle("active", tab === "despachados");
-  document.getElementById("panel-servicios").classList.toggle("active", tab === "servicios");
+  ["pendientes","despachados","servicios","insumos"].forEach(function(t) {
+    var btn = document.getElementById("tab-btn-" + t);
+    var pan = document.getElementById("panel-" + t);
+    if (btn) btn.classList.toggle("active", t === tab);
+    if (pan) pan.classList.toggle("active", t === tab);
+  });
   if (tab === "servicios") cargarServicios();
+  if (tab === "insumos")   cargarInsumosAlmacen();
 }
 
 // ── CARGAR PENDIENTES (EN_PRODUCCION con prendas en Almacén) ──
@@ -669,6 +676,108 @@ function confirmarError() {
   }
 
   // ── INSUMOS EN ALMACÉN ────────────────────────────────
+
+  // Carga TODOS los insumos pendientes/comprando en la pestaña
+  async function cargarInsumosAlmacen() {
+    var el = document.getElementById("panel-insumos");
+    if (!el) return;
+    el.innerHTML = '<div class="state-box"><div class="icon">⏳</div><p>Cargando...</p></div>';
+    try {
+      var r = await fetch(SB + "/rest/v1/consumos_insumo?estado_compra=in.(PENDIENTE,COMPRANDO)&order=nombre_insumo.asc,fecha_asignacion.asc", { headers: H });
+      var consumos = await r.json();
+      if (!Array.isArray(consumos)) consumos = [];
+
+      // Badge
+      var badge = document.getElementById("badge-insumos-alm");
+      if (badge) { badge.textContent = consumos.length; badge.style.display = consumos.length ? "inline" : "none"; }
+
+      if (!consumos.length) {
+        el.innerHTML = '<div class="state-box"><div class="icon">✅</div><p>No hay insumos pendientes de recibir</p></div>';
+        return;
+      }
+
+      // Agrupar por insumo
+      var grupos = {};
+      consumos.forEach(function(c) {
+        var key = c.nombre_insumo || "Sin nombre";
+        if (!grupos[key]) grupos[key] = { nombre: key, unidad: c.unidad||"metros", total: 0, items: [] };
+        grupos[key].total += parseFloat(c.cantidad_estimada) || 0;
+        grupos[key].items.push(c);
+      });
+
+      var html = '<div style="display:flex;flex-direction:column;gap:14px">';
+      Object.values(grupos).forEach(function(g) {
+        var totalFmt = g.total % 1 === 0 ? g.total : g.total.toFixed(2);
+        html += '<div style="background:var(--surface);border:1.5px solid #fed7aa;border-radius:var(--radius);box-shadow:var(--shadow-md);overflow:hidden">';
+
+        // Header totalizador
+        html += '<div style="padding:14px 18px;background:#ffedd5;border-bottom:1px solid #fed7aa;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">';
+        html += '<div>';
+        html += '<div style="font-size:15px;font-weight:800;color:#c2410c">🧵 ' + g.nombre + '</div>';
+        html += '<div style="margin-top:4px">';
+        html += '<span style="font-family:JetBrains Mono,monospace;font-size:20px;font-weight:800;color:#c2410c">' + totalFmt + '</span>';
+        html += ' <span style="font-size:13px;font-weight:600;color:#92400e">' + g.unidad + ' en total</span>';
+        html += ' <span style="font-size:12px;color:#92400e">(' + g.items.length + ' ' + (g.items.length===1?"orden":"órdenes") + ')</span>';
+        html += '</div></div>';
+        html += '<span style="padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;background:var(--amber-light);color:var(--amber)">⏳ Pendiente de recibir</span>';
+        html += '</div>';
+
+        // Detalle por orden
+        html += '<div style="padding:0 16px">';
+        g.items.forEach(function(c, i) {
+          var cantFmt = (parseFloat(c.cantidad_estimada)||0) % 1 === 0
+            ? parseFloat(c.cantidad_estimada)||0
+            : (parseFloat(c.cantidad_estimada)||0).toFixed(2);
+          var estadoBadge = c.estado_compra === "COMPRANDO"
+            ? '<span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:var(--amber-light);color:var(--amber)">🛍️ Comprando</span>'
+            : '<span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:var(--blue-light);color:var(--blue)">⏳ Pendiente compra</span>';
+
+          html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;'
+            + (i < g.items.length-1 ? "border-bottom:1px solid #fed7aa;" : "")
+            + 'flex-wrap:wrap;gap:10px">';
+          html += '<div>';
+          html += '<span style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:700;color:var(--blue)">' + c.numero_orden + '</span>';
+          html += ' &nbsp;·&nbsp; ';
+          html += '<span style="font-size:13px;font-weight:700">' + (c.tipo_prenda||"Prenda") + '</span>';
+          html += '<div style="font-size:12px;color:#92400e;margin-top:3px">';
+          html += '<strong style="font-family:JetBrains Mono,monospace">' + cantFmt + " " + g.unidad + '</strong>';
+          html += ' — ' + (c.asignado_por||"--");
+          html += '</div></div>';
+          html += '<div style="display:flex;align-items:center;gap:8px">';
+          html += estadoBadge;
+          html += '<button data-id="' + c.id + '" data-oid="' + c.orden_id + '" onclick="recibirInsumoAlm(this)"'
+            + ' style="padding:8px 16px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(16,185,129,.3)">'
+            + '📦 Recibido</button>';
+          html += '</div></div>';
+        });
+        html += '</div></div>';
+      });
+      html += '</div>';
+      el.innerHTML = html;
+    } catch(e) {
+      el.innerHTML = '<div class="state-box"><div class="icon">❌</div><p>' + e.message + '</p></div>';
+    }
+  }
+
+  // Marcar recibido desde la pestaña de insumos
+  async function recibirInsumoAlm(btn) {
+    var id  = btn.getAttribute("data-id");
+    var oid = btn.getAttribute("data-oid");
+    btn.disabled = true; btn.textContent = "⏳...";
+    try {
+      await fetch(SB + "/rest/v1/consumos_insumo?id=eq." + id, {
+        method: "PATCH",
+        headers: Object.assign({}, H, {"Content-Type":"application/json","Prefer":"return=minimal"}),
+        body: JSON.stringify({ estado_compra: "RECIBIDO", recibido_por: sesion.nombre, fecha_recepcion: new Date().toISOString() })
+      });
+      showToast("📦 Insumo recibido — ✅ Tela Asignada a la orden");
+      cargarInsumosAlmacen();
+    } catch(e) {
+      alert("Error: " + e.message);
+      btn.disabled = false; btn.textContent = "📦 Recibido";
+    }
+  }
+
   async function cargarInsumosOrden(oid) {
     const el = document.getElementById('insumo-alerta-' + oid);
     if (!el) return;
