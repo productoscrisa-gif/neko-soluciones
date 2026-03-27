@@ -109,6 +109,7 @@
     <button class="nav-tab" onclick="cambiarTab('errores')" style="color:var(--red)">🔴 Errores <span id="badge-err-admin" style="display:none;background:var(--red);color:#fff;border-radius:20px;padding:1px 7px;font-size:10px">0</span></button>
     <button class="nav-tab" id="ntab-compras-admin" onclick="cambiarTab('compras-admin')" style="color:#0891b2">🛍️ Compras <span id="badge-compras-admin" style="display:none;background:#0891b2;color:#fff;border-radius:20px;padding:1px 6px;font-size:10px;margin-left:3px">0</span></button>
     <button class="nav-tab" onclick="cambiarTab('tiempos')" style="color:#7c3aed">⏱️ Tiempos</button>
+    <button class="nav-tab" onclick="cambiarTab('insumos')" style="color:#c2410c">🧵 Insumos <span id="badge-insumos" style="display:none;background:#c2410c;color:#fff;border-radius:20px;padding:1px 6px;font-size:10px;margin-left:3px">0</span></button>
   </div>
 
   <!-- DASHBOARD -->
@@ -299,6 +300,40 @@
     </div>
   </div>
 
+
+  <!-- INSUMOS -->
+  <div class="tab-content" id="tab-insumos">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-md);overflow:hidden;margin-bottom:20px">
+      <div style="padding:14px 20px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <span style="font-size:14px;font-weight:800">🧵 Control de Insumos — Pendientes de Compra</span>
+        <div style="display:flex;gap:8px">
+          <button onclick="mostrarFormInsumo()" style="padding:7px 14px;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">➕ Nuevo Insumo</button>
+          <button onclick="cargarInsumos()" style="padding:7px 14px;background:var(--surface2);color:var(--text-secondary);border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">🔄</button>
+        </div>
+      </div>
+      <!-- Form nuevo insumo (oculto por defecto) -->
+      <div id="form-nuevo-insumo" style="display:none;padding:16px;background:#fff7ed;border-bottom:1px solid #fed7aa">
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:10px;margin-bottom:10px">
+          <div><label style="font-size:11px;font-weight:700;color:#92400e;display:block;margin-bottom:4px">Nombre *</label>
+            <input id="ni-nombre" type="text" placeholder="Ej: Tela licra negra" style="width:100%;padding:8px 10px;border:1.5px solid #fed7aa;border-radius:8px;font-size:13px;outline:none"></div>
+          <div><label style="font-size:11px;font-weight:700;color:#92400e;display:block;margin-bottom:4px">Tipo *</label>
+            <select id="ni-tipo" style="width:100%;padding:8px 10px;border:1.5px solid #fed7aa;border-radius:8px;font-size:13px;outline:none;appearance:none">
+              <option>Tela</option><option>Tinta</option><option>DTF</option><option>Otro</option>
+            </select></div>
+          <div><label style="font-size:11px;font-weight:700;color:#92400e;display:block;margin-bottom:4px">Unidad</label>
+            <input id="ni-unidad" type="text" value="metros" style="width:100%;padding:8px 10px;border:1.5px solid #fed7aa;border-radius:8px;font-size:13px;outline:none"></div>
+          <div><label style="font-size:11px;font-weight:700;color:#92400e;display:block;margin-bottom:4px">Stock inicial</label>
+            <input id="ni-stock" type="number" value="0" min="0" style="width:100%;padding:8px 10px;border:1.5px solid #fed7aa;border-radius:8px;font-size:13px;outline:none;font-family:JetBrains Mono,monospace"></div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button onclick="guardarNuevoInsumo()" style="padding:8px 18px;background:linear-gradient(135deg,#c2410c,#b91c1c);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">💾 Guardar Insumo</button>
+          <button onclick="document.getElementById('form-nuevo-insumo').style.display='none'" style="padding:8px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer">Cancelar</button>
+        </div>
+      </div>
+      <div style="padding:20px" id="insumos-body"><p style="color:var(--text-muted)">Cargando...</p></div>
+    </div>
+  </div>
+
 <div id="toast"></div>
 
 <script>
@@ -316,6 +351,7 @@
     cargarDashboard();
     cargarOrdenes();
     cargarComprasAdmin(); // Para badge inicial
+    cargarInsumos();        // Para badge insumos
     cargarUsuarios();
     cargarErroresAdmin();
   });
@@ -325,13 +361,14 @@
   function cambiarTab(tab){
     tabActiva=tab;
     document.querySelectorAll('.nav-tab').forEach((t,i)=>{
-      t.classList.toggle('active',['dashboard','ordenes','usuarios','errores','compras-admin','tiempos'][i]===tab);
+      t.classList.toggle('active',['dashboard','ordenes','usuarios','errores','compras-admin','tiempos','insumos'][i]===tab);
     });
     document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
     document.getElementById('tab-'+tab).classList.add('active');
     if(tab==='errores') cargarErroresAdmin();
     if(tab==='compras-admin') cargarComprasAdmin();
     if(tab==='tiempos') cargarTiempos();
+    if(tab==='insumos') cargarInsumos();
   }
 
   // ── ERRORES ADMIN ─────────────────────────────────────────
@@ -798,6 +835,105 @@
     if (mins < 60) return mins + ' min';
     const h = Math.floor(mins/60), m = mins%60;
     return h + 'h' + (m > 0 ? ' ' + m + 'm' : '');
+  }
+
+  // ══ MÓDULO INSUMOS ADMIN ══════════════════════════════
+
+  function mostrarFormInsumo() {
+    const el = document.getElementById('form-nuevo-insumo');
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  }
+
+  async function guardarNuevoInsumo() {
+    const nombre = document.getElementById('ni-nombre').value.trim();
+    const tipo   = document.getElementById('ni-tipo').value;
+    const unidad = document.getElementById('ni-unidad').value.trim() || 'metros';
+    const stock  = parseFloat(document.getElementById('ni-stock').value) || 0;
+    if (!nombre) { alert('Ingresa el nombre del insumo.'); return; }
+    await fetch(SB_URL + '/rest/v1/insumos', {
+      method: 'POST',
+      headers: {...HDR, 'Content-Type':'application/json','Prefer':'return=minimal'},
+      body: JSON.stringify({ nombre, tipo, unidad, stock_actual: stock, activo: true })
+    });
+    document.getElementById('form-nuevo-insumo').style.display = 'none';
+    document.getElementById('ni-nombre').value = '';
+    showToast('✅ Insumo creado: ' + nombre);
+    cargarInsumos();
+  }
+
+  async function cargarInsumos() {
+    const el = document.getElementById('insumos-body');
+    if (!el) return;
+    el.innerHTML = '<p style="color:var(--text-muted)">Cargando...</p>';
+    try {
+      // Consumos PENDIENTES de compra
+      const rC = await fetch(SB_URL + '/rest/v1/consumos_insumo?estado_compra=eq.PENDIENTE&order=fecha_asignacion.desc', { headers: HDR });
+      const consumos = await rC.json();
+
+      // Catálogo de insumos
+      const rI = await fetch(SB_URL + '/rest/v1/insumos?activo=eq.true&order=tipo.asc,nombre.asc', { headers: HDR });
+      const insumos = await rI.json();
+
+      // Badge
+      const badge = document.getElementById('badge-insumos');
+      if (badge) { badge.textContent = consumos.length; badge.style.display = consumos.length ? 'inline':'none'; }
+
+      let html = '';
+
+      // Sección: Órdenes pendientes de compra
+      if (consumos.length) {
+        html += '<div style="font-size:12px;font-weight:800;text-transform:uppercase;color:#c2410c;margin-bottom:12px;letter-spacing:.07em">⚠️ Órdenes con Insumos Pendientes de Compra (' + consumos.length + ')</div>';
+        html += '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px">';
+        consumos.forEach(c => {
+          html += '<div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">'
+            + '<div>'
+              + '<div style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:700;color:var(--blue)">' + c.numero_orden + '</div>'
+              + '<div style="font-size:14px;font-weight:700;margin-top:2px">' + (c.tipo_prenda||'Prenda') + '</div>'
+              + '<div style="font-size:12px;color:#92400e;margin-top:2px">🧵 ' + (c.nombre_insumo||'Insumo') + ' — <strong>' + c.cantidad_estimada + ' ' + (c.unidad||'metros') + '</strong></div>'
+              + '<div style="font-size:11px;color:var(--text-muted);margin-top:2px">Asignado por: ' + (c.asignado_por||'--') + '</div>'
+            + '</div>'
+            + '<div style="display:flex;gap:8px">'
+              + '<button onclick="marcarComprando(' + c.id + ')" style="padding:8px 16px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(16,185,129,.3)">✅ Comprando</button>'
+            + '</div>'
+          + '</div>';
+        });
+        html += '</div>';
+      } else {
+        html += '<div style="background:var(--green-light);border:1px solid var(--green-border);border-radius:10px;padding:14px;margin-bottom:20px;font-size:13px;font-weight:600;color:#065f46">✅ No hay insumos pendientes de compra</div>';
+      }
+
+      // Catálogo
+      html += '<div style="font-size:12px;font-weight:800;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;letter-spacing:.07em">📦 Catálogo de Insumos</div>';
+      html += '<table style="width:100%;border-collapse:collapse;font-size:13px">'
+        + '<thead><tr>'
+          + '<th style="background:var(--surface2);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border)">Nombre</th>'
+          + '<th style="background:var(--surface2);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border)">Tipo</th>'
+          + '<th style="background:var(--surface2);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border)">Stock Actual</th>'
+          + '<th style="background:var(--surface2);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border)">Unidad</th>'
+        + '</tr></thead><tbody>';
+      insumos.forEach(i => {
+        html += '<tr style="border-bottom:1px solid var(--border)">'
+          + '<td style="padding:9px 12px;font-weight:600">' + i.nombre + '</td>'
+          + '<td style="padding:9px 12px"><span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;background:#fff7ed;color:#c2410c">' + i.tipo + '</span></td>'
+          + '<td style="padding:9px 12px;font-family:JetBrains Mono,monospace;font-weight:700;color:' + (i.stock_actual <= 0 ? 'var(--red)' : 'var(--green)') + '">' + i.stock_actual + '</td>'
+          + '<td style="padding:9px 12px;color:var(--text-muted)">' + i.unidad + '</td>'
+        + '</tr>';
+      });
+      html += '</tbody></table>';
+      el.innerHTML = html;
+    } catch(e) {
+      el.innerHTML = '<p style="color:var(--red)">Error: ' + e.message + '</p>';
+    }
+  }
+
+  async function marcarComprando(consumoId) {
+    await fetch(SB_URL + '/rest/v1/consumos_insumo?id=eq.' + consumoId, {
+      method: 'PATCH',
+      headers: {...HDR, 'Content-Type':'application/json','Prefer':'return=minimal'},
+      body: JSON.stringify({ estado_compra: 'COMPRANDO', comprado_por: sesion.nombre, fecha_compra: new Date().toISOString() })
+    });
+    showToast('✅ Marcado como Comprando');
+    cargarInsumos();
   }
 
   function showToast(msg){

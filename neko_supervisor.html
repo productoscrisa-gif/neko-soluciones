@@ -364,6 +364,7 @@
     document.getElementById('user-info').textContent = '👁️ ' + sesion.nombre;
     recargarTodo();
     cargarDiseniadoresSup();
+    cargarCatalogoInsumos();
   });
 
   function cerrarSesion() { sessionStorage.removeItem('nk_user'); window.location.href = 'neko_login.html'; }
@@ -563,6 +564,7 @@
             ? buildSelectDiseniadorSup(oid, idx, p.diseñador || '')
             : '')
         + '</div>'
+        + buildSelectorInsumoSup(oid, idx, p)
       + '</div>'
     + '</div>';
   }
@@ -644,6 +646,7 @@
         })
       });
       if (!r.ok) throw new Error('HTTP ' + r.status);
+      guardarConsumosOrden(oid, prods); // guardar insumos en background
       showToast('✅ Orden enviada a Producción');
       await cargarAnalisis();
       await cargarSeguimiento();
@@ -1047,6 +1050,110 @@
       headers: { ...HDR, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
       body: JSON.stringify({ compras_estado: arr })
     });
+  }
+
+  // ── MÓDULO INSUMOS ──────────────────────────────────────
+  let catalogoInsumos = [];
+
+  async function cargarCatalogoInsumos() {
+    try {
+      const r = await fetch(SB_URL + '/rest/v1/insumos?activo=eq.true&order=tipo.asc,nombre.asc&select=id,nombre,tipo,unidad,stock_actual', { headers: HDR });
+      catalogoInsumos = await r.json();
+      if (!Array.isArray(catalogoInsumos)) catalogoInsumos = [];
+    } catch(e) { catalogoInsumos = []; }
+  }
+
+  function buildSelectorInsumoSup(oid, idx, p) {
+    if (!catalogoInsumos.length) return '';
+    const insumoActual = p.insumo_id || '';
+    const cantActual   = p.cantidad_insumo || '';
+
+    let optsI = '<option value="">— Sin insumo —</option>';
+    const grupos = {};
+    catalogoInsumos.forEach(function(i) {
+      if (!grupos[i.tipo]) grupos[i.tipo] = [];
+      grupos[i.tipo].push(i);
+    });
+    Object.entries(grupos).forEach(function([tipo, items]) {
+      optsI += '<optgroup label="' + tipo + '">';
+      items.forEach(function(i) {
+        optsI += '<option value="' + i.id + '"' + (String(insumoActual) === String(i.id) ? ' selected' : '') + '>'
+          + i.nombre + ' (' + i.unidad + ') — Stock: ' + i.stock_actual
+        + '</option>';
+      });
+      optsI += '</optgroup>';
+    });
+
+    var html = '<div style="margin-top:10px;padding:12px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px">';
+    html += '<div style="font-size:11px;font-weight:700;color:#c2410c;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">🧵 Asignar Insumo / Tela</div>';
+    html += '<div style="display:grid;grid-template-columns:2fr 1fr;gap:8px">';
+    html += '<select data-oid="' + oid + '" data-idx="' + idx + '" onchange="asignarInsumoSup(this)"'
+          + ' style="width:100%;padding:8px 10px;border:1.5px solid #fed7aa;border-radius:8px;font-size:13px;background:#fff;outline:none;appearance:none">'
+          + optsI
+          + '</select>';
+    html += '<input type="number" id="cant-insumo-' + oid + '-' + idx + '" placeholder="Metros/Cant."'
+          + ' value="' + cantActual + '" min="0" step="0.1"'
+          + ' data-oid="' + oid + '" data-idx="' + idx + '" onchange="asignarCantInsumo(this)"'
+          + ' style="padding:8px 10px;border:1.5px solid #fed7aa;border-radius:8px;font-size:13px;background:#fff;outline:none;font-family:JetBrains Mono,monospace">';
+    html += '</div>';
+    if (insumoActual) {
+      html += '<div style="font-size:11px;color:#c2410c;margin-top:6px;font-weight:600">⚠️ Se generará orden de compra al enviar a producción</div>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  function asignarInsumoSup(sel) {
+    const oid  = sel.getAttribute('data-oid');
+    const idx  = parseInt(sel.getAttribute('data-idx'));
+    const val  = sel.value;
+    const insumo = catalogoInsumos.find(i => String(i.id) === String(val));
+    const orden  = ordenesAnalisis.find(o => String(o.id) === String(oid));
+    if (orden && orden.productos && orden.productos[idx]) {
+      orden.productos[idx].insumo_id    = val;
+      orden.productos[idx].nombre_insumo = insumo ? insumo.nombre : '';
+      orden.productos[idx].unidad_insumo = insumo ? insumo.unidad : '';
+    }
+    showToast(insumo ? '🧵 Insumo asignado: ' + insumo.nombre : '🧵 Insumo removido');
+  }
+
+  function asignarCantInsumo(inp) {
+    const oid  = inp.getAttribute('data-oid');
+    const idx  = parseInt(inp.getAttribute('data-idx'));
+    const valor = inp.value;
+    const orden = ordenesAnalisis.find(o => String(o.id) === String(oid));
+    if (orden && orden.productos && orden.productos[idx]) {
+      orden.productos[idx].cantidad_insumo = parseFloat(valor) || 0;
+    }
+  }
+
+  // Guardar consumo al enviar a producción
+  async function guardarConsumosOrden(oid, prods) {
+    const insumosConsumo = prods
+      .map((p, idx) => ({ p, idx }))
+      .filter(({p}) => p.insumo_id && p.cantidad_insumo > 0);
+
+    if (!insumosConsumo.length) return;
+
+    const orden = ordenesAnalisis.find(o => String(o.id) === String(oid));
+    const rows  = insumosConsumo.map(({p, idx}) => ({
+      orden_id:          parseInt(oid),
+      numero_orden:      orden ? orden.numero_orden : '',
+      prenda_idx:        idx,
+      tipo_prenda:       p.tipo || '',
+      insumo_id:         parseInt(p.insumo_id),
+      nombre_insumo:     p.nombre_insumo || '',
+      cantidad_estimada: p.cantidad_insumo,
+      unidad:            p.unidad_insumo || 'metros',
+      estado_compra:     'PENDIENTE',
+      asignado_por:      sesion ? sesion.nombre : ''
+    }));
+
+    await fetch(SB_URL + '/rest/v1/consumos_insumo', {
+      method: 'POST',
+      headers: { ...HDR, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify(rows)
+    }).catch(() => {});
   }
 
   // ── UTILIDADES ────────────────────────────────────────────

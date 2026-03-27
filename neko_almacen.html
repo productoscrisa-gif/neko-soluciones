@@ -394,6 +394,13 @@ function buildCard(o, isDespachado) {
   var gu = o.guia_url || "";
   var trans = o.transportadora || "";
   var esTransportadora = o.tipo_envio === "Transportadora";
+  // Alerta de insumo pendiente de recibir
+  var insumoAlerta = '';
+  if (!isDespachado) {
+    // Se cargará de forma lazy cuando se abra el card
+    insumoAlerta = '<div id="insumo-alerta-' + oid + '"></div>';
+  }
+
   var selectorTrans = esTransportadora && !isDespachado
     ? "<div class='field' style='margin-top:10px'><label>🚚 Transportadora *</label>"
       + "<select id='trans-"+oid+"' style='width:100%;padding:9px 12px;border:1.5px solid var(--indigo-mid);border-radius:var(--radius-sm);font-size:13px;font-family:Plus Jakarta Sans,sans-serif;background:var(--indigo-light);outline:none;appearance:none'>"
@@ -450,7 +457,7 @@ function buildCard(o, isDespachado) {
         "<span class='chevron' id='chev-"+oid+"'>▼</span></div>"
     + "</div>"
     + "<div class='order-body' id='body-"+oid+"'>"
-      + clienteHTML + pagoHTML + alertHTML
+      + insumoAlerta + clienteHTML + pagoHTML + alertHTML
       + "<div class='section-title'>📦 Estado de Prendas</div>"
       + "<table class='prendas-table'><thead><tr><th>Prenda</th><th>Cant</th><th>Ubicacion</th><th>Obs</th></tr></thead><tbody>"+prendasRows+"</tbody></table>"
       + guiaSec
@@ -465,6 +472,10 @@ function doToggle(oid) {
   var c = document.getElementById("chev-"+oid);
   if (b) b.classList.toggle("open");
   if (c) c.classList.toggle("open");
+  // Cargar insumos la primera vez que se abre
+  if (b && b.classList.contains("open")) {
+    cargarInsumosOrden(oid);
+  }
 }
 
 function doDespachar(oid) {
@@ -655,6 +666,48 @@ function confirmarError() {
     });
     showToast("✅ Servicio marcado como entregado");
     await cargarServicios();
+  }
+
+  // ── INSUMOS EN ALMACÉN ────────────────────────────────
+  async function cargarInsumosOrden(oid) {
+    const el = document.getElementById('insumo-alerta-' + oid);
+    if (!el) return;
+    try {
+      const r = await fetch(SB_URL + '/rest/v1/consumos_insumo?orden_id=eq.' + oid + '&estado_compra=neq.RECIBIDO&order=fecha_asignacion.asc', { headers: H });
+      const consumos = await r.json();
+      if (!Array.isArray(consumos) || !consumos.length) {
+        el.innerHTML = '';
+        return;
+      }
+      el.innerHTML = '<div style="background:#fff7ed;border:2px solid #fed7aa;border-radius:10px;padding:14px 16px;margin-bottom:14px">'
+        + '<div style="font-size:13px;font-weight:800;color:#c2410c;margin-bottom:10px">🧵 Insumos Pendientes de Recibir</div>'
+        + consumos.map(c => {
+            const estadoBadge = c.estado_compra === 'COMPRANDO'
+              ? '<span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;background:var(--amber-light);color:var(--amber)">🛍️ Comprando</span>'
+              : '<span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;background:var(--blue-light);color:var(--blue)">⏳ Pendiente</span>';
+            return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #fed7aa;flex-wrap:wrap;gap:8px">'
+              + '<div>'
+                + '<div style="font-size:13px;font-weight:700">' + (c.nombre_insumo||'Insumo') + '</div>'
+                + '<div style="font-size:12px;color:#92400e">' + c.cantidad_estimada + ' ' + (c.unidad||'metros') + ' — ' + (c.tipo_prenda||'Prenda') + '</div>'
+              + '</div>'
+              + '<div style="display:flex;align-items:center;gap:8px">'
+                + estadoBadge
+                + '<button onclick="recibirInsumo(' + c.id + ',' + oid + ')" style="padding:6px 14px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">📦 Recibido</button>'
+              + '</div>'
+            + '</div>';
+          }).join('')
+      + '</div>';
+    } catch(e) {}
+  }
+
+  async function recibirInsumo(consumoId, oid) {
+    await fetch(SB_URL + '/rest/v1/consumos_insumo?id=eq.' + consumoId, {
+      method: 'PATCH',
+      headers: Object.assign({}, H, {'Content-Type':'application/json','Prefer':'return=minimal'}),
+      body: JSON.stringify({ estado_compra: 'RECIBIDO', recibido_por: sesion.nombre, fecha_recepcion: new Date().toISOString() })
+    });
+    showToast('📦 Insumo marcado como recibido — ✅ Tela Asignada');
+    cargarInsumosOrden(oid);
   }
 
   function showToast(msg) {
