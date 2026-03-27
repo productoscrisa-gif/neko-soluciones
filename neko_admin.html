@@ -334,6 +334,42 @@
     </div>
   </div>
 
+  <!-- Modal editar insumo -->
+  <div id="modal-editar-insumo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;padding:20px">
+    <div style="background:var(--surface);border-radius:var(--radius);padding:28px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+      <h3 style="font-size:17px;font-weight:800;margin-bottom:6px">✏️ Editar Insumo</h3>
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:18px">Modifica los datos del insumo seleccionado.</p>
+      <input type="hidden" id="ei-id">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div style="grid-column:span 2">
+          <label style="font-size:11px;font-weight:700;color:var(--text-secondary);display:block;margin-bottom:4px">Nombre *</label>
+          <input id="ei-nombre" type="text" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;outline:none;transition:border-color .2s" onfocus="this.style.borderColor='#c2410c'" onblur="this.style.borderColor='#e2e8f0'">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--text-secondary);display:block;margin-bottom:4px">Tipo *</label>
+          <select id="ei-tipo" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;outline:none;appearance:none">
+            <option value="Tela">Tela</option>
+            <option value="Tinta">Tinta</option>
+            <option value="DTF">DTF</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--text-secondary);display:block;margin-bottom:4px">Unidad</label>
+          <input id="ei-unidad" type="text" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;outline:none">
+        </div>
+        <div style="grid-column:span 2">
+          <label style="font-size:11px;font-weight:700;color:var(--text-secondary);display:block;margin-bottom:4px">Stock Actual</label>
+          <input id="ei-stock" type="number" min="0" step="0.1" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;outline:none;font-family:JetBrains Mono,monospace">
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button onclick="cerrarModalInsumo()" style="padding:9px 16px;background:var(--surface2);color:var(--text-secondary);border:1px solid var(--border);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Cancelar</button>
+        <button onclick="guardarEdicionInsumo()" style="padding:9px 20px;background:linear-gradient(135deg,#c2410c,#b91c1c);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">💾 Guardar Cambios</button>
+      </div>
+    </div>
+  </div>
+
 <div id="toast"></div>
 
 <script>
@@ -969,6 +1005,7 @@
           + '<th style="background:var(--surface2);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border)">Tipo</th>'
           + '<th style="background:var(--surface2);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border)">Stock</th>'
           + '<th style="background:var(--surface2);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border)">Unidad</th>'
+          + '<th style="background:var(--surface2);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border)">Acciones</th>'
         + '</tr></thead><tbody>';
       insumos.forEach(function(i) {
         html += '<tr style="border-bottom:1px solid var(--border)">'
@@ -976,6 +1013,7 @@
           + '<td style="padding:9px 12px"><span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;background:#fff7ed;color:#c2410c">' + i.tipo + '</span></td>'
           + '<td style="padding:9px 12px;font-family:JetBrains Mono,monospace;font-weight:700;color:' + (i.stock_actual <= 0 ? 'var(--red)' : 'var(--green)') + '">' + i.stock_actual + '</td>'
           + '<td style="padding:9px 12px;color:var(--text-muted)">' + i.unidad + '</td>'
+          + '<td style="padding:9px 12px"><button onclick="editarInsumo(' + i.id + ',\'' + i.nombre + '\',\'' + i.tipo + '\',\'' + i.unidad + '\',' + i.stock_actual + ')" style="padding:5px 10px;background:var(--blue-light);color:var(--blue);border:1px solid var(--blue-mid);border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">✏️ Editar</button></td>'
         + '</tr>';
       });
       html += '</tbody></table>';
@@ -996,6 +1034,40 @@
     });
     showToast('✅ Marcado como Comprando — ' + ids.length + ' registro(s)');
     cargarInsumos();
+  }
+
+  function editarInsumo(id, nombre, tipo, unidad, stock) {
+    document.getElementById("ei-id").value    = id;
+    document.getElementById("ei-nombre").value = nombre;
+    document.getElementById("ei-tipo").value   = tipo;
+    document.getElementById("ei-unidad").value = unidad;
+    document.getElementById("ei-stock").value  = stock;
+    document.getElementById("modal-editar-insumo").style.display = "flex";
+  }
+
+  function cerrarModalInsumo() {
+    document.getElementById("modal-editar-insumo").style.display = "none";
+  }
+
+  async function guardarEdicionInsumo() {
+    var id     = document.getElementById("ei-id").value;
+    var nombre = document.getElementById("ei-nombre").value.trim();
+    var tipo   = document.getElementById("ei-tipo").value;
+    var unidad = document.getElementById("ei-unidad").value.trim();
+    var stock  = parseFloat(document.getElementById("ei-stock").value) || 0;
+    if (!nombre) { alert("El nombre es requerido."); return; }
+    try {
+      await fetch(SB_URL + "/rest/v1/insumos?id=eq." + id, {
+        method: "PATCH",
+        headers: Object.assign({}, HDR, {"Content-Type":"application/json","Prefer":"return=minimal"}),
+        body: JSON.stringify({ nombre: nombre, tipo: tipo, unidad: unidad, stock_actual: stock })
+      });
+      cerrarModalInsumo();
+      showToast("✅ Insumo actualizado: " + nombre);
+      cargarInsumos();
+    } catch(e) {
+      alert("Error: " + e.message);
+    }
   }
 
   function showToast(msg){
