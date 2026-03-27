@@ -677,11 +677,25 @@
   // ── ERRORES DEL ÁREA ──────────────────────────────────────
   async function cargarErrores() {
     try {
-      const r = await fetch(
-        SB_URL + '/rest/v1/errores_produccion?area_responsable=eq.' + encodeURIComponent(areaActual) + '&estado=eq.PENDIENTE&order=fecha_reporte.desc&limit=50',
-        { headers: HDR }
-      );
-      erroresArea = await r.json();
+      // Traer errores del área
+      let url = SB_URL + '/rest/v1/errores_produccion?area_responsable=eq.' + encodeURIComponent(areaActual) + '&estado=eq.PENDIENTE&order=fecha_reporte.desc&limit=50';
+      const r = await fetch(url, { headers: HDR });
+      let todos = await r.json();
+      if (!Array.isArray(todos)) todos = [];
+
+      // En Diseño: filtrar solo los errores asignados al usuario actual
+      if (areaActual === 'Diseño') {
+        const usuActual = (sesion.usuario || sesion.nombre || '').trim().toLowerCase();
+        erroresArea = todos.filter(e => {
+          const dis = (e.diseñador_asignado || '').trim().toLowerCase();
+          // Si el error tiene diseñador asignado, solo mostrar al usuario correcto
+          // Si no tiene diseñador (errores viejos), mostrar a todos
+          return !dis || dis === usuActual;
+        });
+      } else {
+        erroresArea = todos;
+      }
+
       const badgeEl = document.getElementById('badge-errores');
       if (erroresArea.length > 0) { badgeEl.textContent = erroresArea.length; badgeEl.style.display = 'inline'; }
       else { badgeEl.style.display = 'none'; }
