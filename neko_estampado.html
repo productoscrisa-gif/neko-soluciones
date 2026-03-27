@@ -236,6 +236,14 @@
 
           if (se.area_actual !== areaActual) return; // No es de esta área
 
+          // En Diseño: filtrar solo las prendas asignadas a este usuario
+          if (areaActual === 'Diseño') {
+            const disenAsig = (se.diseñador_asignado || '').trim().toLowerCase();
+            const usuActual  = (sesion.usuario || sesion.nombre || '').trim().toLowerCase();
+            // Si tiene diseñador asignado y no es el usuario actual, ignorar
+            if (disenAsig && disenAsig !== usuActual) return;
+          }
+
           const item = {
             ordenId:      orden.id,
             ordenNum:     orden.numero_orden,
