@@ -237,7 +237,6 @@
           if (se.area_actual !== areaActual) return; // No es de esta área
           // Excluir prendas con error activo — solo aparecen en pestaña Errores
           if (se.estado === 'error') return;
-          if (se.error_area && se.error_ant) return; // tiene error pendiente de corrección
 
           // En Diseño: filtrar solo las prendas asignadas a este usuario
           if (areaActual === 'Diseño') {
