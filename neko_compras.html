@@ -235,6 +235,9 @@
           if (!se) return; // Sin sub_estado = no inicializada, ignorar
 
           if (se.area_actual !== areaActual) return; // No es de esta área
+          // Excluir prendas con error activo — solo aparecen en pestaña Errores
+          if (se.estado === 'error') return;
+          if (se.error_area && se.error_ant) return; // tiene error pendiente de corrección
 
           // En Diseño: filtrar solo las prendas asignadas a este usuario
           if (areaActual === 'Diseño') {
@@ -595,31 +598,63 @@
       if (item) break;
     }
 
-    const ruta   = item?.ruta || [];
-    const idx    = ruta.indexOf(areaActual);
-    const areaAnt = idx > 0 ? ruta[idx - 1] : 'Análisis';
+    const ruta    = item?.ruta || [];
+    const idxRuta = ruta.indexOf(areaActual);
+    const areaAnt = idxRuta > 0 ? ruta[idxRuta - 1] : 'Análisis';
 
-    // Remover de lista actual
+    // 1. Actualizar UI local inmediatamente — quitar de TODAS las listas normales
     for (const arr of [window._pendientes, window._proceso, window._listas]) {
       const i = arr.findIndex(p => String(p.ordenId) === String(ordenId) && p.prendaIdx === prendaIdx);
       if (i >= 0) { arr.splice(i, 1); break; }
     }
     totalPrendas = { pendientes: window._pendientes.length, proceso: window._proceso.length, listas: window._listas.length };
     actualizarStats();
-    renderTab();
+
+    // 2. Cambiar a pestaña Errores
+    tabActual = 'errores';
+    ['pendientes','proceso','listas','errores'].forEach(t => {
+      const el = document.getElementById('tab-' + t);
+      if (el) el.classList.toggle('active', t === 'errores');
+    });
 
     cerrarModal();
-    showToast('🔴 Error reportado — devuelta a ' + areaAnt);
+    showToast('🔴 Error reportado — prenda en pestaña Errores');
 
-    // Guardar en Supabase en background
-    Promise.all([
-      actualizarSubEstado(ordenId, prendaIdx, { area_actual: areaAnt, estado: 'pendiente', error_desc: desc, error_area: areaActual, error_fecha: new Date().toISOString() }),
-      fetch(SB_URL + '/rest/v1/errores_produccion', {
+    // 3. Guardar en BD (await para garantizar estado correcto si recarga)
+    try {
+      // Mover al área anterior con estado='error'
+      // Así Diseño la ve en su pestaña Errores pero NO en Pendientes
+      // Conservar diseñador_asignado para que el filtro de usuario funcione en Diseño
+      await actualizarSubEstado(ordenId, prendaIdx, {
+        area_actual:        areaAnt,
+        estado:             'error',
+        error_desc:         desc,
+        error_area:         areaActual,
+        error_ant:          areaAnt,
+        error_fecha:        new Date().toISOString(),
+        diseñador_asignado: item?.diseñadorAsignado || undefined
+      });
+      await fetch(SB_URL + '/rest/v1/errores_produccion', {
         method: 'POST',
         headers: { ...HDR, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-        body: JSON.stringify({ orden_id: ordenId, numero_orden: item?.ordenNum || '', prenda_idx: prendaIdx, tipo_prenda: item?.prenda?.tipo || '', area_reporta: areaActual, area_responsable: areaAnt, descripcion: desc, estado: 'PENDIENTE' })
-      })
-    ]).then(() => cargarErrores()).catch(() => {});
+        body: JSON.stringify({
+          orden_id:           ordenId,
+          numero_orden:       item?.ordenNum || '',
+          prenda_idx:         prendaIdx,
+          tipo_prenda:        item?.prenda?.tipo || '',
+          area_reporta:       areaActual,
+          area_responsable:   areaAnt,
+          descripcion:        desc,
+          estado:             'PENDIENTE',
+          diseñador_asignado: item?.diseñadorAsignado || ''
+        })
+      });
+    } catch(e) {
+      showToast('⚠️ Error al guardar: ' + e.message);
+    }
+
+    // 4. Recargar errores del área
+    await cargarErrores();
   }
 
   // ── ACTUALIZAR SUB_ESTADO (eficiente — solo lee sub_estados) ──
@@ -662,40 +697,154 @@
       return;
     }
     cont.innerHTML = '<div class="prendas-list">' + erroresArea.map(e => {
-      const fecha = new Date(e.fecha_reporte).toLocaleDateString('es-CO', { day:'2-digit', month:'short', year:'numeric' });
-      return '<div style="background:#fff;border:1.5px solid #fca5a5;border-left:4px solid #ef4444;border-radius:14px;box-shadow:0 4px 16px rgba(0,0,0,.08);overflow:hidden">'
-        + '<div style="padding:14px 18px;background:#fff1f2;border-bottom:1px solid #fecaca;display:flex;align-items:center;justify-content:space-between">'
-          + '<div><span style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:700;color:#2563eb">' + e.numero_orden + '</span>'
-          + ' &nbsp;·&nbsp; <span style="font-size:13px;font-weight:700">' + (e.tipo_prenda || 'Prenda') + '</span></div>'
-          + '<div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;color:#64748b">📅 ' + fecha + '</span>'
-          + '<span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:#fff1f2;color:#ef4444;border:1px solid #fca5a5">🔴 Pendiente</span></div>'
+      const fecha      = new Date(e.fecha_reporte).toLocaleDateString('es-CO', { day:'2-digit', month:'short', year:'numeric' });
+      const enCorr     = e.estado_correccion === 'EN_CORRECCION';
+      const timerKey   = 'err-' + e.id;
+
+      // Timer de corrección
+      let timerHTML = '';
+      if (enCorr && e.fecha_inicio_correccion) {
+        const mins  = Math.round((new Date() - new Date(e.fecha_inicio_correccion)) / 60000);
+        const color = mins < 30 ? '#10b981' : mins < 60 ? '#f59e0b' : '#ef4444';
+        const bg    = mins < 30 ? '#ecfdf5' : mins < 60 ? '#fffbeb' : '#fff1f2';
+        const bd    = mins < 30 ? '#6ee7b7' : mins < 60 ? '#fcd34d' : '#fca5a5';
+        timerHTML   = '<div id="timer-' + timerKey + '" data-inicio="' + e.fecha_inicio_correccion + '" '
+          + 'style="display:inline-flex;align-items:center;gap:6px;background:' + bg + ';border:2px solid ' + bd + ';padding:6px 14px;border-radius:20px;margin-bottom:12px">'
+          + '<span style="font-size:18px">⏱️</span>'
+          + '<span style="font-size:16px;font-weight:800;font-family:JetBrains Mono,monospace;color:' + color + '">' + formatTiempoErr(mins) + '</span>'
+          + '</div>';
+      }
+
+      // Botones según estado
+      let botonesHTML = '';
+      if (!enCorr) {
+        botonesHTML = '<button data-eid="' + e.id + '" onclick="iniciarCorreccion(this)" '
+          + 'style="padding:9px 18px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 3px 10px rgba(245,158,11,.3)">'
+          + '⚙️ Trabajando en Solución</button>';
+      } else {
+        botonesHTML = '<span style="font-size:12px;color:#f59e0b;font-weight:700;margin-right:12px">⚙️ En corrección...</span>'
+          + '<button data-eid="' + e.id + '" data-oid="' + e.orden_id + '" data-pidx="' + e.prenda_idx + '" data-dest="' + e.area_reporta + '" onclick="solucionarError(this)" '
+          + 'style="padding:9px 18px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 3px 10px rgba(16,185,129,.3)">'
+          + '✅ Solucionado — Enviar a ' + e.area_reporta + '</button>';
+      }
+
+      const estadoBadge = enCorr
+        ? '<span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:#fffbeb;color:#f59e0b;border:1px solid #fcd34d">⚙️ En Corrección</span>'
+        : '<span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:#fff1f2;color:#ef4444;border:1px solid #fca5a5">🔴 Pendiente</span>';
+
+      return '<div style="background:#fff;border:1.5px solid #fca5a5;border-left:4px solid ' + (enCorr ? '#f59e0b' : '#ef4444') + ';border-radius:14px;box-shadow:0 4px 16px rgba(0,0,0,.08);overflow:hidden">'
+        + '<div style="padding:14px 18px;background:' + (enCorr ? '#fffbeb' : '#fff1f2') + ';border-bottom:1px solid ' + (enCorr ? '#fcd34d' : '#fecaca') + ';display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">'
+          + '<div>'
+            + '<span style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:700;color:#2563eb">' + e.numero_orden + '</span>'
+            + ' &nbsp;·&nbsp; <span style="font-size:13px;font-weight:700">' + (e.tipo_prenda || 'Prenda') + '</span>'
+          + '</div>'
+          + '<div style="display:flex;align-items:center;gap:8px">'
+            + '<span style="font-size:12px;color:#64748b">📅 ' + fecha + '</span>'
+            + estadoBadge
+          + '</div>'
         + '</div>'
         + '<div style="padding:16px 18px">'
-          + '<div style="font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Reportado por: ' + e.area_reporta + '</div>'
+          + '<div style="font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Reportado por: ' + e.area_reporta + (e.diseñador_asignado ? ' &nbsp;·&nbsp; 🎨 Diseñador: <strong>' + e.diseñador_asignado + '</strong>' : '') + '</div>'
           + '<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:10px 14px;font-size:13px;color:#92400e;margin-bottom:14px">⚠️ ' + e.descripcion + '</div>'
-          + '<button onclick="corregirError(' + e.id + ',\'' + e.orden_id + '\',' + e.prenda_idx + ')" '
-            + 'style="padding:9px 18px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 3px 10px rgba(16,185,129,.3)">'
-            + '✅ Corregí el Error — Reenviar</button>'
+          + timerHTML
+          + '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:10px">' + botonesHTML + '</div>'
         + '</div>'
       + '</div>';
     }).join('') + '</div>';
+
+    // Iniciar timers para los que están en corrección
+    iniciarTimersError();
   }
 
-  async function corregirError(errorId, ordenId, prendaIdx) {
-    if (!confirm('¿Confirmas que el error fue corregido y la prenda está lista?')) return;
-    showToast('⏳ Procesando...');
-    await Promise.all([
-      fetch(SB_URL + '/rest/v1/errores_produccion?id=eq.' + errorId, {
+  function formatTiempoErr(mins) {
+    if (mins < 60) return mins + ' min';
+    const h = Math.floor(mins/60), m = mins%60;
+    return h + 'h' + (m > 0 ? ' ' + m + 'm' : '');
+  }
+
+  function iniciarTimersError() {
+    clearInterval(window._errTimer);
+    window._errTimer = setInterval(function() {
+      document.querySelectorAll('[id^="timer-err-"]').forEach(function(el) {
+        const inicio = el.getAttribute('data-inicio');
+        if (!inicio) return;
+        const mins  = Math.round((new Date() - new Date(inicio)) / 60000);
+        const color = mins < 30 ? '#10b981' : mins < 60 ? '#f59e0b' : '#ef4444';
+        const bg    = mins < 30 ? '#ecfdf5' : mins < 60 ? '#fffbeb' : '#fff1f2';
+        const bd    = mins < 30 ? '#6ee7b7' : mins < 60 ? '#fcd34d' : '#fca5a5';
+        el.style.background  = bg;
+        el.style.borderColor = bd;
+        const span = el.querySelector('span:last-child');
+        if (span) { span.textContent = formatTiempoErr(mins); span.style.color = color; }
+      });
+    }, 30000);
+  }
+
+
+  // ── Paso 1: Iniciar corrección (activa timer) ─────────────
+  async function iniciarCorreccion(btn) {
+    const eid = btn.getAttribute('data-eid');
+    btn.disabled = true;
+    try {
+      await fetch(SB_URL + '/rest/v1/errores_produccion?id=eq.' + eid, {
         method: 'PATCH',
         headers: { ...HDR, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-        body: JSON.stringify({ estado: 'RESUELTO', fecha_correccion: new Date().toISOString() })
-      }),
-      actualizarSubEstado(ordenId, prendaIdx, { area_actual: areaActual, estado: 'lista', error_desc: null, error_area: null })
-    ]);
-    showToast('✅ Error corregido — prenda lista para enviar');
-    await cargar();
-    await cargarErrores();
+        body: JSON.stringify({
+          estado_correccion:       'EN_CORRECCION',
+          fecha_inicio_correccion: new Date().toISOString()
+        })
+      });
+      showToast('⚙️ Iniciaste la corrección — timer activado');
+      await cargarErrores();
+    } catch(e) {
+      showToast('❌ Error: ' + e.message);
+      btn.disabled = false;
+    }
   }
+
+  // ── Paso 2: Solucionado → enviar de vuelta al área que reportó ──
+  async function solucionarError(btn) {
+    const eid  = btn.getAttribute('data-eid');
+    const oid  = btn.getAttribute('data-oid');
+    const pidx = parseInt(btn.getAttribute('data-pidx'));
+    const dest = btn.getAttribute('data-dest');
+    if (!confirm('¿Confirmas que el problema fue solucionado? La prenda volverá a ' + dest + '.')) return;
+    btn.disabled = true; btn.textContent = '⏳ Enviando...';
+    try {
+      const e = erroresArea.find(x => String(x.id) === String(eid));
+      const mins = e?.fecha_inicio_correccion
+        ? Math.round((new Date() - new Date(e.fecha_inicio_correccion)) / 60000)
+        : 0;
+      await Promise.all([
+        fetch(SB_URL + '/rest/v1/errores_produccion?id=eq.' + eid, {
+          method: 'PATCH',
+          headers: { ...HDR, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+          body: JSON.stringify({
+            estado:             'RESUELTO',
+            estado_correccion:  'RESUELTO',
+            fecha_correccion:   new Date().toISOString(),
+            minutos_correccion: mins
+          })
+        }),
+        actualizarSubEstado(oid, pidx, {
+          area_actual: dest,
+          estado:      'pendiente',
+          error_desc:  null,
+          error_area:  null,
+          error_ant:   null,
+          error_fecha: null
+        })
+      ]);
+      clearInterval(window._errTimer);
+      showToast('✅ Solucionado — prenda enviada a ' + dest);
+      await cargar();
+      await cargarErrores();
+    } catch(e) {
+      showToast('❌ Error: ' + e.message);
+      btn.disabled = false; btn.textContent = '✅ Solucionado — Enviar a ' + dest;
+    }
+  }
+
 
   // ── UTILIDADES ────────────────────────────────────────────
   function mostrarCargando() {
