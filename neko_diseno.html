@@ -384,6 +384,16 @@
     if (diseñadorAsignado && areaActual === 'Diseño') tags += '<span class="ptag" style="background:#ecfdf5;border:1px solid #6ee7b7;color:#059669;font-weight:700">👤 ' + diseñadorAsignado + '</span>';
 
     // Estado badge
+    // Timer visible para prenda en proceso
+    var timerKey   = String(ordenId) + '-' + prendaIdx;
+    var timerMins  = getTiempoActivo(ordenId, prendaIdx);
+    var timerColor = timerMins === null ? '#94a3b8' : timerMins < 30 ? '#10b981' : timerMins < 60 ? '#f59e0b' : '#ef4444';
+    var timerHTML  = estado === 'en_proceso'
+      ? '<span id="timer-' + timerKey + '" style="font-size:12px;font-weight:700;color:' + timerColor + ';background:#f8fafc;border:1px solid #e2e8f0;padding:3px 10px;border-radius:20px">'
+          + (timerMins !== null ? '⏱️ ' + formatTiempo(timerMins) : '⏱️ Iniciado')
+        + '</span>'
+      : '';
+
     const estadoBadge = estado === 'pendiente'
       ? '<span class="estado-badge estado-pendiente">📥 Pendiente</span>'
       : estado === 'en_proceso'
@@ -449,7 +459,7 @@
           + '<span class="prenda-nombre">' + (prenda.tipo || 'Prenda') + '</span>'
           + '<div class="prenda-tags">' + tags + '</div>'
         + '</div>'
-        + '<div>' + estadoBadge + '</div>'
+        + '<div style="display:flex;align-items:center;gap:6px">' + estadoBadge + timerHTML + '</div>'
       + '</div>'
       + '<div class="prenda-body">'
         + notasHTML + urlHTML
@@ -490,10 +500,15 @@
       showToast(nuevoEstado === 'en_proceso' ? '⚙️ Proceso iniciado' : '✅ Prenda lista para enviar');
     }
 
-    // 2. Guardar en Supabase en background (no bloquea la UI)
+    // 2. Guardar en Supabase en background
     actualizarSubEstado(ordenId, prendaIdx, { estado: nuevoEstado }).catch(e => {
       showToast('⚠️ Error guardando: ' + e.message);
     });
+
+    // 3. Registro de tiempo — iniciar al entrar en proceso
+    if (nuevoEstado === 'en_proceso' && item) {
+      iniciarTiempo(ordenId, prendaIdx, item);
+    }
   }
 
   // ── ESTADO DISEÑO ─────────────────────────────────────────
@@ -534,6 +549,8 @@
     });
     renderTab();
     showToast('📤 Prenda enviada a ' + areaSiguiente);
+    // Finalizar tiempo de esta área
+    finalizarTiempo(ordenId, prendaIdx);
     // Guardar en Supabase en background
     actualizarSubEstado(ordenId, prendaIdx, {
       area_actual:   areaSiguiente,
@@ -674,6 +691,97 @@
   function mostrarCargando() {
     document.getElementById('container').innerHTML =
       '<div class="state-box"><div class="icon">⏳</div><p>Cargando...</p></div>';
+  }
+
+  // ── MÓDULO DE TIEMPOS ────────────────────────────────────
+  // Guarda: { ordenId-prendaIdx: { id_registro, inicio } }
+  var _tiemposActivos = {};
+  var _timerInterval  = null;
+
+  function iniciarTiempo(ordenId, prendaIdx, item) {
+    var key   = ordenId + '-' + prendaIdx;
+    var ahora = new Date();
+    _tiemposActivos[key] = { inicio: ahora, ordenId: ordenId, prendaIdx: prendaIdx, dbId: null };
+
+    // Guardar en Supabase en background
+    fetch(SB_URL + '/rest/v1/tiempos_produccion', {
+      method: 'POST',
+      headers: { ...HDR, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+      body: JSON.stringify({
+        orden_id:     ordenId,
+        numero_orden: item.ordenNum || '',
+        prenda_idx:   prendaIdx,
+        tipo_prenda:  item.prenda ? item.prenda.tipo : '',
+        area:         areaActual,
+        usuario:      sesion ? sesion.nombre : '',
+        fecha_inicio: ahora.toISOString(),
+        estado:       'EN_PROCESO'
+      })
+    }).then(function(r){ return r.json(); })
+      .then(function(data){
+        var reg = Array.isArray(data) ? data[0] : data;
+        if (reg && reg.id && _tiemposActivos[key]) {
+          _tiemposActivos[key].dbId = reg.id;
+        }
+      }).catch(function(){});
+
+    // Iniciar intervalo si no está corriendo (actualiza cada 30s)
+    if (!_timerInterval) {
+      _timerInterval = setInterval(actualizarTimers, 30000);
+    }
+    actualizarTimers(); // Primera actualización inmediata
+  }
+
+  function finalizarTiempo(ordenId, prendaIdx) {
+    var key = ordenId + '-' + prendaIdx;
+    var reg = _tiemposActivos[key];
+    if (!reg) return;
+    var ahora    = new Date();
+    var minutos  = Math.round((ahora - reg.inicio) / 60000);
+    delete _tiemposActivos[key];
+
+    // Si no hay más activos, detener intervalo
+    if (Object.keys(_tiemposActivos).length === 0 && _timerInterval) {
+      clearInterval(_timerInterval);
+      _timerInterval = null;
+    }
+
+    // Guardar fin en Supabase en background
+    if (reg.dbId) {
+      fetch(SB_URL + '/rest/v1/tiempos_produccion?id=eq.' + reg.dbId, {
+        method: 'PATCH',
+        headers: { ...HDR, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ fecha_fin: ahora.toISOString(), minutos: minutos, estado: 'COMPLETADO' })
+      }).catch(function(){});
+    }
+  }
+
+  function actualizarTimers() {
+    // Actualizar solo los badges de tiempo en pantalla sin re-renderizar todo
+    Object.keys(_tiemposActivos).forEach(function(key) {
+      var reg  = _tiemposActivos[key];
+      var mins = Math.round((new Date() - reg.inicio) / 60000);
+      var el   = document.getElementById('timer-' + key);
+      if (el) {
+        var color = mins < 30 ? '#10b981' : mins < 60 ? '#f59e0b' : '#ef4444';
+        el.textContent = '⏱️ ' + formatTiempo(mins);
+        el.style.color = color;
+      }
+    });
+  }
+
+  function formatTiempo(mins) {
+    if (mins < 60) return mins + ' min';
+    var h = Math.floor(mins / 60);
+    var m = mins % 60;
+    return h + 'h ' + (m > 0 ? m + 'm' : '');
+  }
+
+  function getTiempoActivo(ordenId, prendaIdx) {
+    var key = ordenId + '-' + prendaIdx;
+    var reg = _tiemposActivos[key];
+    if (!reg) return null;
+    return Math.round((new Date() - reg.inicio) / 60000);
   }
 
   function showToast(msg) {
