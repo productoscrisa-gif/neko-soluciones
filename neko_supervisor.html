@@ -288,16 +288,18 @@
   <!-- ══ PESTAÑA 5: MATERIALES ══ -->
   <div class="tab-content" id="tab-materiales">
     <div class="conf-wrap">
+
       <!-- Formulario nueva solicitud -->
-      <div class="card" style="margin-bottom:20px">
-        <div class="card-header">
-          <span class="card-title">🔩 Solicitar Material Consumible</span>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-md);overflow:hidden;margin-bottom:20px">
+        <div style="padding:14px 20px;background:var(--surface2);border-bottom:1px solid var(--border)">
+          <span style="font-size:14px;font-weight:800">🔩 Solicitar Material Consumible</span>
         </div>
-        <div class="card-body">
-          <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;margin-bottom:12px">
-            <div class="field">
-              <label>Material *</label>
-              <select id="mat-tipo">
+        <div style="padding:20px">
+          <!-- Fila 1: Material + Cantidad + Unidad -->
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;margin-bottom:14px">
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--text-secondary);margin-bottom:5px">Material *</div>
+              <select id="mat-tipo" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:Plus Jakarta Sans,sans-serif;background:var(--surface2);color:var(--text-primary);outline:none;appearance:none;cursor:pointer">
                 <option value="">— Seleccionar —</option>
                 <option>Botones</option>
                 <option>Hilos</option>
@@ -311,13 +313,14 @@
                 <option>Otro consumible</option>
               </select>
             </div>
-            <div class="field">
-              <label>Cantidad *</label>
-              <input type="number" id="mat-cantidad" placeholder="Ej: 100" min="1" step="1" style="font-family:JetBrains Mono,monospace">
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--text-secondary);margin-bottom:5px">Cantidad *</div>
+              <input type="number" id="mat-cantidad" placeholder="Ej: 100" min="1" step="1"
+                style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:JetBrains Mono,monospace;background:var(--surface2);outline:none;box-sizing:border-box">
             </div>
-            <div class="field">
-              <label>Unidad</label>
-              <select id="mat-unidad">
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--text-secondary);margin-bottom:5px">Unidad</div>
+              <select id="mat-unidad" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:Plus Jakarta Sans,sans-serif;background:var(--surface2);outline:none;appearance:none;cursor:pointer">
                 <option>unidades</option>
                 <option>metros</option>
                 <option>rollos</option>
@@ -326,25 +329,31 @@
               </select>
             </div>
           </div>
-          <div class="field" style="margin-bottom:14px">
-            <label>Descripción / Referencia</label>
-            <textarea id="mat-desc" rows="2" placeholder="Ej: Botones negros 4 huecos tamaño mediano, referencia #..." style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:Plus Jakarta Sans,sans-serif;outline:none;resize:vertical"></textarea>
+          <!-- Fila 2: Descripción -->
+          <div style="margin-bottom:16px">
+            <div style="font-size:12px;font-weight:700;color:var(--text-secondary);margin-bottom:5px">Descripción / Referencia</div>
+            <textarea id="mat-desc" rows="2" placeholder="Ej: Botones negros 4 huecos tamaño mediano, referencia #..."
+              style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:Plus Jakarta Sans,sans-serif;background:var(--surface2);color:var(--text-primary);outline:none;resize:vertical;box-sizing:border-box"></textarea>
           </div>
-          <button onclick="enviarSolicitudMaterial()" style="width:100%;padding:12px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 3px 12px rgba(124,58,237,.3)">
+          <!-- Botón enviar -->
+          <button onclick="enviarSolicitudMaterial()"
+            style="width:100%;padding:13px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 3px 12px rgba(124,58,237,.3)">
             📤 Enviar Solicitud al Admin
           </button>
         </div>
       </div>
+
       <!-- Lista de solicitudes -->
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">📋 Mis Solicitudes</span>
-          <button class="btn-refresh" onclick="cargarMaterialesSup()">🔄</button>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-md);overflow:hidden">
+        <div style="padding:14px 20px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:14px;font-weight:800">📋 Mis Solicitudes</span>
+          <button onclick="cargarMaterialesSup()" style="padding:5px 12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text-secondary)">🔄 Actualizar</button>
         </div>
-        <div class="card-body" id="lista-mat-sup">
+        <div style="padding:20px" id="lista-mat-sup">
           <div class="empty"><div class="icon">⏳</div><p>Cargando...</p></div>
         </div>
       </div>
+
     </div>
   </div>
 
