@@ -100,6 +100,22 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
 .modal-actions{display:flex;gap:10px;justify-content:flex-end;}
 .btn-cancel{padding:9px 16px;background:var(--surface2);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;}
 .btn-confirm-error{padding:9px 16px;background:var(--red);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:700;cursor:pointer;}
+/* SERVICIOS */
+.srv-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-md);overflow:hidden;margin-bottom:12px;}
+.srv-card.pendiente{border-left:4px solid var(--amber);}
+.srv-card.entregado{border-left:4px solid var(--green);opacity:.85;}
+.srv-header{padding:12px 16px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.srv-body{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+.srv-info{display:flex;flex-direction:column;gap:4px;}
+.srv-servicio{font-size:15px;font-weight:800;}
+.srv-meta{font-size:12px;color:var(--text-muted);}
+.srv-desc{font-size:13px;color:var(--text-secondary);margin-top:2px;}
+.srv-valor{font-family:"JetBrains Mono",monospace;font-size:20px;font-weight:800;color:var(--green);}
+.btn-entregar{padding:10px 20px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 3px 10px rgba(16,185,129,.3);}
+.btn-entregar:hover{transform:translateY(-1px);}
+.srv-tabs{display:flex;gap:4px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px;margin-bottom:16px;}
+.srv-tab{flex:1;padding:7px;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;background:transparent;color:var(--text-secondary);transition:all .2s;}
+.srv-tab.active{background:var(--teal);color:#fff;}
 #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 22px;border-radius:10px;font-size:14px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:9999;opacity:0;transition:opacity .3s;white-space:nowrap;pointer-events:none;}
 @media(max-width:650px){.stats-bar{grid-template-columns:1fr 1fr;}.guia-grid,.cliente-info{grid-template-columns:1fr;}}
 </style>
@@ -129,6 +145,7 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
   <div class="tabs">
     <button class="tab active" id="tab-btn-pendientes" onclick="mostrarTab('pendientes')">&#128230; Por Despachar</button>
     <button class="tab" id="tab-btn-despachados" onclick="mostrarTab('despachados')">&#9989; Despachados</button>
+    <button class="tab" id="tab-btn-servicios" onclick="mostrarTab('servicios')">&#9889; Servicios <span id="badge-servicios" style="display:none;background:#0d9488;color:#fff;border-radius:20px;padding:1px 7px;font-size:10px;margin-left:3px">0</span></button>
   </div>
 
   <!-- TAB POR DESPACHAR -->
@@ -160,6 +177,11 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
     </div>
   </div>
 </div>
+<!-- TAB SERVICIOS RÁPIDOS -->
+  <div class="tab-panel" id="panel-servicios">
+    <div class="state-box"><div class="icon">&#9203;</div><p>Cargando servicios...</p></div>
+  </div>
+
 <div id="toast"></div>
 
 <script>
@@ -197,8 +219,11 @@ function actualizarTodo() {
 function mostrarTab(tab) {
   document.getElementById("tab-btn-pendientes").classList.toggle("active", tab === "pendientes");
   document.getElementById("tab-btn-despachados").classList.toggle("active", tab === "despachados");
+  document.getElementById("tab-btn-servicios").classList.toggle("active", tab === "servicios");
   document.getElementById("panel-pendientes").classList.toggle("active", tab === "pendientes");
   document.getElementById("panel-despachados").classList.toggle("active", tab === "despachados");
+  document.getElementById("panel-servicios").classList.toggle("active", tab === "servicios");
+  if (tab === "servicios") cargarServicios();
 }
 
 // ── CARGAR PENDIENTES (EN_PRODUCCION con prendas en Almacén) ──
@@ -517,7 +542,122 @@ function confirmarError() {
   }).catch(function(e){alert("Error: "+e.message);});
 }
 
-function showToast(msg) {
+// ── MÓDULO SERVICIOS RÁPIDOS ─────────────────────────────
+  var srvTabActual = "pendientes";
+
+  async function cargarServicios() {
+    var el = document.getElementById("panel-servicios");
+    if (!el) return;
+    el.innerHTML = "<div class=\"state-box\"><div class=\"icon\">⏳</div><p>Cargando servicios...</p></div>";
+    try {
+      // Traer ventas de los últimos 7 días
+      var hace7 = new Date();
+      hace7.setDate(hace7.getDate() - 7);
+      var desde = hace7.toISOString();
+      var r = await fetch(SB + "/rest/v1/ventas_rapidas?fecha=gte." + desde + "&order=fecha.desc&limit=100", { headers: H });
+      var ventas = await r.json();
+      if (!Array.isArray(ventas)) ventas = [];
+
+      // Badge con pendientes
+      var pendientes = ventas.filter(function(v){ return v.estado !== "ENTREGADO"; });
+      var badge = document.getElementById("badge-servicios");
+      if (badge) {
+        badge.textContent = pendientes.length;
+        badge.style.display = pendientes.length ? "inline" : "none";
+      }
+
+      // Stats
+      var totalPend = pendientes.reduce(function(s,v){ return s + Number(v.valor); }, 0);
+      var entregados = ventas.filter(function(v){ return v.estado === "ENTREGADO"; });
+      var totalEntr  = entregados.reduce(function(s,v){ return s + Number(v.valor); }, 0);
+
+      el.innerHTML =
+        "<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px\">"
+          + "<div style=\"background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow-sm)\"><div style=\"font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase\">Pendientes de entrega</div><div style=\"font-size:22px;font-weight:800;font-family:JetBrains Mono,monospace;color:var(--amber);margin-top:4px\">" + pendientes.length + "</div></div>"
+          + "<div style=\"background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow-sm)\"><div style=\"font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase\">Entregados hoy</div><div style=\"font-size:22px;font-weight:800;font-family:JetBrains Mono,monospace;color:var(--green);margin-top:4px\">" + entregados.length + "</div></div>"
+        + "</div>"
+        + "<div class=\"srv-tabs\">"
+          + "<button class=\"srv-tab active\" id=\"srvtab-pend\" onclick=\"filtrarSrv(\'pendientes\',this)\">⏳ Por Entregar (" + pendientes.length + ")</button>"
+          + "<button class=\"srv-tab\" id=\"srvtab-entr\" onclick=\"filtrarSrv(\'entregados\',this)\">✅ Entregados (" + entregados.length + ")</button>"
+        + "</div>"
+        + "<div id=\"srv-lista\"></div>";
+
+      // Guardar para filtrar
+      window._srvPendientes  = pendientes;
+      window._srvEntregados  = entregados;
+      renderSrv(pendientes);
+
+    } catch(e) {
+      document.getElementById("panel-servicios").innerHTML = "<div class=\"state-box\"><div class=\"icon\">❌</div><p>" + e.message + "</p></div>";
+    }
+  }
+
+  function filtrarSrv(tipo, btn) {
+    document.querySelectorAll(".srv-tab").forEach(function(b){ b.classList.remove("active"); });
+    btn.classList.add("active");
+    renderSrv(tipo === "pendientes" ? (window._srvPendientes||[]) : (window._srvEntregados||[]));
+  }
+
+  function renderSrv(lista) {
+    var el = document.getElementById("srv-lista");
+    if (!el) return;
+    if (!lista.length) {
+      el.innerHTML = "<div class=\"state-box\"><div class=\"icon\">📭</div><p>Sin registros</p></div>";
+      return;
+    }
+    var iconos = {"Sublimacion":"♨️","Diseno":"🎨","Corte":"✂️","Confeccion":"🧵","DTF":"🖨️"};
+    var medioMap = {"Efectivo":"💵","NEQUI":"📱","DAVIPLATA":"📱","BANCOLOMBIA":"🏦","DAVIVIENDA":"🏦","ADDI":"💳","Transferencia":"🔄"};
+
+    el.innerHTML = lista.map(function(v) {
+      var icono  = iconos[v.servicio] || "📦";
+      var medioI = medioMap[v.medio_pago] || "💳";
+      var fecha  = new Date(v.fecha).toLocaleDateString("es-CO", {day:"2-digit",month:"short",year:"numeric"});
+      var hora   = new Date(v.fecha).toLocaleTimeString("es-CO", {hour:"2-digit",minute:"2-digit"});
+      var esEntr = v.estado === "ENTREGADO";
+      var entregadoHTML = esEntr && v.entregado_hora
+        ? "<span style=\"font-size:11px;color:var(--green);font-weight:600\">✅ Entregado " + new Date(v.entregado_hora).toLocaleTimeString("es-CO",{hour:"2-digit",minute:"2-digit"}) + " por " + (v.entregado_por||"--") + "</span>"
+        : "";
+
+      return "<div class=\"srv-card " + (esEntr ? "entregado" : "pendiente") + "\">"
+        + "<div class=\"srv-header\">"
+          + "<div>"
+            + "<div style=\"font-size:13px;font-weight:700;color:var(--teal)\">" + icono + " " + v.servicio + "</div>"
+            + "<div style=\"font-size:11px;color:var(--text-muted);margin-top:2px\">📅 " + fecha + " &nbsp;·&nbsp; 🕐 " + hora + " &nbsp;·&nbsp; 👤 " + (v.registrado_por||"--") + "</div>"
+          + "</div>"
+          + "<div style=\"display:flex;align-items:center;gap:8px\">"
+            + "<span style=\"padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:" + (esEntr?"var(--green-light)":"var(--amber-light)") + ";color:" + (esEntr?"var(--green)":"var(--amber)") + "\">" + (esEntr?"✅ Entregado":"⏳ Pendiente") + "</span>"
+          + "</div>"
+        + "</div>"
+        + "<div class=\"srv-body\">"
+          + "<div class=\"srv-info\">"
+            + "<div class=\"srv-valor\">$" + Number(v.valor).toLocaleString("es-CO") + "</div>"
+            + "<div class=\"srv-meta\">" + medioI + " " + (v.medio_pago||"--") + "</div>"
+            + (v.descripcion ? "<div class=\"srv-desc\">📝 " + v.descripcion + "</div>" : "")
+            + entregadoHTML
+          + "</div>"
+          + (!esEntr
+              ? "<button class=\"btn-entregar\" onclick=\"marcarEntregado(" + v.id + ")\">✅ Marcar Entregado</button>"
+              : "")
+        + "</div>"
+      + "</div>";
+    }).join("");
+  }
+
+  async function marcarEntregado(id) {
+    var r = await fetch(SB + "/rest/v1/ventas_rapidas?id=eq." + id, {
+      method: "PATCH",
+      headers: Object.assign({}, H, {"Content-Type":"application/json","Prefer":"return=minimal"}),
+      body: JSON.stringify({
+        estado:         "ENTREGADO",
+        entregado_por:  sesion.nombre,
+        entregado_hora: new Date().toISOString()
+      })
+    });
+    showToast("✅ Servicio marcado como entregado");
+    await cargarServicios();
+  }
+
+  function showToast(msg) {
   var t = document.getElementById("toast");
   t.textContent = msg; t.style.opacity = "1";
   clearTimeout(t._tid);
