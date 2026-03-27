@@ -389,9 +389,10 @@
     var timerMins  = getTiempoActivo(ordenId, prendaIdx);
     var timerColor = timerMins === null ? '#94a3b8' : timerMins < 30 ? '#10b981' : timerMins < 60 ? '#f59e0b' : '#ef4444';
     var timerHTML  = estado === 'en_proceso'
-      ? '<span id="timer-' + timerKey + '" style="font-size:12px;font-weight:700;color:' + timerColor + ';background:#f8fafc;border:1px solid #e2e8f0;padding:3px 10px;border-radius:20px">'
-          + (timerMins !== null ? '⏱️ ' + formatTiempo(timerMins) : '⏱️ Iniciado')
-        + '</span>'
+      ? '<div id="timer-' + timerKey + '" style="display:inline-flex;align-items:center;gap:6px;background:' + (timerMins === null ? '#f8fafc' : timerMins < 30 ? '#ecfdf5' : timerMins < 60 ? '#fffbeb' : '#fff1f2') + ';border:2px solid ' + (timerMins === null ? '#e2e8f0' : timerMins < 30 ? '#6ee7b7' : timerMins < 60 ? '#fcd34d' : '#fca5a5') + ';padding:6px 14px;border-radius:20px;margin-top:6px">'
+          + '<span style="font-size:18px">⏱️</span>'
+          + '<span style="font-size:16px;font-weight:800;font-family:JetBrains Mono,monospace;color:' + timerColor + '">' + (timerMins !== null ? formatTiempo(timerMins) : 'Iniciado') + '</span>'
+        + '</div>'
       : '';
 
     const estadoBadge = estado === 'pendiente'
@@ -459,10 +460,11 @@
           + '<span class="prenda-nombre">' + (prenda.tipo || 'Prenda') + '</span>'
           + '<div class="prenda-tags">' + tags + '</div>'
         + '</div>'
-        + '<div style="display:flex;align-items:center;gap:6px">' + estadoBadge + timerHTML + '</div>'
+        + '<div>' + estadoBadge + '</div>'
       + '</div>'
       + '<div class="prenda-body">'
         + notasHTML + urlHTML
+        + timerHTML
         + '<div class="flujo-wrap">' + flujoHTML + '</div>'
         + errorHTML
         + '<div class="prenda-actions">' + accionesHTML + '</div>'
@@ -757,15 +759,21 @@
   }
 
   function actualizarTimers() {
-    // Actualizar solo los badges de tiempo en pantalla sin re-renderizar todo
     Object.keys(_tiemposActivos).forEach(function(key) {
-      var reg  = _tiemposActivos[key];
-      var mins = Math.round((new Date() - reg.inicio) / 60000);
-      var el   = document.getElementById('timer-' + key);
-      if (el) {
-        var color = mins < 30 ? '#10b981' : mins < 60 ? '#f59e0b' : '#ef4444';
-        el.textContent = '⏱️ ' + formatTiempo(mins);
-        el.style.color = color;
+      var reg   = _tiemposActivos[key];
+      var mins  = Math.round((new Date() - reg.inicio) / 60000);
+      var el    = document.getElementById('timer-' + key);
+      if (!el) return;
+      var color     = mins < 30 ? '#10b981' : mins < 60 ? '#f59e0b' : '#ef4444';
+      var bgColor   = mins < 30 ? '#ecfdf5' : mins < 60 ? '#fffbeb' : '#fff1f2';
+      var bdColor   = mins < 30 ? '#6ee7b7' : mins < 60 ? '#fcd34d' : '#fca5a5';
+      el.style.background   = bgColor;
+      el.style.borderColor  = bdColor;
+      // Actualizar solo el span del tiempo dentro del div
+      var span = el.querySelector('span:last-child');
+      if (span) {
+        span.textContent  = formatTiempo(mins);
+        span.style.color  = color;
       }
     });
   }
