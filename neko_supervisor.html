@@ -383,7 +383,10 @@
       document.getElementById('ntab-' + t).classList.toggle('active', t === tab);
       document.getElementById('tab-' + t).classList.toggle('active', t === tab);
     });
-    if (tab === 'compras') cargarCompras();
+    if (tab === 'compras')  cargarCompras();
+    if (tab === 'analisis') {
+      cargarCatalogoInsumos(); // Asegurar catálogo fresco al entrar a análisis
+    }
   }
 
   // ════════════════════════════════════════════════════════
@@ -1061,10 +1064,17 @@
       catalogoInsumos = await r.json();
       if (!Array.isArray(catalogoInsumos)) catalogoInsumos = [];
     } catch(e) { catalogoInsumos = []; }
+    // Re-renderizar análisis para mostrar selectores con datos
+    if (navActual === 'analisis') filtrarAnalisis();
   }
 
   function buildSelectorInsumoSup(oid, idx, p) {
-    if (!catalogoInsumos.length) return '';
+    // Siempre mostrar el selector - si no hay catálogo mostrar mensaje
+    if (!catalogoInsumos.length) {
+      return '<div style="margin-top:10px;padding:10px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;font-size:12px;color:#92400e">'
+        + '🧵 <strong>Insumos:</strong> No hay insumos en el catálogo. Créalos desde Admin → 🧵 Insumos.'
+        + '</div>';
+    }
     const insumoActual = p.insumo_id || '';
     const cantActual   = p.cantidad_insumo || '';
 
