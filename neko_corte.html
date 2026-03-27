@@ -667,10 +667,18 @@
     const data = await r.json();
     let sub = data[0]?.sub_estados || [];
     const i = sub.findIndex(s => s.prenda_idx === prendaIdx);
-    // Limpiar nulls del objeto cambios
-    const cambiosLimpios = Object.fromEntries(Object.entries(cambios).filter(([_, v]) => v !== null && v !== undefined));
-    if (i >= 0) sub[i] = { ...sub[i], ...cambiosLimpios, prenda_idx: prendaIdx };
-    else sub.push({ prenda_idx: prendaIdx, area_actual: areaActual, ...cambiosLimpios });
+
+    // Separar nulls (borrar) de valores reales (actualizar)
+    let base = i >= 0 ? { ...sub[i] } : { prenda_idx: prendaIdx, area_actual: areaActual };
+    Object.entries(cambios).forEach(([k, v]) => {
+      if (v === null) delete base[k];   // null = eliminar la propiedad
+      else if (v !== undefined) base[k] = v;  // valor real = actualizar
+    });
+    base.prenda_idx = prendaIdx;
+
+    if (i >= 0) sub[i] = base;
+    else sub.push(base);
+
     await fetch(SB_URL + '/rest/v1/ordenes?id=eq.' + ordenId, {
       method: 'PATCH',
       headers: { ...HDR, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
