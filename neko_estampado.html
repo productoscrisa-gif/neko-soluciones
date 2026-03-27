@@ -361,6 +361,8 @@
     const entregaF  = entrega ? new Date(entrega + 'T12:00:00').toLocaleDateString('es-CO', { day:'2-digit', month:'short' }) : '—';
     const idxActual = ruta.indexOf(areaActual);
     const areaSig   = idxActual >= 0 && idxActual < ruta.length - 1 ? ruta[idxActual + 1] : null;
+    const oid       = String(ordenId);
+    const pidx      = String(prendaIdx);
 
     // Flujo visual
     const flujoHTML = ruta.map((area, i) => {
@@ -371,77 +373,98 @@
         + '</div>';
     }).join('');
 
-    // Botones según estado y área
-    let acciones = '';
-    if (estado === 'pendiente') {
-      acciones = '<button class="btn-action btn-iniciar" onclick="cambiarEstado(\'' + ordenId + '\',' + prendaIdx + ',\'en_proceso\')">⚙️ Iniciar Proceso</button>';
-    }
+    // Tags
+    var tags = '';
+    if (prenda.horma) tags += '<span class="ptag ptag-gray">' + prenda.horma + '</span>';
+    if (prenda.talla) tags += '<span class="ptag ptag-gray">' + prenda.talla + '</span>';
+    tags += '<span class="ptag ptag-blue">x' + (prenda.cantidad || 1) + '</span>';
+    if (esPrioritario) tags += '<span class="ptag ptag-red">🔴 Prioritario</span>';
+    tags += '<span class="ptag ptag-amber">🚚 ' + entregaF + '</span>';
+    if (marca) tags += '<span class="ptag ptag-purple">🏷️ ' + marca + '</span>';
+    if (diseñadorAsignado && areaActual === 'Diseño') tags += '<span class="ptag" style="background:#ecfdf5;border:1px solid #6ee7b7;color:#059669;font-weight:700">👤 ' + diseñadorAsignado + '</span>';
 
-    if (estado === 'en_proceso') {
-      if (areaActual === 'Diseño') {
-        const bD = 'diseno-btn' + (estadoDiseno === 'diseno' ? ' active-diseno' : '');
-        const bI = 'diseno-btn' + (estadoDiseno === 'imprimiendo' ? ' active-imprimiendo' : '');
-        const bP = 'diseno-btn' + (estadoDiseno === 'impreso' ? ' active-impreso' : '');
-        const enviarBtn = estadoDiseno === 'impreso' && areaSig
-          ? '<button class="btn-action btn-enviar" onclick="enviarSiguiente(\'' + ordenId + '\',' + prendaIdx + ',\'' + areaSig + '\')">📤 Enviar a ' + areaSig + '</button>'
-          : '';
-        acciones = '<div style="width:100%">'
-          + '<div class="diseno-estados"><div class="diseno-label">Estado del Arte</div><div class="diseno-btns">'
-          + '<button class="' + bD + '" onclick="cambiarEstadoDiseno(\'' + ordenId + '\',' + prendaIdx + ',\'diseno\')">🎨 En Diseño</button>'
-          + '<button class="' + bI + '" onclick="cambiarEstadoDiseno(\'' + ordenId + '\',' + prendaIdx + ',\'imprimiendo\')">🖨️ Imprimiendo</button>'
-          + '<button class="' + bP + '" onclick="cambiarEstadoDiseno(\'' + ordenId + '\',' + prendaIdx + ',\'impreso\')">✅ Impreso</button>'
-          + '</div></div>'
-          + '<div class="prenda-actions">' + enviarBtn
-          + '<button class="btn-action btn-error" onclick="abrirError(\'' + ordenId + '\',' + prendaIdx + ')">🔴 Reportar Error</button>'
-          + '</div></div>';
-      } else {
-        acciones = '<button class="btn-action btn-listo" onclick="cambiarEstado(\'' + ordenId + '\',' + prendaIdx + ',\'lista\')">✅ Marcar Lista</button>'
-          + '<button class="btn-action btn-error" onclick="abrirError(\'' + ordenId + '\',' + prendaIdx + ')">🔴 Reportar Error</button>';
-      }
-    }
-
-    if (estado === 'lista') {
-      acciones = areaSig
-        ? '<button class="btn-action btn-enviar" onclick="enviarSiguiente(\'' + ordenId + '\',' + prendaIdx + ',\'' + areaSig + '\')">📤 Enviar a ' + areaSig + '</button>'
-          + '<button class="btn-action btn-error" onclick="abrirError(\'' + ordenId + '\',' + prendaIdx + ')">🔴 Reportar Error</button>'
-        : '<span style="font-size:13px;font-weight:700;color:var(--green)">✅ Lista — En Almacén</span>';
-    }
-
-    const estadoBadge = {
-      pendiente:  '<span class="estado-badge estado-pendiente">📥 Pendiente</span>',
-      en_proceso: '<span class="estado-badge estado-proceso">⚙️ En Proceso</span>',
-      lista:      '<span class="estado-badge estado-lista">✅ Lista</span>',
-    }[estado] || '';
+    // Estado badge
+    const estadoBadge = estado === 'pendiente'
+      ? '<span class="estado-badge estado-pendiente">📥 Pendiente</span>'
+      : estado === 'en_proceso'
+        ? '<span class="estado-badge estado-proceso">⚙️ En Proceso</span>'
+        : '<span class="estado-badge estado-lista">✅ Lista</span>';
 
     const cardClass = estado === 'en_proceso' ? 'en-proceso' : estado === 'lista' ? 'lista' : esPrioritario ? 'priority' : '';
+
+    // Notas, medidas, url y error
+    var notasHTML = "";
+    if (prenda.notas && prenda.notas.trim()) {
+      notasHTML += "<div class=\"prenda-notas\">📝 " + prenda.notas + "</div>";
+    }
+    if (prenda.medidas && prenda.medidas.trim()) {
+      notasHTML += "<div class=\"prenda-notas\" style=\"background:#f0fdf4;border-left-color:#10b981;color:#065f46\">📐 Medidas: " + prenda.medidas + "</div>";
+    }
+    var urlHTML = "";
+    if (prenda.url && prenda.url.trim()) {
+      urlHTML = "<div class=\"prenda-url\">🔗 <a href=\"" + prenda.url + "\" target=\"_blank\">Ver referencia del diseño</a></div>";
+    }
+    var errorHTML = "";
+    if (tieneError) {
+      errorHTML = "<div class=\"error-alert\"><div class=\"error-alert-title\">⚠️ Error reportado por: " + errorAreaReporta + "</div><div class=\"error-alert-desc\">" + errorDesc + "</div></div>";
+    }
+    // Acciones — usando data attributes para evitar problemas de escape
+    var accionesHTML = '';
+    if (estado === 'pendiente') {
+      accionesHTML = '<button class="btn-action btn-iniciar" data-oid="' + oid + '" data-idx="' + pidx + '" data-est="en_proceso" onclick="pBtnCambiar(this)">⚙️ Iniciar Proceso</button>';
+    }
+    if (estado === 'en_proceso') {
+      if (areaActual === 'Diseño') {
+        const bD = 'diseno-btn' + (estadoDiseno === 'diseno'      ? ' active-diseno'      : '');
+        const bI = 'diseno-btn' + (estadoDiseno === 'imprimiendo' ? ' active-imprimiendo' : '');
+        const bP = 'diseno-btn' + (estadoDiseno === 'impreso'     ? ' active-impreso'     : '');
+        const enviarBtn = estadoDiseno === 'impreso' && areaSig
+          ? '<button class="btn-action btn-enviar" data-oid="' + oid + '" data-idx="' + pidx + '" data-area="' + areaSig + '" onclick="pBtnEnviar(this)">📤 Enviar a ' + areaSig + '</button>'
+          : '';
+        accionesHTML = '<div style="width:100%">'
+          + '<div class="diseno-estados"><div class="diseno-label">Estado del Arte</div><div class="diseno-btns">'
+          + '<button class="' + bD + '" data-oid="' + oid + '" data-idx="' + pidx + '" data-dis="diseno"      onclick="pBtnDiseno(this)">🎨 En Diseño</button>'
+          + '<button class="' + bI + '" data-oid="' + oid + '" data-idx="' + pidx + '" data-dis="imprimiendo" onclick="pBtnDiseno(this)">🖨️ Imprimiendo</button>'
+          + '<button class="' + bP + '" data-oid="' + oid + '" data-idx="' + pidx + '" data-dis="impreso"     onclick="pBtnDiseno(this)">✅ Impreso</button>'
+          + '</div></div>'
+          + '<div class="prenda-actions">' + enviarBtn
+          + '<button class="btn-action btn-error" data-oid="' + oid + '" data-idx="' + pidx + '" onclick="pBtnError(this)">🔴 Reportar Error</button>'
+          + '</div></div>';
+      } else {
+        accionesHTML = '<button class="btn-action btn-listo" data-oid="' + oid + '" data-idx="' + pidx + '" data-est="lista" onclick="pBtnCambiar(this)">✅ Marcar Lista</button>'
+          + '<button class="btn-action btn-error" data-oid="' + oid + '" data-idx="' + pidx + '" onclick="pBtnError(this)">🔴 Reportar Error</button>';
+      }
+    }
+    if (estado === 'lista') {
+      accionesHTML = areaSig
+        ? '<button class="btn-action btn-enviar" data-oid="' + oid + '" data-idx="' + pidx + '" data-area="' + areaSig + '" onclick="pBtnEnviar(this)">📤 Enviar a ' + areaSig + '</button>'
+          + '<button class="btn-action btn-error" data-oid="' + oid + '" data-idx="' + pidx + '" onclick="pBtnError(this)">🔴 Reportar Error</button>'
+        : '<span style="font-size:13px;font-weight:700;color:var(--green)">✅ Lista — En Almacén</span>';
+    }
 
     return '<div class="prenda-card ' + cardClass + '">'
       + '<div class="prenda-header">'
         + '<div class="prenda-header-left">'
           + '<span class="prenda-orden">' + ordenNum + '</span>'
           + '<span class="prenda-nombre">' + (prenda.tipo || 'Prenda') + '</span>'
-          + '<div class="prenda-tags">'
-            + (prenda.horma ? '<span class="ptag ptag-gray">' + prenda.horma + '</span>' : '')
-            + (prenda.talla ? '<span class="ptag ptag-gray">' + prenda.talla + '</span>' : '')
-            + '<span class="ptag ptag-blue">x' + (prenda.cantidad || 1) + '</span>'
-            + (esPrioritario ? '<span class="ptag ptag-red">🔴 Prioritario</span>' : '')
-            + '<span class="ptag ptag-amber">🚚 ' + entregaF + '</span>'
-            + (marca ? '<span class="ptag ptag-purple">🏷️ ' + marca + '</span>' : '')
-            + (diseñadorAsignado && areaActual === 'Diseño' ? '<span class="ptag" style="background:#ecfdf5;border:1px solid #6ee7b7;color:#059669;font-weight:700">👤 ' + diseñadorAsignado + '</span>' : '')
-          + '</div>'
+          + '<div class="prenda-tags">' + tags + '</div>'
         + '</div>'
         + '<div>' + estadoBadge + '</div>'
       + '</div>'
       + '<div class="prenda-body">'
-        + (prenda.notas ? '<div class="prenda-notas">📝 ' + prenda.notas + '</div>' : '')
-        + (prenda.medidas ? '<div class="prenda-notas" style="background:#f0fdf4;border-left-color:#10b981;color:#065f46">📐 Medidas: ' + prenda.medidas + '</div>' : '')
-        + (prenda.url   ? '<div class="prenda-url">🔗 <a href="' + prenda.url + '" target="_blank">Ver referencia del diseño</a></div>' : '')
+        + notasHTML + urlHTML
         + '<div class="flujo-wrap">' + flujoHTML + '</div>'
-        + (tieneError ? '<div class="error-alert"><div class="error-alert-title">⚠️ Error reportado por: ' + errorAreaReporta + '</div><div class="error-alert-desc">' + errorDesc + '</div></div>' : '')
-        + '<div class="prenda-actions">' + acciones + '</div>'
+        + errorHTML
+        + '<div class="prenda-actions">' + accionesHTML + '</div>'
       + '</div>'
     + '</div>';
   }
+
+  // Funciones auxiliares via data-attributes
+  function pBtnCambiar(btn) { cambiarEstado(btn.getAttribute('data-oid'), parseInt(btn.getAttribute('data-idx')), btn.getAttribute('data-est')); }
+  function pBtnEnviar(btn)  { enviarSiguiente(btn.getAttribute('data-oid'), parseInt(btn.getAttribute('data-idx')), btn.getAttribute('data-area')); }
+  function pBtnDiseno(btn)  { cambiarEstadoDiseno(btn.getAttribute('data-oid'), parseInt(btn.getAttribute('data-idx')), btn.getAttribute('data-dis')); }
+  function pBtnError(btn)   { abrirError(btn.getAttribute('data-oid'), parseInt(btn.getAttribute('data-idx'))); }
 
   // ── CAMBIAR ESTADO (Actualización local optimista) ────────
   async function cambiarEstado(ordenId, prendaIdx, nuevoEstado) {
