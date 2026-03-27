@@ -184,6 +184,16 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
         <label>Descripción / Observaciones</label>
         <textarea id="nv-desc" placeholder="Ej: Arreglo de cremallera, diseño logo empresa, 10 tapabocas sublimados..."></textarea>
       </div>
+      <!-- Opción de enviar a producción -->
+      <div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:8px;padding:12px 14px;margin-bottom:12px">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+          <input type="checkbox" id="nv-produccion" style="width:16px;height:16px;accent-color:#2563eb">
+          <span>
+            <strong style="font-size:13px;color:#1d4ed8">🏭 Enviar a área de producción</strong><br>
+            <span style="font-size:11px;color:#3b82f6">El servicio aparecerá en el área correspondiente para hacerlo</span>
+          </span>
+        </label>
+      </div>
       <button class="btn-registrar" id="btn-registrar" onclick="registrarVenta()">
         💵 Registrar Servicio
       </button>
@@ -397,20 +407,26 @@ function getBadgePago(medio) {
 
 // ── REGISTRAR VENTA ───────────────────────────────────────
 async function registrarVenta() {
-  var servicio = document.getElementById("nv-servicio").value;
-  var valor    = parseFloat(document.getElementById("nv-valor").value) || 0;
-  var pago     = document.getElementById("nv-pago").value;
-  var desc     = document.getElementById("nv-desc").value.trim();
+  var servicio    = document.getElementById("nv-servicio").value;
+  var valor       = parseFloat(document.getElementById("nv-valor").value) || 0;
+  var pago        = document.getElementById("nv-pago").value;
+  var desc        = document.getElementById("nv-desc").value.trim();
+  var aProduccion = document.getElementById("nv-produccion") ? document.getElementById("nv-produccion").checked : false;
 
   if (!servicio) { alert("Selecciona el tipo de servicio."); return; }
   if (!valor || valor <= 0) { alert("Ingresa el valor del servicio."); return; }
   if (!pago) { alert("Selecciona el medio de pago."); return; }
 
+  // Mapeo servicio → área de producción y ruta simple
+  var SERVICIO_AREA = { "Sublimacion":"Sublimación","Diseno":"Diseño","Corte":"Corte","Confeccion":"Confección","DTF":"Estampado" };
+  var areaDestino = SERVICIO_AREA[servicio];
+
   var btn = document.getElementById("btn-registrar");
   btn.disabled = true; btn.textContent = "⏳ Registrando...";
 
   try {
-    var r = await fetch(SB + "/rest/v1/ventas_rapidas", {
+    // 1. Registrar en caja
+    var rCaja = await fetch(SB + "/rest/v1/ventas_rapidas", {
       method: "POST",
       headers: Object.assign({}, H, {"Content-Type":"application/json","Prefer":"return=representation"}),
       body: JSON.stringify({
@@ -423,24 +439,64 @@ async function registrarVenta() {
         estado:         "REGISTRADO"
       })
     });
-    var nuevaVenta = await r.json();
+    var nuevaVenta = await rCaja.json();
     if (Array.isArray(nuevaVenta)) nuevaVenta = nuevaVenta[0];
     ventasTurno.unshift(nuevaVenta);
 
+    // 2. Si se marcó enviar a producción, crear mini-orden urgente
+    if (aProduccion && areaDestino) {
+      var numeroOrden = "SRV-" + Date.now().toString().slice(-6);
+      var subEstado = [{ prenda_idx: 0, area_actual: areaDestino, estado: "pendiente" }];
+      var producto  = [{ tipo: servicio, cantidad: 1, notas: desc || "Servicio rápido de caja", ruta: "Servicio" }];
+
+      await fetch(SB + "/rest/v1/ordenes", {
+        method: "POST",
+        headers: Object.assign({}, H, {"Content-Type":"application/json","Prefer":"return=minimal"}),
+        body: JSON.stringify({
+          numero_orden:   numeroOrden,
+          nombre_cliente: "SERVICIO RÁPIDO — " + sesion.nombre,
+          telefono:       "0000000000",
+          direccion:      "Fabrica",
+          barrio:         "Fabrica",
+          ciudad:         "Medellín",
+          departamento:   "Antioquia",
+          vendedora:      sesion.nombre,
+          canal:          "Caja",
+          marca:          "",
+          tipo_envio:     "Recoge en Fábrica",
+          fecha_entrega:  new Date().toISOString().split("T")[0],
+          es_prioritario: true,
+          nivel_urgencia: "urgente",
+          productos:      producto,
+          sub_estados:    subEstado,
+          estado:         "EN_PRODUCCION",
+          valor_total:    valor,
+          monto_pagado:   valor,
+          saldo_pendiente:0,
+          tipo_pago:      "Pago Completo",
+          medio_pago:     pago,
+          obs_analisis:   "Servicio rápido desde caja — Turno " + turnoActual.id
+        })
+      });
+      showToast("✅ Registrado + enviado a " + areaDestino + " como URGENTE");
+    } else {
+      showToast("✅ Servicio registrado — $" + Number(valor).toLocaleString("es-CO"));
+    }
+
     // Limpiar formulario
     document.getElementById("nv-servicio").value = "";
-    document.getElementById("nv-valor").value = "";
-    document.getElementById("nv-pago").value = "";
-    document.getElementById("nv-desc").value = "";
-
+    document.getElementById("nv-valor").value    = "";
+    document.getElementById("nv-pago").value     = "";
+    document.getElementById("nv-desc").value     = "";
+    if (document.getElementById("nv-produccion")) document.getElementById("nv-produccion").checked = false;
     mostrarCajaAbierta();
-    showToast("✅ Servicio registrado — $" + Number(valor).toLocaleString("es-CO"));
   } catch(e) {
     alert("Error: " + e.message);
   } finally {
     btn.disabled = false; btn.textContent = "💵 Registrar Servicio";
   }
 }
+
 
 // ── ELIMINAR VENTA ────────────────────────────────────────
 async function eliminarVenta(id) {

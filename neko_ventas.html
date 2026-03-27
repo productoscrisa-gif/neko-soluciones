@@ -465,13 +465,15 @@
   <div class="grid-2">
     <div class="field">
       <label>Canal de Venta <span class="req">*</span></label>
-      <select id="canal">
+      <select id="canal" onchange="onCanalChange()">
         <option value="">— Seleccionar —</option>
         <option>Facebook</option>
         <option>Instagram</option>
         <option>WhatsApp</option>
         <option>Web</option>
         <option>Presencial</option>
+        <option>Mercado Libre</option>
+        <option>Rappi</option>
       </select>
     </div>
     <div class="field">
@@ -530,15 +532,26 @@
       <div class="toggle-row" id="toggleRow" onclick="togglePriority()">
         <div class="toggle-info">
           <span class="toggle-label">🚨 Prioridad Máxima</span>
-          <span class="toggle-desc">Despacho &lt; 3 días · Mercado Libre</span>
+          <span class="toggle-desc">Pedido prioritario sobre otros</span>
         </div>
         <div class="toggle-switch" id="toggleSwitch"></div>
+      </div>
+      <!-- Toggle URGENTE -->
+      <div class="toggle-row" id="urgenteRow" onclick="toggleUrgente()" style="margin-top:8px;border-color:#ea580c">
+        <div class="toggle-info">
+          <span class="toggle-label" style="color:#ea580c">🚨 URGENTE</span>
+          <span class="toggle-desc">Máxima prioridad — Por encima de todo (orden olvidada/emergencia)</span>
+        </div>
+        <div class="toggle-switch" id="urgenteSwitch" style="--toggle-color:#ea580c"></div>
       </div>
     </div>
   </div>
 
   <div class="priority-badge" id="priorityBadge">
     🔴 PEDIDO PRIORITARIO — Área de Análisis
+  </div>
+  <div class="priority-badge" id="urgenteBadge" style="display:none;background:linear-gradient(135deg,#ea580c,#c2410c);animation:pulse 1.5s infinite">
+    🚨 URGENTE — Máxima Prioridad sobre todos los pedidos
   </div>
 </div>
 
@@ -702,17 +715,44 @@
   let productos = [];
   let productCounter = 0;
   let isPriority = false;
+  let isUrgente  = false;
 
   // ── TOGGLE PRIORIDAD ────────────────────────────────────
   function togglePriority() {
     isPriority = !isPriority;
+    if (isPriority) isUrgente = false; // solo uno activo a la vez
+    actualizarBadgesPrioridad();
+  }
+
+  function toggleUrgente() {
+    isUrgente = !isUrgente;
+    if (isUrgente) isPriority = false;
+    actualizarBadgesPrioridad();
+  }
+
+  function actualizarBadgesPrioridad() {
     const row    = document.getElementById('toggleRow');
     const badge  = document.getElementById('priorityBadge');
+    const urgBadge = document.getElementById('urgenteBadge');
     const card   = document.getElementById('bloque2');
+    row.classList.toggle('active', isPriority || isUrgente);
+    badge.style.display    = isPriority ? 'block' : 'none';
+    urgBadge.style.display = isUrgente  ? 'block' : 'none';
+    card.classList.toggle('priority-active', isPriority || isUrgente);
+  }
 
-    row.classList.toggle('active', isPriority);
-    badge.classList.toggle('visible', isPriority);
-    card.classList.toggle('priority-active', isPriority);
+  // Auto-detectar Mercado Libre al cambiar canal
+  function onCanalChange() {
+    const canal = document.getElementById('canal').value;
+    if (canal === 'Mercado Libre') {
+      // ML = urgente automático + fecha entrega en 3 días
+      isUrgente  = true;
+      isPriority = false;
+      const d = new Date(); d.setDate(d.getDate() + 3);
+      document.getElementById('fecha_entrega').value = d.toISOString().split('T')[0];
+      actualizarBadgesPrioridad();
+      showToast('🛒 Mercado Libre detectado — urgente activado · Entrega en 3 días');
+    }
   }
 
   // ── CALCULAR SALDO ──────────────────────────────────────
@@ -1085,7 +1125,8 @@
         ciudad:          document.getElementById('ciudad').value,
         departamento:    document.getElementById('departamento').value,
         fecha_entrega:   document.getElementById('fecha_entrega').value,
-        es_prioritario:  isPriority,
+        es_prioritario:  isPriority || isUrgente,
+        nivel_urgencia:  isUrgente ? 'urgente' : (document.getElementById('canal').value === 'Mercado Libre' ? 'marketplace' : (isPriority ? 'prioritario' : 'normal')),
         productos:       recolectarProductos(),
         valor_total:     total,
         tipo_pago:       document.getElementById('tipo_pago').value,

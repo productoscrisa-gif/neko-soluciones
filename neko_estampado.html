@@ -32,6 +32,9 @@
   .prendas-list{display:flex;flex-direction:column;gap:12px;}
   .prenda-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-md);overflow:hidden;transition:box-shadow .2s;}
   .prenda-card.priority{border-left:4px solid var(--red);}
+  .urgente{border-left:4px solid #ea580c;border-top:2px solid #ea580c;animation:pulseCard 1.5s infinite;}
+  .marketplace{border-left:4px solid #ca8a04;border-top:2px solid #ca8a04;}
+  @keyframes pulseCard{0%,100%{box-shadow:0 4px 16px rgba(234,88,12,.15);}50%{box-shadow:0 4px 24px rgba(234,88,12,.4);}}
   .prenda-card.en-proceso{border-left:4px solid var(--amber);}
   .prenda-card.lista{border-left:4px solid var(--green);}
   .prenda-header{padding:14px 18px;display:flex;align-items:flex-start;justify-content:space-between;background:var(--surface2);border-bottom:1px solid var(--border);}
@@ -216,7 +219,7 @@
       // Y filtrar por estado EN_PRODUCCION directamente en el servidor
       const url = SB_URL + '/rest/v1/ordenes'
         + '?estado=eq.EN_PRODUCCION'
-        + '&select=id,numero_orden,productos,sub_estados,marca,es_prioritario,fecha_entrega'
+        + '&select=id,numero_orden,productos,sub_estados,marca,es_prioritario,fecha_entrega,nivel_urgencia,canal'
         + '&order=es_prioritario.desc,fecha_creacion.asc';
 
       const r = await fetch(url, { headers: HDR });
@@ -254,6 +257,8 @@
             ruta:         RUTAS[p.ruta] || [],
             marca:        orden.marca || '',
             esPrioritario: orden.es_prioritario,
+            nivelUrgencia: orden.nivel_urgencia || 'normal',
+            canal:         orden.canal || '',
             entrega:      orden.fecha_entrega,
             estado:       se.estado || 'pendiente',
             estadoDiseno: se.estado_diseno || 'diseno',
@@ -280,8 +285,13 @@
       };
 
       // Guardar todas separadas para paginación
-      window._pendientes = pendientes;
-      window._proceso    = enProceso;
+      // Ordenar: urgente → marketplace → prioritario → normal
+      function sortUrgencia(arr) {
+        const ord = { urgente: 0, marketplace: 1, prioritario: 2, normal: 3 };
+        return arr.sort((a,b) => (ord[a.nivelUrgencia]||3) - (ord[b.nivelUrgencia]||3));
+      }
+      window._pendientes = sortUrgencia(pendientes);
+      window._proceso    = sortUrgencia(enProceso);
       window._listas     = listas;
 
       actualizarStats();
@@ -388,7 +398,9 @@
     if (prenda.horma) tags += '<span class="ptag ptag-gray">' + prenda.horma + '</span>';
     if (prenda.talla) tags += '<span class="ptag ptag-gray">' + prenda.talla + '</span>';
     tags += '<span class="ptag ptag-blue">x' + (prenda.cantidad || 1) + '</span>';
-    if (esPrioritario) tags += '<span class="ptag ptag-red">🔴 Prioritario</span>';
+    if (item.nivelUrgencia === 'urgente')    tags += '<span class="ptag" style="background:#fff7ed;border:1.5px solid #ea580c;color:#ea580c;font-weight:800">🚨 URGENTE</span>';
+    if (item.nivelUrgencia === 'marketplace') tags += '<span class="ptag" style="background:#fef9c3;border:1.5px solid #ca8a04;color:#854d0e;font-weight:800">🛒 ML</span>';
+    if (esPrioritario && item.nivelUrgencia !== 'urgente' && item.nivelUrgencia !== 'marketplace') tags += '<span class="ptag ptag-red">🔴 Prioritario</span>';
     tags += '<span class="ptag ptag-amber">🚚 ' + entregaF + '</span>';
     if (marca) tags += '<span class="ptag ptag-purple">🏷️ ' + marca + '</span>';
     if (diseñadorAsignado && areaActual === 'Diseño') tags += '<span class="ptag" style="background:#ecfdf5;border:1px solid #6ee7b7;color:#059669;font-weight:700">👤 ' + diseñadorAsignado + '</span>';
@@ -411,7 +423,7 @@
         ? '<span class="estado-badge estado-proceso">⚙️ En Proceso</span>'
         : '<span class="estado-badge estado-lista">✅ Lista</span>';
 
-    const cardClass = estado === 'en_proceso' ? 'en-proceso' : estado === 'lista' ? 'lista' : esPrioritario ? 'priority' : '';
+    const cardClass = estado === 'en_proceso' ? 'en-proceso' : estado === 'lista' ? 'lista' : item.nivelUrgencia === 'urgente' ? 'urgente' : item.nivelUrgencia === 'marketplace' ? 'marketplace' : esPrioritario ? 'priority' : '';
 
     // Notas, medidas, url y error
     var notasHTML = "";
