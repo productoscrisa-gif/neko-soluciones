@@ -569,6 +569,8 @@
     const el = document.getElementById('lista-analisis');
     if (!f.length) { el.innerHTML = '<div class="empty"><div class="icon">📭</div><p>No hay órdenes en análisis</p></div>'; return; }
     el.innerHTML = f.map(o => renderOrdenAnalisis(o)).join('');
+    // Inicializar estado de botones
+    f.forEach(o => verificarListoEnviar(o.id));
   }
 
   function renderOrdenAnalisis(o) {
@@ -600,9 +602,36 @@
         + '<textarea class="obs-field" id="obs-a-' + o.id + '" placeholder="Notas de análisis..."></textarea>'
         + '<div class="order-actions-a">'
           + '<button class="btn-enviar-a" id="btn-a-' + o.id + '" onclick="enviarAnalisis(\'' + o.id + '\')">🏭 Confirmar Rutas y Enviar a Producción</button>'
+        + '<div id="val-a-' + o.id + '" style="font-size:12px;color:var(--red);margin-top:6px;font-weight:600"></div>'
         + '</div>'
       + '</div>'
     + '</div>';
+  }
+
+  // Verificar si la orden está lista para enviar y actualizar botón
+  function verificarListoEnviar(oid) {
+    const orden = ordenesAnalisis.find(o => String(o.id) === String(oid));
+    if (!orden) return;
+    const prods = orden.productos || [];
+    const rutasConDiseno = ['Ruta 1','Ruta 3','Ruta 4','Ruta 5','Ruta 6'];
+    const errores = [];
+
+    prods.forEach((p, i) => {
+      const label = (p.tipo || 'Prenda ' + (i+1));
+      if (!p.ruta) errores.push('❌ ' + label + ': sin ruta');
+      else if (rutasConDiseno.includes(p.ruta) && !p.diseñador)
+        errores.push('❌ ' + label + ': sin diseñador');
+      if (catalogoInsumos.length > 0 && !p.insumo_id)
+        errores.push('⚠️ ' + label + ': sin insumo/tela');
+    });
+
+    const btn = document.getElementById('btn-a-' + oid);
+    const val = document.getElementById('val-a-' + oid);
+    const hayErrores = errores.some(e => e.startsWith('❌'));
+
+    if (btn) btn.disabled = hayErrores;
+    if (btn) btn.style.opacity = hayErrores ? '0.5' : '1';
+    if (val) val.innerHTML = errores.length ? errores.join('<br>') : '';
   }
 
   function renderPrendaAnalisis(oid, idx, p) {
@@ -689,6 +718,7 @@
       if (fillEl) fillEl.style.width = pct + '%';
       if (textEl) textEl.textContent = con + '/' + prods.length + ' rutas';
     }
+    verificarListoEnviar(oid);
   }
 
   function inicializarSubEstados(prods) {
@@ -929,6 +959,7 @@
       orden.productos[idx].diseñador = usuario;
     }
     showToast(usuario ? '🎨 Diseñador asignado: ' + usuario : '🎨 Asignación removida');
+    verificarListoEnviar(oid);
   }
 
   // ════════════════════════════════════════════════════════
@@ -1222,6 +1253,7 @@
       orden.productos[idx].unidad_insumo = insumo ? insumo.unidad : '';
     }
     showToast(insumo ? '🧵 Insumo asignado: ' + insumo.nombre : '🧵 Insumo removido');
+    verificarListoEnviar(oid);
   }
 
   function asignarCantInsumo(inp) {

@@ -1357,7 +1357,22 @@
   }
 
   function fmtCOP(n) {
-    return Number(n).toLocaleString('es-CO');
+    const num = Number(n) || 0;
+    if (num >= 1000000) {
+      // Millones: $2.5M
+      const m = (num / 1000000).toFixed(num % 1000000 === 0 ? 0 : 1);
+      return m.replace('.', ',') + 'M';
+    }
+    if (num >= 1000) {
+      // Miles: $150.000
+      return num.toLocaleString('es-CO');
+    }
+    return num.toLocaleString('es-CO');
+  }
+
+  function fmtCOPFull(n) {
+    // Formato completo con símbolo: $ 1.250.000
+    return '$ ' + Number(n).toLocaleString('es-CO');
   }
 
   function showToast(msg){
