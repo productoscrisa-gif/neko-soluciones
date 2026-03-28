@@ -1263,13 +1263,13 @@
       url = `${SUPABASE_URL}/rest/v1/ordenes?numero_orden=ilike.*${encodeURIComponent(num)}*&order=fecha_creacion.desc&limit=10&select=*`;
     } else if (/^[0-9+\s]{7,}$/.test(num.replace(/\s/g,''))) {
       // Teléfono
-      url = `${SUPABASE_URL}/rest/v1/ordenes?telefono=ilike.*${encodeURIComponent(num.replace(/\s/g,''))}*&order=fecha_creacion.desc&limit=5`;
+      url = `${SUPABASE_URL}/rest/v1/ordenes?telefono=ilike.*${encodeURIComponent(num.replace(/\s/g,''))}*&order=fecha_creacion.desc&limit=5&select=*`;
     } else if (num.startsWith('@')) {
       // Usuario red social con @
-      url = `${SUPABASE_URL}/rest/v1/ordenes?usuario_red=ilike.*${encodeURIComponent(num.replace('@',''))}*&order=fecha_creacion.desc&limit=5`;
+      url = `${SUPABASE_URL}/rest/v1/ordenes?usuario_red=ilike.*${encodeURIComponent(num.replace('@',''))}*&order=fecha_creacion.desc&limit=5&select=*`;
     } else {
       // Nombre o usuario red social sin @
-      url = `${SUPABASE_URL}/rest/v1/ordenes?or=(nombre_cliente.ilike.*${encodeURIComponent(num)}*,usuario_red.ilike.*${encodeURIComponent(num)}*)&order=fecha_creacion.desc&limit=5`;
+      url = `${SUPABASE_URL}/rest/v1/ordenes?or=(nombre_cliente.ilike.*${encodeURIComponent(num)}*,usuario_red.ilike.*${encodeURIComponent(num)}*)&order=fecha_creacion.desc&limit=5&select=*`;
     }
 
     try {
