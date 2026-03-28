@@ -369,10 +369,28 @@
     const orden = ordenes.find(o=>String(o.id)===String(oid));
     if (!orden) return;
     const prods   = orden.productos || [];
+    // Validar ruta
     const sinRuta = prods.filter(p=>!p.ruta);
     if (sinRuta.length) {
       alert(`⚠️ Faltan ${sinRuta.length} prenda(s) sin ruta asignada.\nAsigna una ruta a cada prenda antes de continuar.`);
       return;
+    }
+
+    // Validar diseñador en rutas que lo requieren
+    const rutasConDiseno = ['Ruta 1','Ruta 3','Ruta 4','Ruta 5','Ruta 6'];
+    const sinDisenador = prods.filter(p => rutasConDiseno.includes(p.ruta) && !p.diseñador);
+    if (sinDisenador.length) {
+      alert(`⚠️ ${sinDisenador.length} prenda(s) requieren diseñador asignado.\n(${sinDisenador.map(p=>p.tipo||'Prenda').join(', ')})\nAsigna el diseñador antes de enviar.`);
+      return;
+    }
+
+    // Validar insumo (advertencia, no bloquea si no hay catálogo)
+    if (diseñadores.length > 0) {
+      const sinInsumo = prods.filter(p => !p.insumo_id);
+      if (sinInsumo.length) {
+        const ok = confirm(`⚠️ ${sinInsumo.length} prenda(s) sin insumo/tela asignada.\n¿Enviar de todos modos?`);
+        if (!ok) return;
+      }
     }
     const btn = document.getElementById('btn-'+oid);
     btn.disabled = true; btn.textContent = '⏳ Enviando...';

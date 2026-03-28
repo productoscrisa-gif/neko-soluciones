@@ -110,6 +110,7 @@
     <button class="nav-tab" id="ntab-compras-admin" onclick="cambiarTab('compras-admin')" style="color:#0891b2">🛍️ Compras <span id="badge-compras-admin" style="display:none;background:#0891b2;color:#fff;border-radius:20px;padding:1px 6px;font-size:10px;margin-left:3px">0</span></button>
     <button class="nav-tab" onclick="cambiarTab('tiempos')" style="color:#7c3aed">⏱️ Tiempos</button>
     <button class="nav-tab" onclick="cambiarTab('insumos')" style="color:#c2410c">🧵 Insumos <span id="badge-insumos" style="display:none;background:#c2410c;color:#fff;border-radius:20px;padding:1px 6px;font-size:10px;margin-left:3px">0</span></button>
+    <button class="nav-tab" onclick="cambiarTab('caja-admin')" style="color:#0d9488">💵 Caja</button>
   </div>
 
   <!-- DASHBOARD -->
@@ -370,6 +371,36 @@
     </div>
   </div>
 
+
+  <!-- CAJA -->
+  <div class="tab-content" id="tab-caja-admin">
+    <!-- Filtros -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <select id="caja-periodo" onchange="cargarCajaAdmin()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none">
+        <option value="7">Últimos 7 días</option>
+        <option value="30">Últimos 30 días</option>
+        <option value="1">Hoy</option>
+        <option value="90">Últimos 3 meses</option>
+      </select>
+      <button onclick="cargarCajaAdmin()" style="padding:8px 16px;background:var(--teal-light);color:var(--teal);border:1px solid var(--teal-mid);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">🔄 Actualizar</button>
+    </div>
+
+    <!-- Stats principales -->
+    <div id="caja-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px"></div>
+
+    <!-- Comparativo + Desglose -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <div id="caja-servicios" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px"></div>
+      <div id="caja-medios" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px"></div>
+    </div>
+
+    <!-- Comparativo diario -->
+    <div id="caja-diario" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:20px"></div>
+
+    <!-- Historial de turnos -->
+    <div id="caja-turnos" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px"></div>
+  </div>
+
 <div id="toast"></div>
 
 <script>
@@ -397,7 +428,7 @@
   function cambiarTab(tab){
     tabActiva=tab;
     document.querySelectorAll('.nav-tab').forEach((t,i)=>{
-      t.classList.toggle('active',['dashboard','ordenes','usuarios','errores','compras-admin','tiempos','insumos'][i]===tab);
+      t.classList.toggle('active',['dashboard','ordenes','usuarios','errores','compras-admin','tiempos','insumos','caja-admin'][i]===tab);
     });
     document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
     document.getElementById('tab-'+tab).classList.add('active');
@@ -405,6 +436,7 @@
     if(tab==='compras-admin') cargarComprasAdmin();
     if(tab==='tiempos') cargarTiempos();
     if(tab==='insumos') cargarInsumos();
+    if(tab==='caja-admin') cargarCajaAdmin();
   }
 
   // ── ERRORES ADMIN ─────────────────────────────────────────
@@ -1140,6 +1172,184 @@
     } catch(e) {
       alert("Error: " + e.message);
     }
+  }
+
+  // ══ REPORTE DE CAJA ADMIN ═══════════════════════════════
+  async function cargarCajaAdmin() {
+    const dias  = parseInt(document.getElementById('caja-periodo')?.value || '7');
+    const desde = new Date();
+    desde.setDate(desde.getDate() - dias);
+    const desdeISO = desde.toISOString();
+
+    // Mostrar loading
+    ['caja-stats','caja-servicios','caja-medios','caja-diario','caja-turnos'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = '<p style="color:var(--text-muted);font-size:13px;padding:10px">⏳ Cargando...</p>';
+    });
+
+    try {
+      // Consultas paralelas — solo columnas necesarias
+      const [rVentas, rTurnos] = await Promise.all([
+        fetch(SB_URL + '/rest/v1/ventas_rapidas?fecha=gte.' + desdeISO
+          + '&select=fecha,servicio,valor,medio_pago,registrado_por,turno_id'
+          + '&order=fecha.desc', { headers: HDR }),
+        fetch(SB_URL + '/rest/v1/caja_turnos?apertura_hora=gte.' + desdeISO
+          + '&select=id,fecha,apertura_hora,apertura_monto,apertura_por,cierre_hora,cierre_monto_real,cierre_por,estado'
+          + '&order=apertura_hora.desc&limit=50', { headers: HDR })
+      ]);
+
+      const ventas = await rVentas.json();
+      const turnos = await rTurnos.json();
+      const vs = Array.isArray(ventas) ? ventas : [];
+      const ts = Array.isArray(turnos) ? turnos : [];
+
+      // ── STATS PRINCIPALES ──────────────────────────────
+      const totalRecaudado = vs.reduce((s,v) => s + Number(v.valor||0), 0);
+      const totalEfectivo  = vs.filter(v => v.medio_pago === 'Efectivo').reduce((s,v) => s + Number(v.valor||0), 0);
+      const totalDigital   = totalRecaudado - totalEfectivo;
+      const totalServicios = vs.length;
+
+      // Comparar con período anterior
+      const ante = new Date(desde);
+      ante.setDate(ante.getDate() - dias);
+      const anteISO = ante.toISOString();
+      const rAnte = await fetch(SB_URL + '/rest/v1/ventas_rapidas?fecha=gte.' + anteISO
+        + '&fecha=lt.' + desdeISO + '&select=valor', { headers: HDR });
+      const ante_data = await rAnte.json();
+      const totalAnte = Array.isArray(ante_data) ? ante_data.reduce((s,v) => s + Number(v.valor||0), 0) : 0;
+      const varPct = totalAnte > 0 ? Math.round(((totalRecaudado - totalAnte) / totalAnte) * 100) : null;
+      const varHTML = varPct !== null
+        ? '<span style="font-size:12px;font-weight:700;color:' + (varPct >= 0 ? 'var(--green)' : 'var(--red)') + '">'
+            + (varPct >= 0 ? '▲' : '▼') + ' ' + Math.abs(varPct) + '% vs período anterior</span>'
+        : '';
+
+      document.getElementById('caja-stats').innerHTML =
+        renderStatCard('Total Recaudado', '$' + fmtCOP(totalRecaudado), 'var(--teal)', varHTML) +
+        renderStatCard('N° Servicios', totalServicios, 'var(--blue)', '') +
+        renderStatCard('💵 Efectivo', '$' + fmtCOP(totalEfectivo), 'var(--green)', '') +
+        renderStatCard('💳 Digital', '$' + fmtCOP(totalDigital), 'var(--purple)', '');
+
+      // ── DESGLOSE POR SERVICIO ──────────────────────────
+      const porServicio = {};
+      vs.forEach(v => {
+        if (!porServicio[v.servicio]) porServicio[v.servicio] = { count: 0, total: 0 };
+        porServicio[v.servicio].count++;
+        porServicio[v.servicio].total += Number(v.valor||0);
+      });
+      const iconoSrv = {"Sublimacion":"♨️","Diseno":"🎨","Corte":"✂️","Confeccion":"🧵","DTF":"🖨️"};
+      document.getElementById('caja-servicios').innerHTML =
+        '<div style="font-size:13px;font-weight:800;margin-bottom:14px">📊 Por Servicio</div>'
+        + Object.entries(porServicio).sort((a,b)=>b[1].total-a[1].total).map(([srv, d]) => {
+            const pct = Math.round((d.total / totalRecaudado) * 100) || 0;
+            return '<div style="margin-bottom:12px">'
+              + '<div style="display:flex;justify-content:space-between;margin-bottom:4px">'
+                + '<span style="font-size:13px;font-weight:600">' + (iconoSrv[srv]||'📦') + ' ' + srv + ' <span style="color:var(--text-muted);font-size:11px">(' + d.count + ' serv.)</span></span>'
+                + '<span style="font-size:13px;font-weight:800;font-family:JetBrains Mono,monospace;color:var(--teal)">$' + fmtCOP(d.total) + '</span>'
+              + '</div>'
+              + '<div style="background:#e2e8f0;border-radius:4px;height:6px">'
+                + '<div style="background:var(--teal);border-radius:4px;height:6px;width:' + pct + '%"></div>'
+              + '</div>'
+            + '</div>';
+          }).join('');
+
+      // ── DESGLOSE POR MEDIO DE PAGO ─────────────────────
+      const porMedio = {};
+      vs.forEach(v => {
+        const m = v.medio_pago || 'Otro';
+        if (!porMedio[m]) porMedio[m] = { count: 0, total: 0 };
+        porMedio[m].count++;
+        porMedio[m].total += Number(v.valor||0);
+      });
+      const colorMedio = {"Efectivo":"var(--green)","NEQUI":"var(--purple)","DAVIPLATA":"var(--blue)","BANCOLOMBIA":"var(--blue)","Transferencia":"var(--amber)"};
+      document.getElementById('caja-medios').innerHTML =
+        '<div style="font-size:13px;font-weight:800;margin-bottom:14px">💳 Por Medio de Pago</div>'
+        + Object.entries(porMedio).sort((a,b)=>b[1].total-a[1].total).map(([med, d]) => {
+            const pct   = Math.round((d.total / totalRecaudado) * 100) || 0;
+            const color = colorMedio[med] || 'var(--text-muted)';
+            return '<div style="margin-bottom:12px">'
+              + '<div style="display:flex;justify-content:space-between;margin-bottom:4px">'
+                + '<span style="font-size:13px;font-weight:600">' + med + ' <span style="color:var(--text-muted);font-size:11px">(' + pct + '%)</span></span>'
+                + '<span style="font-size:13px;font-weight:800;font-family:JetBrains Mono,monospace;color:' + color + '">$' + fmtCOP(d.total) + '</span>'
+              + '</div>'
+              + '<div style="background:#e2e8f0;border-radius:4px;height:6px">'
+                + '<div style="background:' + color + ';border-radius:4px;height:6px;width:' + pct + '%"></div>'
+              + '</div>'
+            + '</div>';
+          }).join('');
+
+      // ── COMPARATIVO DIARIO ─────────────────────────────
+      const porDia = {};
+      vs.forEach(v => {
+        const dia = v.fecha ? v.fecha.split('T')[0] : 'Sin fecha';
+        if (!porDia[dia]) porDia[dia] = { total: 0, count: 0 };
+        porDia[dia].total += Number(v.valor||0);
+        porDia[dia].count++;
+      });
+      const diasOrden = Object.keys(porDia).sort().reverse();
+      const maxDia    = Math.max(...Object.values(porDia).map(d => d.total)) || 1;
+      document.getElementById('caja-diario').innerHTML =
+        '<div style="font-size:13px;font-weight:800;margin-bottom:14px">📅 Recaudado por Día</div>'
+        + '<div style="display:flex;flex-direction:column;gap:8px">'
+        + diasOrden.map(dia => {
+            const d    = porDia[dia];
+            const pct  = Math.round((d.total / maxDia) * 100);
+            const fec  = new Date(dia + 'T12:00:00').toLocaleDateString('es-CO', {weekday:'short',day:'2-digit',month:'short'});
+            return '<div style="display:flex;align-items:center;gap:10px">'
+              + '<span style="font-size:12px;color:var(--text-secondary);min-width:90px">' + fec + '</span>'
+              + '<div style="flex:1;background:#e2e8f0;border-radius:4px;height:10px">'
+                + '<div style="background:var(--teal);border-radius:4px;height:10px;width:' + pct + '%;transition:width .4s"></div>'
+              + '</div>'
+              + '<span style="font-size:12px;font-weight:800;font-family:JetBrains Mono,monospace;color:var(--teal);min-width:80px;text-align:right">$' + fmtCOP(d.total) + '</span>'
+              + '<span style="font-size:11px;color:var(--text-muted);min-width:30px">' + d.count + ' sv</span>'
+            + '</div>';
+          }).join('')
+        + '</div>';
+
+      // ── HISTORIAL DE TURNOS ────────────────────────────
+      document.getElementById('caja-turnos').innerHTML =
+        '<div style="font-size:13px;font-weight:800;margin-bottom:14px">🕐 Historial de Turnos</div>'
+        + (ts.length === 0 ? '<p style="color:var(--text-muted)">Sin turnos en este período</p>' :
+        '<table style="width:100%;border-collapse:collapse;font-size:13px">'
+        + '<thead><tr>'
+          + ['Fecha','Apertura','Cierre','Abre','Cierra','Estado','Contado'].map(h =>
+              '<th style="background:var(--surface2);padding:8px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border)">' + h + '</th>'
+            ).join('')
+        + '</tr></thead><tbody>'
+        + ts.map(t => {
+            const fec   = t.apertura_hora ? new Date(t.apertura_hora).toLocaleDateString('es-CO',{day:'2-digit',month:'short'}) : '--';
+            const horaA = t.apertura_hora ? new Date(t.apertura_hora).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'}) : '--';
+            const horaC = t.cierre_hora   ? new Date(t.cierre_hora).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'}) : '--';
+            const estado = t.estado === 'ABIERTO'
+              ? '<span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;background:var(--green-light);color:var(--green)">🟢 Abierto</span>'
+              : '<span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;background:var(--surface2);color:var(--text-muted)">✅ Cerrado</span>';
+            return '<tr style="border-bottom:1px solid var(--border)">'
+              + '<td style="padding:9px 10px;font-weight:600">' + fec + '</td>'
+              + '<td style="padding:9px 10px;font-family:JetBrains Mono,monospace;font-size:12px">$' + fmtCOP(t.apertura_monto||0) + '</td>'
+              + '<td style="padding:9px 10px;font-family:JetBrains Mono,monospace;font-size:12px">' + (t.cierre_monto_real ? '$' + fmtCOP(t.cierre_monto_real) : '--') + '</td>'
+              + '<td style="padding:9px 10px;font-size:12px;color:var(--text-secondary)">' + (t.apertura_por||'--') + ' ' + horaA + '</td>'
+              + '<td style="padding:9px 10px;font-size:12px;color:var(--text-secondary)">' + (t.cierre_por ? t.cierre_por + ' ' + horaC : '--') + '</td>'
+              + '<td style="padding:9px 10px">' + estado + '</td>'
+              + '<td style="padding:9px 10px;font-family:JetBrains Mono,monospace;font-weight:700;color:' + (t.cierre_monto_real ? 'var(--green)' : 'var(--text-muted)') + '">'
+                + (t.cierre_monto_real ? '$' + fmtCOP(t.cierre_monto_real) : '--') + '</td>'
+            + '</tr>';
+          }).join('')
+        + '</tbody></table>');
+
+    } catch(e) {
+      document.getElementById('caja-stats').innerHTML = '<p style="color:var(--red)">Error: ' + e.message + '</p>';
+    }
+  }
+
+  function renderStatCard(label, value, color, extra) {
+    return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow-sm)">'
+      + '<div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">' + label + '</div>'
+      + '<div style="font-size:22px;font-weight:800;font-family:JetBrains Mono,monospace;color:' + color + ';margin-top:4px">' + value + '</div>'
+      + (extra ? '<div style="margin-top:4px">' + extra + '</div>' : '')
+    + '</div>';
+  }
+
+  function fmtCOP(n) {
+    return Number(n).toLocaleString('es-CO');
   }
 
   function showToast(msg){

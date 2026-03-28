@@ -705,8 +705,31 @@
     const orden   = ordenesAnalisis.find(o => String(o.id) === String(oid));
     if (!orden) return;
     const prods   = orden.productos || [];
+    // Validar que TODAS las prendas tengan ruta
     const sinRuta = prods.filter(p => !p.ruta);
-    if (sinRuta.length) { alert('⚠️ Faltan ' + sinRuta.length + ' prenda(s) sin ruta.'); return; }
+    if (sinRuta.length) {
+      alert('⚠️ Faltan ' + sinRuta.length + ' prenda(s) sin ruta asignada.\nAsigna la ruta a todas las prendas antes de enviar.');
+      return;
+    }
+
+    // Validar diseñador en rutas que lo requieren (1, 3, 4, 5, 6)
+    const rutasConDiseno = ['Ruta 1','Ruta 3','Ruta 4','Ruta 5','Ruta 6'];
+    const sinDisenador = prods.filter(p => rutasConDiseno.includes(p.ruta) && !p.diseñador);
+    if (sinDisenador.length) {
+      alert('⚠️ ' + sinDisenador.length + ' prenda(s) requieren diseñador asignado.\n('
+        + sinDisenador.map(p => p.tipo || 'Prenda').join(', ') + ')\nAsigna el diseñador antes de enviar.');
+      return;
+    }
+
+    // Validar insumo (si el catálogo tiene insumos, es obligatorio)
+    if (catalogoInsumos.length > 0) {
+      const sinInsumo = prods.filter(p => !p.insumo_id);
+      if (sinInsumo.length) {
+        const confirmar = confirm('⚠️ ' + sinInsumo.length + ' prenda(s) no tienen insumo/tela asignada.\n('
+          + sinInsumo.map(p => p.tipo || 'Prenda').join(', ') + ')\n\n¿Deseas enviar de todos modos sin insumo?');
+        if (!confirmar) return;
+      }
+    }
 
     const btn = document.getElementById('btn-a-' + oid);
     btn.disabled = true; btn.textContent = '⏳ Enviando...';

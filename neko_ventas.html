@@ -1051,10 +1051,20 @@
     });
     const data = await res.json();
     if (!data || data.length === 0) return '0001';
-    const ultimo = data[0].numero_orden || '0000';
-    // Extraer solo dígitos y sumar 1, siempre 4 dígitos con ceros a la izquierda
+    const ultimo = data[0].numero_orden || '00001';
+    // Ignorar órdenes SRV- (caja) y usar solo las numéricas normales
+    if (ultimo.startsWith('SRV-')) {
+      // Buscar la última orden numérica
+      const res2 = await fetch(`${SUPABASE_URL}/rest/v1/ordenes?select=numero_orden&numero_orden=not.like.SRV-*&order=id.desc&limit=1`, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+      });
+      const data2 = await res2.json();
+      const ult2  = (data2 && data2[0]) ? data2[0].numero_orden : '00001';
+      const num2  = parseInt(ult2.replace(/\D/g,'') || '0') + 1;
+      return String(num2).padStart(5, '0');
+    }
     const num = parseInt(ultimo.replace(/\D/g,'') || '0') + 1;
-    return String(num).padStart(4, '0');
+    return String(num).padStart(5, '0');
   }
 
   async function guardarEnSupabase(orden) {
