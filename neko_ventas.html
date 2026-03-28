@@ -202,6 +202,11 @@
   }
   .toggle-row:hover { border-color: var(--border-focus); background: var(--blue-light); }
   .toggle-row.active { border-color: var(--red-border); background: var(--red-light); }
+  .toggle-row.active .toggle-switch { background: #ef4444; }
+  .toggle-row.active .toggle-switch::after { transform: translateX(20px); }
+  .toggle-row.active-urgente { border-color: #ea580c; background: #fff7ed; }
+  .toggle-row.active-urgente .toggle-switch { background: #ea580c; }
+  .toggle-row.active-urgente .toggle-switch::after { transform: translateX(20px); }
   .toggle-info { display: flex; flex-direction: column; gap: 2px; }
   .toggle-label { font-size: 14px; font-weight: 600; color: var(--text-primary); }
   .toggle-desc { font-size: 12px; color: var(--text-secondary); }
@@ -731,11 +736,26 @@
   }
 
   function actualizarBadgesPrioridad() {
-    const row    = document.getElementById('toggleRow');
-    const badge  = document.getElementById('priorityBadge');
-    const urgBadge = document.getElementById('urgenteBadge');
-    const card   = document.getElementById('bloque2');
-    row.classList.toggle('active', isPriority || isUrgente);
+    const rowPri  = document.getElementById('toggleRow');
+    const rowUrg  = document.getElementById('urgenteRow');
+    const swPri   = document.getElementById('toggleSwitch');
+    const swUrg   = document.getElementById('urgenteSwitch');
+    const badge   = document.getElementById('priorityBadge');
+    const urgBadge= document.getElementById('urgenteBadge');
+    const card    = document.getElementById('bloque2');
+
+    // Toggle PRIORITARIO — rojo
+    rowPri.classList.toggle('active', isPriority);
+    if (swPri) {
+      swPri.style.background = isPriority ? '#ef4444' : '';
+    }
+
+    // Toggle URGENTE — naranja (clase separada)
+    rowUrg.classList.toggle('active-urgente', isUrgente);
+    if (swUrg) {
+      swUrg.style.background = isUrgente ? '#ea580c' : '';
+    }
+
     badge.style.display    = isPriority ? 'block' : 'none';
     urgBadge.style.display = isUrgente  ? 'block' : 'none';
     card.classList.toggle('priority-active', isPriority || isUrgente);
