@@ -601,14 +601,7 @@
         + '<div class="section-title-a">📝 Observaciones</div>'
         + '<textarea class="obs-field" id="obs-a-' + o.id + '" placeholder="Notas de análisis..."></textarea>'
         + '<div class="order-actions-a">'
-          + '<button class="btn-enviar-a" id="btn-a-' + o.id + '" '
-          + 'data-oid="' + o.id + '" '
-          + 'onclick="enviarAnalisis(this.getAttribute(\"data-oid\"))" '
-          + 'disabled '
-          + 'style="opacity:0.45;cursor:not-allowed;background:#94a3b8;box-shadow:none">'
-          + '🏭 Confirmar Rutas y Enviar a Producción'
-          + '</button>'
-        + '<div id="val-a-' + o.id + '" style="font-size:12px;color:var(--red);margin-top:6px;font-weight:600"></div>'
+          + '<button class="btn-enviar-a" id="btn-a-' + o.id + '" data-oid="' + o.id + '" disabled style="opacity:0.45;cursor:not-allowed;background:#94a3b8;box-shadow:none">🏭 Confirmar Rutas y Enviar a Producción</button>'     + '<div id="val-a-' + o.id + '" style="font-size:12px;color:var(--red);margin-top:6px;font-weight:600"></div>'
         + '</div>'
       + '</div>'
     + '</div>';
@@ -638,11 +631,17 @@
     const hayErrores   = erroresFinal.length > 0;
 
     if (btn) {
-      btn.disabled     = hayErrores;
+      btn.disabled          = hayErrores;
       btn.style.opacity     = hayErrores ? '0.45' : '1';
       btn.style.cursor      = hayErrores ? 'not-allowed' : 'pointer';
       btn.style.background  = hayErrores ? '#94a3b8' : '';
       btn.style.boxShadow   = hayErrores ? 'none' : '';
+      // Asignar onclick solo cuando está habilitado
+      if (!hayErrores) {
+        btn.onclick = function() { enviarAnalisis(this.getAttribute('data-oid')); };
+      } else {
+        btn.onclick = null;
+      }
     }
     if (val) val.innerHTML = erroresFinal.length
       ? '<div style="margin-top:6px">' + erroresFinal.map(e =>
