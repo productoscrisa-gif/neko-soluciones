@@ -1291,90 +1291,133 @@
     }
   }
 
-  async function aprobarArte(oid) {
-    if (!oid) { alert('Error: no se encontró el ID de la orden.'); return; }
+  // Función central de aprobación — usa event para obtener el oid de forma segura
+  async function manejarAprobacion(event) {
+    event.preventDefault();
+    // Subir hasta encontrar el botón con data-oid aunque se haga click en texto hijo
+    let btn = event.target;
+    while (btn && !btn.getAttribute('data-oid')) {
+      btn = btn.parentElement;
+    }
+    if (!btn) { alert('Error: no se encontró el botón.'); return; }
 
-    // Deshabilitar botones del bloque
+    const oid    = btn.getAttribute('data-oid');
+    const accion = btn.getAttribute('data-accion');
+
+    if (!oid || oid === 'undefined' || oid === 'null') {
+      alert('Error: ID de orden inválido: ' + oid);
+      return;
+    }
+
+    if (accion === 'aprobar') {
+      await aprobarArte(oid);
+    } else if (accion === 'rechazar') {
+      await rechazarArte(oid);
+    }
+  }
+
+  async function aprobarArte(oid) {
+    if (!oid) { alert('Error: oid vacío'); return; }
+
     const bloque = document.getElementById('aprob-' + oid);
     if (bloque) bloque.querySelectorAll('button').forEach(b => { b.disabled = true; });
 
+    const url  = SUPABASE_URL + '/rest/v1/ordenes?id=eq.' + oid;
+    const body = {
+      aprobacion_estado:     'APROBADO',
+      aprobacion_por:        (sesionVentas && sesionVentas.nombre) ? sesionVentas.nombre : 'Vendedora',
+      aprobacion_fecha:      new Date().toISOString(),
+      aprobacion_comentario: null
+    };
+
     try {
-      const resp = await fetch(SUPABASE_URL + '/rest/v1/ordenes?id=eq.' + oid, {
+      const resp = await fetch(url, {
         method: 'PATCH',
         headers: {
           'apikey':        SUPABASE_KEY,
           'Authorization': 'Bearer ' + SUPABASE_KEY,
           'Content-Type':  'application/json',
-          'Prefer':        'return=minimal'
+          'Prefer':        'return=representation'
         },
-        body: JSON.stringify({
-          aprobacion_estado:     'APROBADO',
-          aprobacion_por:        (sesionVentas && sesionVentas.nombre) ? sesionVentas.nombre : 'Vendedora',
-          aprobacion_fecha:      new Date().toISOString(),
-          aprobacion_comentario: null
-        })
+        body: JSON.stringify(body)
       });
 
+      const txt = await resp.text();
+
       if (!resp.ok) {
-        const err = await resp.text();
-        throw new Error('HTTP ' + resp.status + ': ' + err);
+        alert('❌ Supabase error ' + resp.status + ':\n' + txt + '\n\nOID: ' + oid);
+        if (bloque) bloque.querySelectorAll('button').forEach(b => { b.disabled = false; });
+        return;
       }
 
+      // OK — actualizar UI y recargar
       showToast('✅ Arte aprobado — El diseñador puede imprimir');
-      // Recargar búsqueda para mostrar estado actualizado
-      setTimeout(buscarSeguimiento, 500);
+      if (bloque) {
+        bloque.style.background = '#dcfce7';
+        bloque.style.border     = '2px solid #86efac';
+        bloque.innerHTML = '<div style="font-size:14px;font-weight:800;color:#16a34a">✅ Arte Aprobado por el Cliente</div>'
+          + '<div style="font-size:12px;color:#15803d;margin-top:4px">El diseñador ya puede proceder a imprimir</div>';
+      }
+      setTimeout(buscarSeguimiento, 800);
 
     } catch(e) {
-      alert('❌ Error al guardar aprobación: ' + e.message);
-      const bloqueErr = document.getElementById('aprob-' + oid);
-      if (bloqueErr) bloqueErr.querySelectorAll('button').forEach(b => { b.disabled = false; });
+      alert('❌ Error de red: ' + e.message);
+      if (bloque) bloque.querySelectorAll('button').forEach(b => { b.disabled = false; });
     }
   }
 
 
   async function rechazarArte(oid) {
-    if (!oid) { alert('Error: no se encontró el ID de la orden.'); return; }
+    if (!oid) { alert('Error: oid vacío'); return; }
 
     const comentario = prompt('Escribe el motivo del rechazo para el diseñador:');
     if (comentario === null) return;
-    if (!comentario.trim()) {
-      alert('Debes escribir el motivo del rechazo.');
-      return;
-    }
+    if (!comentario.trim()) { alert('Debes escribir el motivo del rechazo.'); return; }
 
     const bloque = document.getElementById('aprob-' + oid);
     if (bloque) bloque.querySelectorAll('button').forEach(b => { b.disabled = true; });
 
+    const url  = SUPABASE_URL + '/rest/v1/ordenes?id=eq.' + oid;
+    const body = {
+      aprobacion_estado:     'RECHAZADO',
+      aprobacion_por:        (sesionVentas && sesionVentas.nombre) ? sesionVentas.nombre : 'Vendedora',
+      aprobacion_fecha:      new Date().toISOString(),
+      aprobacion_comentario: comentario.trim(),
+      aprobacion_url:        null
+    };
+
     try {
-      const resp = await fetch(SUPABASE_URL + '/rest/v1/ordenes?id=eq.' + oid, {
+      const resp = await fetch(url, {
         method: 'PATCH',
         headers: {
           'apikey':        SUPABASE_KEY,
           'Authorization': 'Bearer ' + SUPABASE_KEY,
           'Content-Type':  'application/json',
-          'Prefer':        'return=minimal'
+          'Prefer':        'return=representation'
         },
-        body: JSON.stringify({
-          aprobacion_estado:     'RECHAZADO',
-          aprobacion_por:        (sesionVentas && sesionVentas.nombre) ? sesionVentas.nombre : 'Vendedora',
-          aprobacion_fecha:      new Date().toISOString(),
-          aprobacion_comentario: comentario.trim(),
-          aprobacion_url:        null
-        })
+        body: JSON.stringify(body)
       });
 
+      const txt = await resp.text();
+
       if (!resp.ok) {
-        const err = await resp.text();
-        throw new Error('HTTP ' + resp.status + ': ' + err);
+        alert('❌ Supabase error ' + resp.status + ':\n' + txt + '\n\nOID: ' + oid);
+        if (bloque) bloque.querySelectorAll('button').forEach(b => { b.disabled = false; });
+        return;
       }
 
       showToast('❌ Arte rechazado — El diseñador recibirá el comentario');
-      setTimeout(buscarSeguimiento, 500);
+      if (bloque) {
+        bloque.style.background = '#fff1f2';
+        bloque.style.border     = '2px solid #fca5a5';
+        bloque.innerHTML = '<div style="font-size:14px;font-weight:800;color:#dc2626">❌ Arte Rechazado</div>'
+          + '<div style="font-size:12px;color:#92400e;background:#fff7ed;padding:8px;border-radius:6px;margin-top:6px">💬 ' + comentario.trim() + '</div>';
+      }
+      setTimeout(buscarSeguimiento, 800);
 
     } catch(e) {
-      alert('❌ Error al guardar rechazo: ' + e.message);
-      const bloqueErr = document.getElementById('aprob-' + oid);
-      if (bloqueErr) bloqueErr.querySelectorAll('button').forEach(b => { b.disabled = false; });
+      alert('❌ Error de red: ' + e.message);
+      if (bloque) bloque.querySelectorAll('button').forEach(b => { b.disabled = false; });
     }
   }
 
@@ -1405,10 +1448,10 @@
             )
           + '<div style="font-size:12px;font-weight:600;color:#6d28d9;margin-bottom:8px">¿Qué respondió el cliente?</div>'
           + '<div style="display:flex;gap:8px;flex-wrap:wrap">'
-            + '<button onclick="aprobarArte(\'' + o.id + '\')" '
+            + '<button data-oid="' + o.id + '" data-accion="aprobar" onclick="manejarAprobacion(event)" '
               + 'style="flex:1;min-width:140px;padding:10px 16px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 3px 10px rgba(16,185,129,.3)">'
               + '✅ Cliente Aprobó</button>'
-            + '<button onclick="rechazarArte(\'' + o.id + '\')" '
+            + '<button data-oid="' + o.id + '" data-accion="rechazar" onclick="manejarAprobacion(event)" '
               + 'style="flex:1;min-width:140px;padding:10px 16px;background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 3px 10px rgba(239,68,68,.3)">'
               + '❌ Cliente Rechazó</button>'
           + '</div>'
