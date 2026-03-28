@@ -125,10 +125,18 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
   </div>
   <div class="topbar-right">
     <span class="user-info" id="user-info"></span>
-    <button class="btn-sm" onclick="window.location.href='neko_ventas.html'" style="color:#2563eb;border-color:#bfdbfe">← Volver a Ventas</button>
     <button class="btn-sm" onclick="cargar()">🔄 Actualizar</button>
     <button class="btn-sm" onclick="cerrarSesion()">🚪 Salir</button>
   </div>
+</div>
+
+<div style="background:#eff6ff;border-bottom:2px solid #bfdbfe;padding:10px 24px">
+  <button onclick="window.location.href='neko_ventas.html'"
+    style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:#fff;color:#2563eb;border:2px solid #2563eb;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(37,99,235,.15);transition:all .2s"
+    onmouseover="this.style.background='#2563eb';this.style.color='#fff'"
+    onmouseout="this.style.background='#fff';this.style.color='#2563eb'">
+    ← Volver a Ventas
+  </button>
 </div>
 
 <div class="main">
