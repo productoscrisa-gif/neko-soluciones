@@ -841,35 +841,25 @@
 
   // ── TIPO DE PAGO ────────────────────────────────────────
   function onTipoPago() {
-    const tipo  = document.getElementById('tipo_pago').value;
-    const total = parseFloat(document.getElementById('total').value) || 0;
+    const tipo     = document.getElementById('tipo_pago').value;
+    const total    = parseFloat(document.getElementById('total').value) || 0;
     const pagadoEl = document.getElementById('pagado');
-    const medioEl  = document.getElementById('medio_pago');
+    const wrap     = document.getElementById('contraentrega-wrap');
 
     if (tipo === 'total') {
-      pagadoEl.value = total > 0 ? total : '';
+      // Pago completo — llenar monto, bloquear contraentrega
+      pagadoEl.value    = total > 0 ? total : '';
       pagadoEl.readOnly = false;
       calcularSaldo();
-    } else if (tipo === 'contraentrega') {
-      pagadoEl.value = 0;
-      pagadoEl.readOnly = true;
-      document.getElementById('saldo').value = total;
-      document.getElementById('saldo-field').classList.remove('zero');
-      document.getElementById('saldo-field').classList.add('highlight');
-      // Mostrar alerta contraentrega
-      let alerta = document.getElementById('contraentrega-alert');
-      if (!alerta) {
-        alerta = document.createElement('div');
-        alerta.id = 'contraentrega-alert';
-        alerta.style.cssText = 'background:#fff7ed;border:1.5px solid #fed7aa;border-radius:8px;padding:10px 14px;font-size:13px;font-weight:600;color:#c2410c;margin-top:10px;display:flex;align-items:center;gap:8px;';
-        alerta.innerHTML = '🚚 <span>CONTRAENTREGA — El cliente pagará al recibir el paquete. El almacén verá esta alerta antes de despachar.</span>';
-        document.getElementById('saldo-field').parentElement.parentElement.appendChild(alerta);
-      }
-      alerta.style.display = 'flex';
-    } else {
+      // Desactivar contraentrega si estaba marcada
+      if (document.getElementById('es_contraentrega').value === 'true') toggleContraentrega();
+      // Deshabilitar visualmente el checkbox de contraentrega
+      if (wrap) { wrap.style.opacity = '0.4'; wrap.style.pointerEvents = 'none'; }
+
+    } else if (tipo === 'parcial') {
+      // Abono — monto libre, contraentrega disponible
       pagadoEl.readOnly = false;
-      const alerta = document.getElementById('contraentrega-alert');
-      if (alerta) alerta.style.display = 'none';
+      if (wrap) { wrap.style.opacity = '1'; wrap.style.pointerEvents = 'auto'; }
       calcularSaldo();
     }
   }
