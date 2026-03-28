@@ -169,6 +169,12 @@
     'Ruta 4': ['Análisis','Diseño','Sublimación','Almacén'],
     'Ruta 5': ['Ventas','Análisis','Diseño','Confección','Bordado','Terminación','Almacén'],
     'Ruta 6': ['Ventas','Análisis','Diseño','Bordado','Confección','Terminación','Almacén'],
+    // Rutas de servicios rápidos de caja (van directo al área → Almacén)
+    'Servicio': ['Sublimación','Almacén'],
+    'Servicio-Diseno': ['Diseño','Almacén'],
+    'Servicio-Corte': ['Corte','Almacén'],
+    'Servicio-Confeccion': ['Confección','Almacén'],
+    'Servicio-DTF': ['Estampado','Almacén'],
   };
 
   const AREA_CONFIG = {
@@ -226,7 +232,7 @@
       // Y filtrar por estado EN_PRODUCCION directamente en el servidor
       const url = SB_URL + '/rest/v1/ordenes'
         + '?estado=eq.EN_PRODUCCION'
-        + '&select=id,numero_orden,productos,sub_estados,marca,es_prioritario,fecha_entrega,nivel_urgencia,canal'
+        + '&select=id,numero_orden,productos,sub_estados,marca,es_prioritario,fecha_entrega,nivel_urgencia,canal,requiere_aprobacion,aprobacion_estado,aprobacion_comentario,aprobacion_url'
         + '&order=es_prioritario.desc,fecha_creacion.asc';
 
       const r = await fetch(url, { headers: HDR });
@@ -261,7 +267,7 @@
             ordenNum:     orden.numero_orden,
             prendaIdx:    idx,
             prenda:       p,
-            ruta:         RUTAS[p.ruta] || [],
+            ruta:         RUTAS[p.ruta] || (p.ruta === 'Servicio' ? [areaActual, 'Almacén'] : []),
             marca:        orden.marca || '',
             esPrioritario: orden.es_prioritario,
             nivelUrgencia: orden.nivel_urgencia || 'normal',
@@ -272,9 +278,15 @@
             tieneError:        !!(se.error_desc),
             errorAreaReporta:  se.error_area || '',
             errorDesc:         se.error_desc || '',
-            diseñadorAsignado: se.diseñador_asignado || '',
+            diseñadorAsignado:   se.diseñador_asignado || '',
+            requiereAprobacion:  orden.requiere_aprobacion || false,
+            aprobacionEstado:    orden.aprobacion_estado || null,
+            aprobacionComentario:orden.aprobacion_comentario || '',
             pausaMotivo:       se.pausa_motivo || '',
             enPausa:           se.pausa_motivo ? true : false,
+            reqAprobacion:     orden.requiere_aprobacion || false,
+            aprobEstado:       orden.aprobacion_estado || null,
+            aprobComentario:   orden.aprobacion_comentario || '',
             // Guardar sub para actualizaciones locales
             _subs:        subs,
             _ordenId:     orden.id,
@@ -386,7 +398,7 @@
 
   // ── RENDER PRENDA ─────────────────────────────────────────
   function renderPrenda(item) {
-    const { ordenId, ordenNum, prendaIdx, prenda, ruta, marca, esPrioritario, entrega, estado, estadoDiseno, tieneError, errorAreaReporta, errorDesc, diseñadorAsignado, enPausa, pausaMotivo } = item;
+    const { ordenId, ordenNum, prendaIdx, prenda, ruta, marca, esPrioritario, entrega, estado, estadoDiseno, tieneError, errorAreaReporta, errorDesc, diseñadorAsignado, enPausa, pausaMotivo, requiereAprobacion, aprobacionEstado, aprobacionComentario } = item;
     const entregaF  = entrega ? new Date(entrega + 'T12:00:00').toLocaleDateString('es-CO', { day:'2-digit', month:'short' }) : '—';
     const idxActual = ruta.indexOf(areaActual);
     const areaSig   = idxActual >= 0 && idxActual < ruta.length - 1 ? ruta[idxActual + 1] : null;
@@ -441,7 +453,48 @@
     const cardClass = estado === 'en_proceso' ? 'en-proceso' : estado === 'lista' ? 'lista' : item.nivelUrgencia === 'urgente' ? 'urgente' : item.nivelUrgencia === 'marketplace' ? 'marketplace' : esPrioritario ? 'priority' : '';
 
     // Notas, medidas, url y error
+    // Banner de aprobación — solo en Diseño
+    var aprobBanner = '';
+    if (areaActual === 'Diseño' && requiereAprobacion) {
+      if (aprobacionEstado === 'APROBADO') {
+        aprobBanner = '<div style="background:#ecfdf5;border:2px solid #6ee7b7;border-radius:8px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:8px">'
+          + '<span style="font-size:18px">✅</span>'
+          + '<div><div style="font-size:13px;font-weight:800;color:#059669">¡Arte Aprobado por el Cliente!</div>'
+          + '<div style="font-size:12px;color:#065f46">Puedes proceder a imprimir</div></div>'
+        + '</div>';
+      } else if (aprobacionEstado === 'RECHAZADO') {
+        aprobBanner = '<div style="background:#fff1f2;border:2px solid #fca5a5;border-radius:8px;padding:10px 14px;margin-bottom:10px">'
+          + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:18px">❌</span>'
+          + '<div style="font-size:13px;font-weight:800;color:#dc2626">Arte Rechazado — Debes corregir</div></div>'
+          + (aprobacionComentario ? '<div style="font-size:12px;background:#fee2e2;padding:6px 10px;border-radius:6px;color:#7f1d1d">💬 Cliente dice: ' + aprobacionComentario + '</div>' : '')
+        + '</div>';
+      } else {
+        aprobBanner = '<div style="background:#fffbeb;border:2px solid #fcd34d;border-radius:8px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:8px">'
+          + '<span style="font-size:18px">⏳</span>'
+          + '<div style="font-size:13px;font-weight:800;color:#92400e">Esta orden requiere aprobación del cliente</div>'
+        + '</div>';
+      }
+    }
+
     var notasHTML = "";
+
+    // Alerta de aprobación — solo en área Diseño
+    if (areaActual === 'Diseño' && item.reqAprobacion) {
+      var ap = item.aprobEstado;
+      if (!ap || ap === 'RECHAZADO') {
+        var alertColor = ap === 'RECHAZADO' ? '#fff1f2' : '#fff7ed';
+        var alertBorder= ap === 'RECHAZADO' ? '#fca5a5' : '#fcd34d';
+        var alertText  = ap === 'RECHAZADO'
+          ? '❌ Arte Rechazado — Corrígelo y sube el nuevo link<br><small>' + (item.aprobComentario||'Sin comentario') + '</small>'
+          : '⚠️ Esta orden requiere aprobación del cliente antes de imprimir';
+        notasHTML += '<div style="background:' + alertColor + ';border:2px solid ' + alertBorder + ';border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:13px;font-weight:700;color:#92400e">' + alertText + '</div>';
+      } else if (ap === 'PENDIENTE') {
+        notasHTML += '<div style="background:#fff7ed;border:2px solid #fcd34d;border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:13px;font-weight:700;color:#92400e">⏳ Esperando respuesta del cliente...</div>';
+      } else if (ap === 'APROBADO') {
+        notasHTML += '<div style="background:var(--green-light);border:2px solid var(--green-border);border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:13px;font-weight:700;color:var(--green)">✅ Arte Aprobado — Puedes imprimir</div>';
+      }
+    }
+
     if (prenda.notas && prenda.notas.trim()) {
       notasHTML += "<div class=\"prenda-notas\">📝 " + prenda.notas + "</div>";
     }
@@ -466,7 +519,9 @@
         const bD = 'diseno-btn' + (estadoDiseno === 'diseno'      ? ' active-diseno'      : '');
         const bI = 'diseno-btn' + (estadoDiseno === 'imprimiendo' ? ' active-imprimiendo' : '');
         const bP = 'diseno-btn' + (estadoDiseno === 'impreso'     ? ' active-impreso'     : '');
-        const enviarBtn = estadoDiseno === 'impreso' && areaSig
+        // Bloquear enviar si requiere aprobación y no está aprobado
+        const puedeEnviar = !requiereAprobacion || aprobacionEstado === 'APROBADO';
+        const enviarBtn = estadoDiseno === 'impreso' && areaSig && puedeEnviar
           ? '<button class="btn-action btn-enviar" data-oid="' + oid + '" data-idx="' + pidx + '" data-area="' + areaSig + '" onclick="pBtnEnviar(this)">📤 Enviar a ' + areaSig + '</button>'
           : '';
         accionesHTML = '<div style="width:100%">'
@@ -475,6 +530,25 @@
           + '<button class="' + bI + '" data-oid="' + oid + '" data-idx="' + pidx + '" data-dis="imprimiendo" onclick="pBtnDiseno(this)">🖨️ Imprimiendo</button>'
           + '<button class="' + bP + '" data-oid="' + oid + '" data-idx="' + pidx + '" data-dis="impreso"     onclick="pBtnDiseno(this)">✅ Impreso</button>'
           + '</div></div>'
+          + '<div style="margin-bottom:10px;padding:10px;background:#f5f3ff;border:1.5px solid #ede9fe;border-radius:8px">'
+            + '<div style="font-size:11px;font-weight:700;color:#7c3aed;text-transform:uppercase;margin-bottom:6px">🔗 URL de Aprobación del Arte</div>'
+            + '<div style="display:flex;gap:8px;align-items:center">'
+              + '<input id="url-aprobacion-' + oid + '-' + pidx + '" type="url" placeholder="https://drive.google.com/... o link del diseño" '
+                + 'value="' + (prenda.url_aprobacion || '') + '" '
+                + 'style="flex:1;padding:8px 10px;border:1.5px solid #c4b5fd;border-radius:8px;font-size:13px;background:#fff;outline:none" />'
+              + '<button data-oid="' + oid + '" data-idx="' + pidx + '" onclick="guardarUrlAprobacion(this)" '
+                + 'style="padding:8px 14px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">'
+                + '💾 Guardar</button>'
+            + '</div>'
+            + (prenda.url_aprobacion ? '<div style="margin-top:6px;font-size:12px;color:#7c3aed">✅ Arte enviado — <a href="' + prenda.url_aprobacion + '" target="_blank" style="color:#7c3aed">Ver enlace</a></div>' : '')
+          + '</div>'
+          + (enPausa
+            ? '<div class="pausa-activa"><span class="pausa-info">⏸️ Pausado: ' + pausaMotivo + '</span><button class="btn-reanudar" data-oid="' + oid + '" data-idx="' + pidx + '" onclick="pBtnReanudar(this)">▶️ Reanudar</button></div>'
+            : '<div class="pause-btns"><span class="pause-label">⏸️ Pausar:</span>'
+              + '<button class="btn-pausa" data-oid="' + oid + '" data-idx="' + pidx + '" data-motivo="Almuerzo" onclick="pBtnPausar(this)">🍽️ Almuerzo</button>'
+              + '<button class="btn-pausa" data-oid="' + oid + '" data-idx="' + pidx + '" data-motivo="Baño" onclick="pBtnPausar(this)">🚻 Baño</button>'
+              + '<button class="btn-pausa" data-oid="' + oid + '" data-idx="' + pidx + '" data-motivo="Otro trabajo" onclick="pBtnPausar(this)">🔧 Otro trabajo</button>'
+            + '</div>')
           + '<div class="prenda-actions">' + enviarBtn
           + '<button class="btn-action btn-error" data-oid="' + oid + '" data-idx="' + pidx + '" onclick="pBtnError(this)">🔴 Reportar Error</button>'
           + '</div></div>';
@@ -515,7 +589,7 @@
         + '<div>' + estadoBadge + '</div>'
       + '</div>'
       + '<div class="prenda-body">'
-        + notasHTML + urlHTML
+        + aprobBanner + notasHTML + urlHTML
         + timerHTML
         + '<div class="flujo-wrap">' + flujoHTML + '</div>'
         + errorHTML
@@ -525,6 +599,40 @@
   }
 
   // Funciones auxiliares via data-attributes
+  // Guardar URL de aprobación del arte en el producto
+  async function guardarUrlAprobacion(btn) {
+    var oid  = btn.getAttribute('data-oid');
+    var pidx = parseInt(btn.getAttribute('data-idx'));
+    var url  = document.getElementById('url-aprobacion-' + oid + '-' + pidx)?.value.trim();
+    if (!url) { alert('Ingresa el enlace del arte.'); return; }
+    btn.disabled = true; btn.textContent = '⏳...';
+    try {
+      // Leer productos de la orden y actualizar url_aprobacion de la prenda
+      const r = await fetch(SB_URL + '/rest/v1/ordenes?id=eq.' + oid + '&select=productos', { headers: HDR });
+      const data = await r.json();
+      const prods = data[0]?.productos || [];
+      if (prods[pidx]) prods[pidx].url_aprobacion = url;
+      await Promise.all([
+        fetch(SB_URL + '/rest/v1/ordenes?id=eq.' + oid, {
+          method: 'PATCH',
+          headers: { ...HDR, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+          body: JSON.stringify({ productos: prods, aprobacion_estado: 'PENDIENTE', aprobacion_url: url })
+        })
+      ]);
+      // Actualizar en memoria
+      for (const arr of [window._pendientes, window._proceso, window._listas]) {
+        const item = arr?.find(p => String(p.ordenId) === String(oid) && p.prendaIdx === pidx);
+        if (item && item.prenda) { item.prenda.url_aprobacion = url; break; }
+      }
+      showToast('✅ URL enviada — Ventas verá el enlace en seguimiento');
+      renderTab();
+    } catch(e) {
+      alert('Error: ' + e.message);
+    } finally {
+      btn.disabled = false; btn.textContent = '💾 Guardar';
+    }
+  }
+
   function pBtnPausar(btn) {
     var oid    = btn.getAttribute('data-oid');
     var pidx   = parseInt(btn.getAttribute('data-idx'));

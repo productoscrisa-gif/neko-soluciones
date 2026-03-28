@@ -120,6 +120,8 @@
       <div class="stat-card"><div class="stat-label">En Producción</div><div class="stat-value amber" id="d-produccion">—</div></div>
       <div class="stat-card"><div class="stat-label">Despachados</div><div class="stat-value green" id="d-despachados">—</div></div>
       <div class="stat-card"><div class="stat-label">Saldo Pendiente</div><div class="stat-value red" id="d-saldo">—</div></div>
+      <div class="stat-card"><div class="stat-label">💰 Ventas Mes (Órd+Srv)</div><div class="stat-value green" id="d-ventas-mes" style="font-size:15px">—</div></div>
+      <div class="stat-card"><div class="stat-label">🏦 Total Recaudado</div><div class="stat-value teal" id="d-ventas-total" style="font-size:15px">—</div></div>
     </div>
     <div class="stats-bar" style="margin-bottom:24px">
       <div class="stat-card"><div class="stat-label">Ventas del Mes</div><div class="stat-value purple" id="d-mes">—</div></div>
@@ -495,41 +497,66 @@
 
   // ── DASHBOARD ─────────────────────────────────────────────
   async function cargarDashboard(){
-    const r=await fetch(SB_URL+'/rest/v1/ordenes?select=*',{headers:HDR});
-    const ordenes=await r.json();
-    const ahora=new Date();
-    const mesActual=ahora.getMonth(), anioActual=ahora.getFullYear();
+    // Consultas paralelas: órdenes (solo campos necesarios) + ventas rápidas del mes
+    const ahora = new Date();
+    const mesActual = ahora.getMonth(), anioActual = ahora.getFullYear();
+    const inicioMes = new Date(anioActual, mesActual, 1).toISOString();
 
-    const total=ordenes.length;
-    const enProd=ordenes.filter(o=>o.estado==='EN_PRODUCCION').length;
-    const desp=ordenes.filter(o=>o.estado==='DESPACHADO').length;
-    const saldo=ordenes.reduce((s,o)=>s+(o.saldo_pendiente||0),0);
-    const mes=ordenes.filter(o=>{
+    const [rOrdenes, rServicios] = await Promise.all([
+      fetch(SB_URL+'/rest/v1/ordenes?select=id,estado,fecha_creacion,es_prioritario,es_contraentrega,valor_total,monto_pagado,saldo_pendiente,canal,vendedora,marca,productos&numero_orden=not.like.SRV-*', {headers:HDR}),
+      fetch(SB_URL+'/rest/v1/ventas_rapidas?fecha=gte.'+inicioMes+'&select=valor', {headers:HDR})
+    ]);
+
+    const ordenes  = await rOrdenes.json();
+    const servicios= await rServicios.json();
+    const ords = Array.isArray(ordenes)  ? ordenes  : [];
+    const srvs = Array.isArray(servicios)? servicios: [];
+
+    // Stats órdenes
+    const total    = ords.length;
+    const enProd   = ords.filter(o=>o.estado==='EN_PRODUCCION').length;
+    const desp     = ords.filter(o=>o.estado==='DESPACHADO').length;
+    const saldo    = ords.reduce((s,o)=>s+(Number(o.saldo_pendiente)||0),0);
+    const priority = ords.filter(o=>o.es_prioritario).length;
+    const contra   = ords.filter(o=>o.es_contraentrega).length;
+    let prendas = 0;
+    ords.forEach(o=>{prendas+=(o.productos||[]).length;});
+
+    // Órdenes del mes
+    const ordsm = ords.filter(o=>{
       const f=new Date(o.fecha_creacion);
       return f.getMonth()===mesActual&&f.getFullYear()===anioActual;
-    }).length;
-    const priority=ordenes.filter(o=>o.es_prioritario).length;
-    const contra=ordenes.filter(o=>o.es_contraentrega).length;
-    let prendas=0;
-    ordenes.forEach(o=>{prendas+=(o.productos||[]).length;});
+    });
 
-    document.getElementById('d-total').textContent=total;
-    document.getElementById('d-produccion').textContent=enProd;
-    document.getElementById('d-despachados').textContent=desp;
-    document.getElementById('d-saldo').textContent='$'+Math.round(saldo/1000)+'K';
-    document.getElementById('d-mes').textContent=mes;
-    document.getElementById('d-priority').textContent=priority;
-    document.getElementById('d-contra').textContent=contra;
-    document.getElementById('d-prendas').textContent=prendas;
+    // Ventas en pesos — órdenes + servicios de caja del mes
+    const ventasOrdMes  = ordsm.reduce((s,o)=>s+(Number(o.valor_total)||0),0);
+    const ventasSrvMes  = srvs.reduce((s,v)=>s+(Number(v.valor)||0),0);
+    const ventasTotalMes= ventasOrdMes + ventasSrvMes;
+
+    // Total histórico recaudado (monto_pagado)
+    const totalRecaudado= ords.reduce((s,o)=>s+(Number(o.monto_pagado)||0),0);
+
+    document.getElementById('d-total').textContent     = total;
+    document.getElementById('d-produccion').textContent= enProd;
+    document.getElementById('d-despachados').textContent= desp;
+    document.getElementById('d-saldo').textContent     = fmtCOP(saldo);
+    document.getElementById('d-mes').textContent       = ordsm.length;
+    document.getElementById('d-priority').textContent  = priority;
+    document.getElementById('d-contra').textContent    = contra;
+    document.getElementById('d-prendas').textContent   = prendas;
+
+    // Stats de ventas en dinero
+    const elVM = document.getElementById('d-ventas-mes');
+    const elVT = document.getElementById('d-ventas-total');
+    if (elVM) elVM.textContent = '$' + fmtCOP(ventasTotalMes);
+    if (elVT) elVT.textContent = '$' + fmtCOP(totalRecaudado);
 
     // Charts
-    renderChart('chart-canal', contarPor(ordenes,'canal'), '#2563eb');
-    renderChart('chart-vendedora', contarPor(ordenes,'vendedora'), '#7c3aed');
-    renderChart('chart-marca', contarPor(ordenes,'marca'), '#10b981');
-
-    // Rutas
+    renderChart('chart-canal',    contarPor(ords,'canal'),    '#2563eb');
+    renderChart('chart-vendedora',contarPor(ords,'vendedora'),'#7c3aed');
+    renderChart('chart-marca',    contarPor(ords,'marca'),    '#10b981');
     const rutaCount={};
-    ordenes.forEach(o=>{(o.productos||[]).forEach(p=>{if(p.ruta)rutaCount[p.ruta]=(rutaCount[p.ruta]||0)+1;});});
+    ords.forEach(o=>{(o.productos||[]).forEach(p=>{if(p.ruta)rutaCount[p.ruta]=(rutaCount[p.ruta]||0)+1;});});
     renderChart('chart-ruta', rutaCount, '#f59e0b');
   }
 

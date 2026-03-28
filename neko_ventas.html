@@ -551,12 +551,32 @@
     </div>
   </div>
 
+  <!-- Toggle APROBACIÓN ARTE -->
+  <div class="toggle-row" id="aprobacionRow" onclick="toggleAprobacion()" style="margin-top:8px;border-color:#7c3aed">
+    <div class="toggle-info">
+      <span class="toggle-label" style="color:#7c3aed">🎨 Requiere Aprobación de Arte</span>
+      <span class="toggle-desc">El diseñador subirá el arte para que la vendedora lo apruebe con el cliente antes de imprimir</span>
+    </div>
+    <div class="toggle-switch" id="aprobacionSwitch"></div>
+  </div>
+
   <div class="priority-badge" id="priorityBadge">
     🔴 PEDIDO PRIORITARIO — Área de Análisis
   </div>
   <div class="priority-badge" id="urgenteBadge" style="display:none;background:linear-gradient(135deg,#ea580c,#c2410c);animation:pulse 1.5s infinite">
     🚨 URGENTE — Máxima Prioridad sobre todos los pedidos
   </div>
+
+  <!-- Requiere aprobación de arte -->
+  <div id="aprobacion-wrap" onclick="toggleAprobacion()"
+    style="margin-top:12px;display:flex;align-items:center;gap:12px;padding:12px 16px;background:#f5f3ff;border:2px solid #ede9fe;border-radius:8px;cursor:pointer;transition:all .2s">
+    <div id="aprobacion-check" style="width:22px;height:22px;border:2px solid #7c3aed;border-radius:6px;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;transition:all .2s"></div>
+    <div>
+      <div style="font-size:14px;font-weight:700;color:#7c3aed">🎨 Requiere Aprobación de Arte</div>
+      <div style="font-size:12px;color:#6d28d9">El diseñador subirá el arte para que la vendedora lo envíe al cliente antes de imprimir</div>
+    </div>
+  </div>
+  <input type="hidden" id="requiere_aprobacion" value="false">
 </div>
 
 <!-- BLOQUE 3: PRODUCTOS -->
@@ -718,8 +738,9 @@
   // ── ESTADO ──────────────────────────────────────────────
   let productos = [];
   let productCounter = 0;
-  let isPriority = false;
-  let isUrgente  = false;
+  let isPriority    = false;
+  let isUrgente      = false;
+  let isAprobacion   = false;
 
   // ── TOGGLE PRIORIDAD ────────────────────────────────────
   function togglePriority() {
@@ -732,6 +753,19 @@
     isUrgente = !isUrgente;
     if (isUrgente) isPriority = false;
     actualizarBadgesPrioridad();
+  }
+
+  function toggleAprobacion() {
+    const input = document.getElementById('requiere_aprobacion');
+    const check = document.getElementById('aprobacion-check');
+    const wrap  = document.getElementById('aprobacion-wrap');
+    const activo = input.value === 'true';
+    input.value = activo ? 'false' : 'true';
+    check.textContent   = activo ? '' : '✓';
+    check.style.background  = activo ? '#fff' : '#7c3aed';
+    check.style.color       = '#fff';
+    wrap.style.background   = activo ? '#f5f3ff' : '#ede9fe';
+    wrap.style.borderColor  = activo ? '#ede9fe' : '#7c3aed';
   }
 
   function actualizarBadgesPrioridad() {
@@ -769,6 +803,19 @@
   }
 
   // Auto-detectar Mercado Libre al cambiar canal
+  function toggleAprobacion() {
+    isAprobacion = !isAprobacion;
+    const row  = document.getElementById('aprobacionRow');
+    const sw   = document.getElementById('aprobacionSwitch');
+    row.style.background  = isAprobacion ? '#f5f3ff' : '';
+    row.style.borderColor = isAprobacion ? '#7c3aed' : '#7c3aed22';
+    if (sw) {
+      sw.style.background = isAprobacion ? '#7c3aed' : '#cbd5e1';
+      sw.setAttribute('data-on', isAprobacion ? '1' : '0');
+    }
+    showToast(isAprobacion ? '🎨 Aprobación de arte activada' : '🎨 Aprobación desactivada');
+  }
+
   function onCanalChange() {
     const canal = document.getElementById('canal').value;
     if (canal === 'Mercado Libre') {
@@ -1154,8 +1201,10 @@
         ciudad:          document.getElementById('ciudad').value,
         departamento:    document.getElementById('departamento').value,
         fecha_entrega:   document.getElementById('fecha_entrega').value,
-        es_prioritario:  isPriority || isUrgente,
+        es_prioritario:      isPriority || isUrgente,
+        requiere_aprobacion: isAprobacion,
         nivel_urgencia:  isUrgente ? 'urgente' : (document.getElementById('canal').value === 'Mercado Libre' ? 'marketplace' : (isPriority ? 'prioritario' : 'normal')),
+        requiere_aprobacion: document.getElementById('requiere_aprobacion').value === 'true',
         productos:       recolectarProductos(),
         valor_total:     total,
         tipo_pago:       document.getElementById('tipo_pago').value,
@@ -1175,7 +1224,9 @@
       document.querySelectorAll('input, select, textarea').forEach(function(el) { el.value = ''; });
       document.getElementById('products-list').innerHTML = '<div class="empty-products" id="empty-msg"><span>📦</span>Aún no hay productos. Presiona el botón para agregar el primero.</div>';
       productCounter = 0;
-      if (isPriority) togglePriority();
+      if (isPriority)  togglePriority();
+      if (isUrgente)   toggleUrgente();
+      if (isAprobacion) { isAprobacion = false; toggleAprobacion(); }
       document.getElementById('saldo-field').classList.remove('highlight','zero');
 
     } catch (err) {
@@ -1231,7 +1282,7 @@
     if (/^[0-9]+$/.test(num) && num.length <= 6) {
       // Número de orden — búsqueda parcial desde el inicio
       const padded = num.padStart ? num : num;
-      url = `${SUPABASE_URL}/rest/v1/ordenes?numero_orden=ilike.*${encodeURIComponent(num)}*&order=fecha_creacion.desc&limit=10`;
+      url = `${SUPABASE_URL}/rest/v1/ordenes?numero_orden=ilike.*${encodeURIComponent(num)}*&order=fecha_creacion.desc&limit=10&select=*`;
     } else if (/^[0-9+\s]{7,}$/.test(num.replace(/\s/g,''))) {
       // Teléfono
       url = `${SUPABASE_URL}/rest/v1/ordenes?telefono=ilike.*${encodeURIComponent(num.replace(/\s/g,''))}*&order=fecha_creacion.desc&limit=5`;
@@ -1259,9 +1310,81 @@
     }
   }
 
+  async function aprobarArte(btn) {
+    const oid    = btn.getAttribute('data-oid');
+    const estado = btn.getAttribute('data-est') || 'APROBADO';
+    btn.disabled = true;
+    await fetch(`${SUPABASE_URL}/rest/v1/ordenes?id=eq.${oid}`, {
+      method: 'PATCH',
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify({
+        aprobacion_estado:  estado,
+        aprobacion_por:     'Vendedora',
+        aprobacion_fecha:   new Date().toISOString(),
+        aprobacion_comentario: null
+      })
+    });
+    showToast('✅ Arte aprobado — El diseñador puede imprimir');
+    buscarSeguimiento();
+  }
+
+  async function rechazarArte(btn) {
+    const oid = btn.getAttribute('data-oid');
+    const comentario = prompt('¿Por qué razón el cliente rechazó el arte?\n(Escribe el comentario para el diseñador)');
+    if (comentario === null) return;
+    btn.disabled = true;
+    await fetch(`${SUPABASE_URL}/rest/v1/ordenes?id=eq.${oid}`, {
+      method: 'PATCH',
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify({
+        aprobacion_estado:     'RECHAZADO',
+        aprobacion_por:        'Vendedora',
+        aprobacion_fecha:      new Date().toISOString(),
+        aprobacion_comentario: comentario,
+        aprobacion_url:        null
+      })
+    });
+    showToast('❌ Arte rechazado — El diseñador recibirá el comentario');
+    buscarSeguimiento();
+  }
+
   function renderSeguimientoCard(o) {
     const prods      = o.productos || [];
     const estadoLabel = o.estado === 'DESPACHADO' ? '✅ Despachado' : o.estado === 'EN_PRODUCCION' ? '⚙️ En Producción' : '📊 En Análisis';
+
+    // Bloque de aprobación de arte
+    var aprobHTML = '';
+    if (o.requiere_aprobacion) {
+      const ap = o.aprobacion_estado;
+      if (!ap) {
+        // Esperando arte del diseñador
+        aprobHTML = '<div style="background:#fff7ed;border:2px solid #fcd34d;border-radius:10px;padding:14px 16px;margin-top:12px">'
+          + '<div style="font-size:13px;font-weight:800;color:#92400e;margin-bottom:4px">🎨 Aprobación de Arte Requerida</div>'
+          + '<div style="font-size:12px;color:#92400e">⏳ El diseñador aún no ha subido el arte para aprobación.</div>'
+        + '</div>';
+      } else if (ap === 'PENDIENTE') {
+        // Arte listo, esperando respuesta del cliente
+        const linkArte = o.aprobacion_url || '';
+        aprobHTML = '<div style="background:#f5f3ff;border:2px solid #7c3aed;border-radius:10px;padding:14px 16px;margin-top:12px">'
+          + '<div style="font-size:13px;font-weight:800;color:#7c3aed;margin-bottom:8px">🎨 Arte Listo — Esperando Aprobación del Cliente</div>'
+          + (linkArte ? '<a href="' + linkArte + '" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#7c3aed;color:#fff;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;margin-bottom:10px">🔗 Ver Arte del Diseñador</a><br>' : '')
+          + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">'
+            + '<button data-oid="' + o.id + '" data-est="APROBADO" onclick="aprobarArte(this)" style="padding:8px 16px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">✅ Cliente Aprobó</button>'
+            + '<button data-oid="' + o.id + '" onclick="rechazarArte(this)" style="padding:8px 16px;background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">❌ Cliente Rechazó</button>'
+          + '</div>'
+        + '</div>';
+      } else if (ap === 'APROBADO') {
+        aprobHTML = '<div style="background:var(--green-light);border:2px solid var(--green-border);border-radius:10px;padding:12px 16px;margin-top:12px">'
+          + '<div style="font-size:13px;font-weight:800;color:var(--green)">✅ Arte Aprobado por el Cliente</div>'
+          + '<div style="font-size:12px;color:var(--green);margin-top:2px">Aprobado por: ' + (o.aprobacion_por||'--') + ' · ' + (o.aprobacion_fecha ? new Date(o.aprobacion_fecha).toLocaleDateString('es-CO') : '') + '</div>'
+        + '</div>';
+      } else if (ap === 'RECHAZADO') {
+        aprobHTML = '<div style="background:var(--red-light);border:2px solid var(--red-border);border-radius:10px;padding:12px 16px;margin-top:12px">'
+          + '<div style="font-size:13px;font-weight:800;color:var(--red)">❌ Arte Rechazado — Diseñador debe corregir</div>'
+          + (o.aprobacion_comentario ? '<div style="font-size:12px;color:#92400e;background:#fff7ed;padding:6px 10px;border-radius:6px;margin-top:6px">💬 ' + o.aprobacion_comentario + '</div>' : '')
+        + '</div>';
+      }
+    }
     // Badge urgencia
     const urgBadge = o.nivel_urgencia === 'urgente'
       ? '<span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:800;background:#fff7ed;border:1.5px solid #ea580c;color:#ea580c">🚨 URGENTE</span>'
@@ -1305,6 +1428,7 @@
           + '<span style="font-size:12px;font-weight:700;background:#e2e8f0;padding:4px 10px;border-radius:20px;color:#0f172a">📍 ' + areaActual + '</span>'
         + '</div>'
         + (p.notas ? '<div style="font-size:12px;color:#92400e;background:#fffbeb;padding:6px 10px;border-radius:6px;border-left:3px solid #f59e0b;margin-bottom:10px">📝 ' + p.notas + '</div>' : '')
+        + (p.url_aprobacion ? '<div style="background:#f5f3ff;border:1.5px solid #c4b5fd;border-radius:8px;padding:10px 14px;margin-bottom:10px"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="font-size:16px">🎨</span><div><div style="font-size:12px;font-weight:700;color:#7c3aed;margin-bottom:2px">Arte para Aprobación</div><a href="' + p.url_aprobacion + '" target="_blank" style="font-size:13px;font-weight:700;color:#7c3aed;word-break:break-all">🔗 Ver arte del diseñador</a></div></div>' + buildAprobacionButtons(o, p.url_aprobacion) + '</div>' : '')
         + (p.medidas ? '<div style="font-size:12px;color:#065f46;background:#f0fdf4;padding:6px 10px;border-radius:6px;border-left:3px solid #10b981;margin-bottom:10px">📐 Medidas: ' + p.medidas + '</div>' : '')
         + '<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center">' + flujoHTML + '</div>'
         + (tieneError ? '<div style="margin-top:8px;font-size:12px;color:#ef4444;font-weight:600;background:#fff1f2;padding:6px 10px;border-radius:6px">⚠️ ' + se.error_desc + '</div>' : '')
@@ -1347,12 +1471,94 @@
         + '<span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;background:' + estadoColor + '20;color:' + estadoColor + '">' + estadoLabel + '</span>'
       + (urgBadge ? ' ' + urgBadge : '')
       + '</div>'
+      + aprobHTML
       + '<div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">📦 Prendas del Pedido</div>'
       + (prendasHTML || '<p style="color:#94a3b8;font-size:13px">Sin prendas registradas</p>')
     + '</div>';
   }
 
+  // ── APROBACIÓN DE ARTE ──────────────────────────────────
+  function buildAprobacionButtons(o, urlArte) {
+    if (!o.requiere_aprobacion) return '';
+    var estado = o.aprobacion_estado;
+    var oid    = String(o.id);
+
+    if (estado === 'APROBADO') {
+      return '<div style="background:#ecfdf5;border:1.5px solid #6ee7b7;border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px">'
+        + '<span style="font-size:16px">✅</span>'
+        + '<div><div style="font-size:12px;font-weight:700;color:#059669">Arte Aprobado por el Cliente</div>'
+        + '<div style="font-size:11px;color:#065f46">por ' + (o.aprobacion_por||'--') + ' · ' + (o.aprobacion_fecha ? new Date(o.aprobacion_fecha).toLocaleDateString('es-CO') : '') + '</div></div>'
+      + '</div>';
+    }
+
+    if (estado === 'RECHAZADO') {
+      return '<div style="background:#fff1f2;border:1.5px solid #fca5a5;border-radius:8px;padding:8px 12px">'
+        + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-size:16px">❌</span>'
+        + '<div style="font-size:12px;font-weight:700;color:#dc2626">Arte Rechazado — Diseñador notificado</div></div>'
+        + (o.aprobacion_comentario ? '<div style="font-size:12px;color:#7f1d1d;background:#fee2e2;padding:6px 10px;border-radius:6px;margin-bottom:6px">💬 ' + o.aprobacion_comentario + '</div>' : '')
+        + '<button data-oid="' + oid + '" onclick="resetAprobacionBtn(this)" style="padding:6px 12px;background:#fff;border:1px solid #fca5a5;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;color:#dc2626">🔄 Enviar nuevo arte</button>'
+      + '</div>';
+    }
+
+    // Pendiente
+    return '<div style="background:#fffbeb;border:1.5px solid #fcd34d;border-radius:8px;padding:10px 12px">'
+      + '<div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:8px">⏳ Esperando decisión</div>'
+      + '<div style="display:flex;gap:8px;flex-wrap:wrap">'
+        + '<button data-oid="' + oid + '" onclick="aprobarArteBtn(this)" style="padding:8px 16px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">✅ Cliente Aprobó</button>'
+        + '<button data-oid="' + oid + '" onclick="rechazarArteBtn(this)" style="padding:8px 16px;background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">❌ Cliente Rechazó</button>'
+      + '</div>'
+    + '</div>';
+  }
+
+  function aprobarArteBtn(btn)    { aprobarArte(btn.getAttribute('data-oid')); }
+  function rechazarArteBtn(btn)   { rechazarArte(btn.getAttribute('data-oid')); }
+  function resetAprobacionBtn(btn){ resetAprobacion(btn.getAttribute('data-oid')); }
+
+  async function aprobarArte(ordenId) {
+    if (!confirm('¿Confirmas que el cliente aprobó el arte?')) return;
+    await fetch(`${SUPABASE_URL}/rest/v1/ordenes?id=eq.${ordenId}`, {
+      method: 'PATCH',
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify({
+        aprobacion_estado: 'APROBADO',
+        aprobacion_por:    sesion_ventas ? sesion_ventas.nombre : 'Vendedora',
+        aprobacion_fecha:  new Date().toISOString()
+      })
+    });
+    showToast('✅ Arte aprobado — El diseñador puede proceder a imprimir');
+    buscarSeguimiento();
+  }
+
+  async function rechazarArte(ordenId) {
+    const comentario = prompt('¿Por qué rechazó el cliente? (escribe el comentario para el diseñador):');
+    if (comentario === null) return;
+    await fetch(`${SUPABASE_URL}/rest/v1/ordenes?id=eq.${ordenId}`, {
+      method: 'PATCH',
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify({
+        aprobacion_estado:      'RECHAZADO',
+        aprobacion_comentario:  comentario || 'Sin comentario',
+        aprobacion_por:         sesion_ventas ? sesion_ventas.nombre : 'Vendedora',
+        aprobacion_fecha:       new Date().toISOString()
+      })
+    });
+    showToast('❌ Rechazado — El diseñador será notificado al recargar');
+    buscarSeguimiento();
+  }
+
+  async function resetAprobacion(ordenId) {
+    await fetch(`${SUPABASE_URL}/rest/v1/ordenes?id=eq.${ordenId}`, {
+      method: 'PATCH',
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ aprobacion_estado: null, aprobacion_comentario: null })
+    });
+    buscarSeguimiento();
+  }
+
   // ── INIT: fecha mínima hoy ───────────────────────────────
+  var sesion_ventas = null;
+  try { sesion_ventas = JSON.parse(sessionStorage.getItem('nk_user')); } catch(e) {}
+
   document.addEventListener('DOMContentLoaded', () => {
     const hoy = new Date().toISOString().split('T')[0];
     document.getElementById('fecha_entrega').min = hoy;
