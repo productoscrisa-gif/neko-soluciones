@@ -1307,17 +1307,15 @@
       });
       if (!r.ok) throw new Error('HTTP ' + r.status);
 
-      // Actualizar el bloque de aprobación directamente en el DOM
-      const card = btn.closest('[data-orden-id="' + oid + '"]');
-      const bloqueAprob = card ? card.querySelector('.bloque-aprobacion') : null;
+      // Actualizar el bloque de aprobación directamente en el DOM por ID
+      const bloqueAprob = document.getElementById('aprob-' + oid);
       if (bloqueAprob) {
-        bloqueAprob.outerHTML =
-          '<div class="bloque-aprobacion" style="background:#dcfce7;border:2px solid #86efac;border-radius:10px;padding:14px 16px;margin-top:12px">'
-          + '<div style="font-size:14px;font-weight:800;color:#16a34a">✅ Arte Aprobado por el Cliente</div>'
-          + '<div style="font-size:12px;color:#15803d;margin-top:4px">El diseñador ya puede proceder a imprimir</div>'
-          + '</div>';
+        bloqueAprob.innerHTML =
+          '<div style="font-size:14px;font-weight:800;color:#16a34a;margin-bottom:4px">✅ Arte Aprobado por el Cliente</div>'
+          + '<div style="font-size:12px;color:#15803d">El diseñador ya puede proceder a imprimir</div>';
+        bloqueAprob.style.background = '#dcfce7';
+        bloqueAprob.style.border     = '2px solid #86efac';
       } else {
-        // Fallback: volver a buscar
         await buscarSeguimiento();
       }
       showToast('✅ Arte aprobado — El diseñador puede imprimir');
@@ -1351,15 +1349,14 @@
       });
       if (!r.ok) throw new Error('HTTP ' + r.status);
 
-      // Actualizar el bloque directamente en el DOM
-      const card = btn.closest('[data-orden-id="' + oid + '"]');
-      const bloqueAprob = card ? card.querySelector('.bloque-aprobacion') : null;
+      // Actualizar el bloque de aprobación directamente en el DOM por ID
+      const bloqueAprob = document.getElementById('aprob-' + oid);
       if (bloqueAprob) {
-        bloqueAprob.outerHTML =
-          '<div class="bloque-aprobacion" style="background:#fff1f2;border:2px solid #fca5a5;border-radius:10px;padding:14px 16px;margin-top:12px">'
-          + '<div style="font-size:14px;font-weight:800;color:#dc2626">❌ Arte Rechazado — El diseñador debe corregir</div>'
-          + '<div style="font-size:12px;color:#92400e;background:#fff7ed;padding:8px 12px;border-radius:8px;margin-top:8px;font-weight:600">💬 Motivo: ' + comentario.trim() + '</div>'
-          + '</div>';
+        bloqueAprob.innerHTML =
+          '<div style="font-size:14px;font-weight:800;color:#dc2626;margin-bottom:8px">❌ Arte Rechazado — El diseñador debe corregir</div>'
+          + '<div style="font-size:12px;color:#92400e;background:#fff7ed;padding:8px 12px;border-radius:8px;font-weight:600">💬 Motivo: ' + comentario.trim() + '</div>';
+        bloqueAprob.style.background = '#fff1f2';
+        bloqueAprob.style.border     = '2px solid #fca5a5';
       } else {
         await buscarSeguimiento();
       }
@@ -1382,14 +1379,14 @@
       const ap = o.aprobacion_estado;
       if (!ap) {
         // Esperando arte del diseñador
-        aprobHTML = '<div class="bloque-aprobacion" style="background:#fff7ed;border:2px solid #fcd34d;border-radius:10px;padding:14px 16px;margin-top:12px">'
+        aprobHTML = '<div id="aprob-' + o.id + '" class="bloque-aprobacion" style="background:#fff7ed;border:2px solid #fcd34d;border-radius:10px;padding:14px 16px;margin-top:12px">'
           + '<div style="font-size:13px;font-weight:800;color:#92400e;margin-bottom:4px">🎨 Aprobación de Arte Requerida</div>'
           + '<div style="font-size:12px;color:#92400e">⏳ El diseñador aún no ha subido el arte para aprobación.</div>'
         + '</div>';
       } else if (ap === 'PENDIENTE') {
         // Arte listo, esperando respuesta del cliente
         const linkArte = o.aprobacion_url || '';
-        aprobHTML = '<div class="bloque-aprobacion" style="background:#f5f3ff;border:2px solid #7c3aed;border-radius:10px;padding:16px;margin-top:12px">'
+        aprobHTML = '<div id="aprob-' + o.id + '" class="bloque-aprobacion" style="background:#f5f3ff;border:2px solid #7c3aed;border-radius:10px;padding:16px;margin-top:12px">'
           + '<div style="font-size:13px;font-weight:800;color:#7c3aed;margin-bottom:10px">🎨 Arte Listo — Envíalo al cliente y registra su respuesta</div>'
           + (linkArte
               ? '<a href="' + linkArte + '" target="_blank" style="display:inline-flex;align-items:center;gap:8px;padding:10px 16px;background:#7c3aed;color:#fff;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;margin-bottom:12px">🔗 Ver Arte del Diseñador</a>'
@@ -1406,12 +1403,12 @@
           + '</div>'
         + '</div>';
       } else if (ap === 'APROBADO') {
-        aprobHTML = '<div class="bloque-aprobacion" style="background:var(--green-light);border:2px solid var(--green-border);border-radius:10px;padding:12px 16px;margin-top:12px">'
+        aprobHTML = '<div id="aprob-' + o.id + '" class="bloque-aprobacion" style="background:var(--green-light);border:2px solid var(--green-border);border-radius:10px;padding:12px 16px;margin-top:12px">'
           + '<div style="font-size:13px;font-weight:800;color:var(--green)">✅ Arte Aprobado por el Cliente</div>'
           + '<div style="font-size:12px;color:var(--green);margin-top:2px">Aprobado por: ' + (o.aprobacion_por||'--') + ' · ' + (o.aprobacion_fecha ? new Date(o.aprobacion_fecha).toLocaleDateString('es-CO') : '') + '</div>'
         + '</div>';
       } else if (ap === 'RECHAZADO') {
-        aprobHTML = '<div class="bloque-aprobacion" style="background:var(--red-light);border:2px solid var(--red-border);border-radius:10px;padding:12px 16px;margin-top:12px">'
+        aprobHTML = '<div id="aprob-' + o.id + '" class="bloque-aprobacion" style="background:var(--red-light);border:2px solid var(--red-border);border-radius:10px;padding:12px 16px;margin-top:12px">'
           + '<div style="font-size:13px;font-weight:800;color:var(--red)">❌ Arte Rechazado — Diseñador debe corregir</div>'
           + (o.aprobacion_comentario ? '<div style="font-size:12px;color:#92400e;background:#fff7ed;padding:6px 10px;border-radius:6px;margin-top:6px">💬 ' + o.aprobacion_comentario + '</div>' : '')
         + '</div>';

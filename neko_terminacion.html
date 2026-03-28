@@ -489,7 +489,10 @@
           : '⚠️ Esta orden requiere aprobación del cliente antes de imprimir';
         notasHTML += '<div style="background:' + alertColor + ';border:2px solid ' + alertBorder + ';border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:13px;font-weight:700;color:#92400e">' + alertText + '</div>';
       } else if (ap === 'PENDIENTE') {
-        notasHTML += '<div style="background:#fff7ed;border:2px solid #fcd34d;border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:13px;font-weight:700;color:#92400e">⏳ Esperando respuesta del cliente...</div>';
+        notasHTML += '<div style="background:#fff7ed;border:2px solid #fcd34d;border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:13px;font-weight:700;color:#92400e">'
+          + '⏳ Esperando respuesta del cliente...'
+          + '<div style="font-size:11px;font-weight:600;color:#b45309;margin-top:4px">Da click en 🔄 Actualizar para ver si el cliente aprobó</div>'
+          + '</div>';
       } else if (ap === 'APROBADO') {
         notasHTML += '<div style="background:var(--green-light);border:2px solid var(--green-border);border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:13px;font-weight:700;color:var(--green)">✅ Arte Aprobado — Puedes imprimir</div>';
       }
@@ -1140,13 +1143,7 @@
     if (!_timerInterval) {
       _timerInterval = setInterval(actualizarTimers, 30000);
     }
-    // Polling cada 20s para actualizar aprobación en Diseño
-    setInterval(async function() {
-      if (areaActual !== 'Diseño') return;
-      const tieneAprob = [...(window._pendientes||[]),...(window._proceso||[])].some(i => i.reqAprobacion);
-      if (!tieneAprob) return;
-      try { await cargar(); } catch(e) {}
-    }, 20000);
+
     actualizarTimers(); // Primera actualización inmediata
   }
 
