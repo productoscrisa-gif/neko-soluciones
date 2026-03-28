@@ -729,6 +729,7 @@
   // ── ESTADO ──────────────────────────────────────────────
   let productos = [];
   let productCounter = 0;
+  let sesionVentas = JSON.parse(sessionStorage.getItem('neko_sesion') || '{}');
   let isPriority    = false;
   let isUrgente      = false;
   let isAprobacion   = false;
@@ -1260,16 +1261,16 @@
     if (/^[0-9]+$/.test(num) && num.length <= 6) {
       // Número de orden — búsqueda parcial desde el inicio
       const padded = num.padStart ? num : num;
-      url = `${SUPABASE_URL}/rest/v1/ordenes?numero_orden=ilike.*${encodeURIComponent(num)}*&order=fecha_creacion.desc&limit=10&select=*`;
+      url = `${SUPABASE_URL}/rest/v1/ordenes?numero_orden=ilike.*${encodeURIComponent(num)}*&order=fecha_creacion.desc&limit=10&select=id,numero_orden,estado,fecha_creacion,fecha_entrega,marca,canal,vendedora,usuario_red,es_prioritario,es_contraentrega,nivel_urgencia,valor_total,monto_pagado,saldo_pendiente,tipo_pago,medio_pago,productos,sub_estados,guia_numero,guia_url,link_drive,requiere_aprobacion,aprobacion_estado,aprobacion_comentario,aprobacion_por,aprobacion_fecha,aprobacion_url`;
     } else if (/^[0-9+\s]{7,}$/.test(num.replace(/\s/g,''))) {
       // Teléfono
-      url = `${SUPABASE_URL}/rest/v1/ordenes?telefono=ilike.*${encodeURIComponent(num.replace(/\s/g,''))}*&order=fecha_creacion.desc&limit=5&select=*`;
+      url = `${SUPABASE_URL}/rest/v1/ordenes?telefono=ilike.*${encodeURIComponent(num.replace(/\s/g,''))}*&order=fecha_creacion.desc&limit=5&select=id,numero_orden,estado,fecha_creacion,fecha_entrega,marca,canal,vendedora,usuario_red,es_prioritario,es_contraentrega,nivel_urgencia,valor_total,monto_pagado,saldo_pendiente,tipo_pago,medio_pago,productos,sub_estados,guia_numero,guia_url,link_drive,requiere_aprobacion,aprobacion_estado,aprobacion_comentario,aprobacion_por,aprobacion_fecha,aprobacion_url`;
     } else if (num.startsWith('@')) {
       // Usuario red social con @
-      url = `${SUPABASE_URL}/rest/v1/ordenes?usuario_red=ilike.*${encodeURIComponent(num.replace('@',''))}*&order=fecha_creacion.desc&limit=5&select=*`;
+      url = `${SUPABASE_URL}/rest/v1/ordenes?usuario_red=ilike.*${encodeURIComponent(num.replace('@',''))}*&order=fecha_creacion.desc&limit=5&select=id,numero_orden,estado,fecha_creacion,fecha_entrega,marca,canal,vendedora,usuario_red,es_prioritario,es_contraentrega,nivel_urgencia,valor_total,monto_pagado,saldo_pendiente,tipo_pago,medio_pago,productos,sub_estados,guia_numero,guia_url,link_drive,requiere_aprobacion,aprobacion_estado,aprobacion_comentario,aprobacion_por,aprobacion_fecha,aprobacion_url`;
     } else {
       // Nombre o usuario red social sin @
-      url = `${SUPABASE_URL}/rest/v1/ordenes?or=(nombre_cliente.ilike.*${encodeURIComponent(num)}*,usuario_red.ilike.*${encodeURIComponent(num)}*)&order=fecha_creacion.desc&limit=5&select=*`;
+      url = `${SUPABASE_URL}/rest/v1/ordenes?or=(nombre_cliente.ilike.*${encodeURIComponent(num)}*,usuario_red.ilike.*${encodeURIComponent(num)}*)&order=fecha_creacion.desc&limit=5&select=id,numero_orden,estado,fecha_creacion,fecha_entrega,marca,canal,vendedora,usuario_red,es_prioritario,es_contraentrega,nivel_urgencia,valor_total,monto_pagado,saldo_pendiente,tipo_pago,medio_pago,productos,sub_estados,guia_numero,guia_url,link_drive,requiere_aprobacion,aprobacion_estado,aprobacion_comentario,aprobacion_por,aprobacion_fecha,aprobacion_url`;
     }
 
     try {
@@ -1292,38 +1293,82 @@
     const oid    = btn.getAttribute('data-oid');
     const estado = btn.getAttribute('data-est') || 'APROBADO';
     btn.disabled = true;
-    await fetch(`${SUPABASE_URL}/rest/v1/ordenes?id=eq.${oid}`, {
-      method: 'PATCH',
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-      body: JSON.stringify({
-        aprobacion_estado:  estado,
-        aprobacion_por:     'Vendedora',
-        aprobacion_fecha:   new Date().toISOString(),
-        aprobacion_comentario: null
-      })
-    });
-    showToast('✅ Arte aprobado — El diseñador puede imprimir');
-    buscarSeguimiento();
+    btn.textContent = '⏳ Guardando...';
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/ordenes?id=eq.${oid}`, {
+        method: 'PATCH',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify({
+          aprobacion_estado:     'APROBADO',
+          aprobacion_por:        sesionVentas ? sesionVentas.nombre : 'Vendedora',
+          aprobacion_fecha:      new Date().toISOString(),
+          aprobacion_comentario: null
+        })
+      });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+
+      // Actualizar el bloque de aprobación directamente en el DOM
+      const card = btn.closest('[data-orden-id="' + oid + '"]');
+      const bloqueAprob = card ? card.querySelector('.bloque-aprobacion') : null;
+      if (bloqueAprob) {
+        bloqueAprob.outerHTML =
+          '<div class="bloque-aprobacion" style="background:#dcfce7;border:2px solid #86efac;border-radius:10px;padding:14px 16px;margin-top:12px">'
+          + '<div style="font-size:14px;font-weight:800;color:#16a34a">✅ Arte Aprobado por el Cliente</div>'
+          + '<div style="font-size:12px;color:#15803d;margin-top:4px">El diseñador ya puede proceder a imprimir</div>'
+          + '</div>';
+      } else {
+        // Fallback: volver a buscar
+        await buscarSeguimiento();
+      }
+      showToast('✅ Arte aprobado — El diseñador puede imprimir');
+    } catch(e) {
+      alert('Error al guardar: ' + e.message);
+      btn.disabled = false;
+      btn.textContent = '✅ Cliente Aprobó';
+    }
   }
 
   async function rechazarArte(btn) {
     const oid = btn.getAttribute('data-oid');
-    const comentario = prompt('¿Por qué razón el cliente rechazó el arte?\n(Escribe el comentario para el diseñador)');
-    if (comentario === null) return;
+    const comentario = prompt('¿Por qué razón el cliente rechazó el arte?\n(Escribe el comentario para el diseñador):');
+    if (comentario === null || comentario.trim() === '') {
+      alert('Debes escribir el motivo del rechazo para que el diseñador pueda corregirlo.');
+      return;
+    }
     btn.disabled = true;
-    await fetch(`${SUPABASE_URL}/rest/v1/ordenes?id=eq.${oid}`, {
-      method: 'PATCH',
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-      body: JSON.stringify({
-        aprobacion_estado:     'RECHAZADO',
-        aprobacion_por:        'Vendedora',
-        aprobacion_fecha:      new Date().toISOString(),
-        aprobacion_comentario: comentario,
-        aprobacion_url:        null
-      })
-    });
-    showToast('❌ Arte rechazado — El diseñador recibirá el comentario');
-    buscarSeguimiento();
+    btn.textContent = '⏳ Guardando...';
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/ordenes?id=eq.${oid}`, {
+        method: 'PATCH',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify({
+          aprobacion_estado:     'RECHAZADO',
+          aprobacion_por:        sesionVentas ? sesionVentas.nombre : 'Vendedora',
+          aprobacion_fecha:      new Date().toISOString(),
+          aprobacion_comentario: comentario.trim(),
+          aprobacion_url:        null
+        })
+      });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+
+      // Actualizar el bloque directamente en el DOM
+      const card = btn.closest('[data-orden-id="' + oid + '"]');
+      const bloqueAprob = card ? card.querySelector('.bloque-aprobacion') : null;
+      if (bloqueAprob) {
+        bloqueAprob.outerHTML =
+          '<div class="bloque-aprobacion" style="background:#fff1f2;border:2px solid #fca5a5;border-radius:10px;padding:14px 16px;margin-top:12px">'
+          + '<div style="font-size:14px;font-weight:800;color:#dc2626">❌ Arte Rechazado — El diseñador debe corregir</div>'
+          + '<div style="font-size:12px;color:#92400e;background:#fff7ed;padding:8px 12px;border-radius:8px;margin-top:8px;font-weight:600">💬 Motivo: ' + comentario.trim() + '</div>'
+          + '</div>';
+      } else {
+        await buscarSeguimiento();
+      }
+      showToast('❌ Arte rechazado — El diseñador recibirá el comentario');
+    } catch(e) {
+      alert('Error al guardar: ' + e.message);
+      btn.disabled = false;
+      btn.textContent = '❌ Cliente Rechazó';
+    }
   }
 
   function renderSeguimientoCard(o) {
@@ -1332,32 +1377,41 @@
 
     // Bloque de aprobación de arte
     var aprobHTML = '';
-    if (o.requiere_aprobacion) {
+    // Mostrar si requiere_aprobacion=true O si ya hay un estado de aprobación
+    if (o.requiere_aprobacion || o.aprobacion_estado) {
       const ap = o.aprobacion_estado;
       if (!ap) {
         // Esperando arte del diseñador
-        aprobHTML = '<div style="background:#fff7ed;border:2px solid #fcd34d;border-radius:10px;padding:14px 16px;margin-top:12px">'
+        aprobHTML = '<div class="bloque-aprobacion" style="background:#fff7ed;border:2px solid #fcd34d;border-radius:10px;padding:14px 16px;margin-top:12px">'
           + '<div style="font-size:13px;font-weight:800;color:#92400e;margin-bottom:4px">🎨 Aprobación de Arte Requerida</div>'
           + '<div style="font-size:12px;color:#92400e">⏳ El diseñador aún no ha subido el arte para aprobación.</div>'
         + '</div>';
       } else if (ap === 'PENDIENTE') {
         // Arte listo, esperando respuesta del cliente
         const linkArte = o.aprobacion_url || '';
-        aprobHTML = '<div style="background:#f5f3ff;border:2px solid #7c3aed;border-radius:10px;padding:14px 16px;margin-top:12px">'
-          + '<div style="font-size:13px;font-weight:800;color:#7c3aed;margin-bottom:8px">🎨 Arte Listo — Esperando Aprobación del Cliente</div>'
-          + (linkArte ? '<a href="' + linkArte + '" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#7c3aed;color:#fff;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;margin-bottom:10px">🔗 Ver Arte del Diseñador</a><br>' : '')
-          + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">'
-            + '<button data-oid="' + o.id + '" data-est="APROBADO" onclick="aprobarArte(this)" style="padding:8px 16px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">✅ Cliente Aprobó</button>'
-            + '<button data-oid="' + o.id + '" onclick="rechazarArte(this)" style="padding:8px 16px;background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">❌ Cliente Rechazó</button>'
+        aprobHTML = '<div class="bloque-aprobacion" style="background:#f5f3ff;border:2px solid #7c3aed;border-radius:10px;padding:16px;margin-top:12px">'
+          + '<div style="font-size:13px;font-weight:800;color:#7c3aed;margin-bottom:10px">🎨 Arte Listo — Envíalo al cliente y registra su respuesta</div>'
+          + (linkArte
+              ? '<a href="' + linkArte + '" target="_blank" style="display:inline-flex;align-items:center;gap:8px;padding:10px 16px;background:#7c3aed;color:#fff;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;margin-bottom:12px">🔗 Ver Arte del Diseñador</a>'
+              : '<div style="font-size:12px;color:#6d28d9;background:#ede9fe;padding:8px 12px;border-radius:8px;margin-bottom:12px">⚠️ El diseñador aún no subió el link del arte</div>'
+            )
+          + '<div style="font-size:12px;font-weight:600;color:#6d28d9;margin-bottom:8px">¿Qué respondió el cliente?</div>'
+          + '<div style="display:flex;gap:8px;flex-wrap:wrap">'
+            + '<button data-oid="' + o.id + '" data-est="APROBADO" onclick="aprobarArte(this)" '
+              + 'style="flex:1;min-width:140px;padding:10px 16px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 3px 10px rgba(16,185,129,.3)">'
+              + '✅ Cliente Aprobó</button>'
+            + '<button data-oid="' + o.id + '" onclick="rechazarArte(this)" '
+              + 'style="flex:1;min-width:140px;padding:10px 16px;background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 3px 10px rgba(239,68,68,.3)">'
+              + '❌ Cliente Rechazó</button>'
           + '</div>'
         + '</div>';
       } else if (ap === 'APROBADO') {
-        aprobHTML = '<div style="background:var(--green-light);border:2px solid var(--green-border);border-radius:10px;padding:12px 16px;margin-top:12px">'
+        aprobHTML = '<div class="bloque-aprobacion" style="background:var(--green-light);border:2px solid var(--green-border);border-radius:10px;padding:12px 16px;margin-top:12px">'
           + '<div style="font-size:13px;font-weight:800;color:var(--green)">✅ Arte Aprobado por el Cliente</div>'
           + '<div style="font-size:12px;color:var(--green);margin-top:2px">Aprobado por: ' + (o.aprobacion_por||'--') + ' · ' + (o.aprobacion_fecha ? new Date(o.aprobacion_fecha).toLocaleDateString('es-CO') : '') + '</div>'
         + '</div>';
       } else if (ap === 'RECHAZADO') {
-        aprobHTML = '<div style="background:var(--red-light);border:2px solid var(--red-border);border-radius:10px;padding:12px 16px;margin-top:12px">'
+        aprobHTML = '<div class="bloque-aprobacion" style="background:var(--red-light);border:2px solid var(--red-border);border-radius:10px;padding:12px 16px;margin-top:12px">'
           + '<div style="font-size:13px;font-weight:800;color:var(--red)">❌ Arte Rechazado — Diseñador debe corregir</div>'
           + (o.aprobacion_comentario ? '<div style="font-size:12px;color:#92400e;background:#fff7ed;padding:6px 10px;border-radius:6px;margin-top:6px">💬 ' + o.aprobacion_comentario + '</div>' : '')
         + '</div>';
@@ -1433,7 +1487,7 @@
       ? ' &nbsp;·&nbsp; <span style="color:#7c3aed">@' + o.usuario_red + '</span>'
       : '';
 
-    return '<div style="background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;padding:16px;margin-bottom:12px">'
+    return '<div data-orden-id="' + o.id + '" style="background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;padding:16px;margin-bottom:12px">'
       + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #f1f5f9;flex-wrap:wrap;gap:8px">'
         + '<div>'
           + '<div style="font-family:JetBrains Mono,monospace;font-size:15px;font-weight:700;color:#2563eb">' + o.numero_orden + '</div>'

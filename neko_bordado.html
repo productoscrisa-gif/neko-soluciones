@@ -1140,6 +1140,13 @@
     if (!_timerInterval) {
       _timerInterval = setInterval(actualizarTimers, 30000);
     }
+    // Polling cada 20s para actualizar aprobación en Diseño
+    setInterval(async function() {
+      if (areaActual !== 'Diseño') return;
+      const tieneAprob = [...(window._pendientes||[]),...(window._proceso||[])].some(i => i.reqAprobacion);
+      if (!tieneAprob) return;
+      try { await cargar(); } catch(e) {}
+    }, 20000);
     actualizarTimers(); // Primera actualización inmediata
   }
 
