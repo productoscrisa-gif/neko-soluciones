@@ -204,9 +204,11 @@
   .toggle-row.active { border-color: var(--red-border); background: var(--red-light); }
   .toggle-row.active .toggle-switch { background: #ef4444; }
   .toggle-row.active .toggle-switch::after { transform: translateX(20px); }
-  .toggle-row.active-urgente { border-color: #ea580c; background: #fff7ed; }
+  .toggle-row.active-urgente { border-color: #ea580c !important; background: #fff7ed; }
   .toggle-row.active-urgente .toggle-switch { background: #ea580c; }
   .toggle-row.active-urgente .toggle-switch::after { transform: translateX(20px); }
+  .toggle-switch[data-on="1"]::after { transform: translateX(20px); }
+  .toggle-switch[data-on="0"]::after { transform: translateX(0px); }
   .toggle-info { display: flex; flex-direction: column; gap: 2px; }
   .toggle-label { font-size: 14px; font-weight: 600; color: var(--text-primary); }
   .toggle-desc { font-size: 12px; color: var(--text-secondary); }
@@ -228,9 +230,6 @@
     transition: transform .25s;
     box-shadow: 0 1px 4px rgba(0,0,0,.2);
   }
-  .toggle-row.active .toggle-switch { background: var(--red-alert); }
-  .toggle-row.active .toggle-switch::after { transform: translateX(20px); }
-
   /* PRIORITY BADGE */
   .priority-badge {
     display: none;
@@ -744,17 +743,25 @@
     const urgBadge= document.getElementById('urgenteBadge');
     const card    = document.getElementById('bloque2');
 
-    // Toggle PRIORITARIO — rojo
-    rowPri.classList.toggle('active', isPriority);
+    // ── Toggle PRIORITARIO (rojo) ──
+    rowPri.style.borderColor = isPriority ? '#fca5a5' : '';
+    rowPri.style.background  = isPriority ? '#fff1f2' : '';
     if (swPri) {
-      swPri.style.background = isPriority ? '#ef4444' : '';
+      swPri.style.background = isPriority ? '#ef4444' : '#cbd5e1';
+      const after = swPri.querySelector('::after');
+      // Mover bolita via pseudo-class controlada desde CSS con clase
+      swPri.setAttribute('data-on', isPriority ? '1' : '0');
     }
+    rowPri.classList.toggle('active', isPriority);
 
-    // Toggle URGENTE — naranja (clase separada)
-    rowUrg.classList.toggle('active-urgente', isUrgente);
+    // ── Toggle URGENTE (naranja) ──
+    rowUrg.style.borderColor = isUrgente ? '#ea580c' : '#ea580c22';
+    rowUrg.style.background  = isUrgente ? '#fff7ed' : '';
     if (swUrg) {
-      swUrg.style.background = isUrgente ? '#ea580c' : '';
+      swUrg.style.background = isUrgente ? '#ea580c' : '#cbd5e1';
+      swUrg.setAttribute('data-on', isUrgente ? '1' : '0');
     }
+    rowUrg.classList.toggle('active-urgente', isUrgente);
 
     badge.style.display    = isPriority ? 'block' : 'none';
     urgBadge.style.display = isUrgente  ? 'block' : 'none';
