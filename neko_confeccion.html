@@ -81,6 +81,13 @@
   .btn-listo{background:linear-gradient(135deg,#10b981,#059669);color:#fff;box-shadow:0 3px 10px rgba(16,185,129,.3);}
   .btn-enviar{background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;box-shadow:0 3px 10px rgba(37,99,235,.3);}
   .btn-error{background:var(--red-light);color:var(--red);border:1.5px solid var(--red-border);}
+  .pause-btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;padding:10px;background:#f8fafc;border:1px solid var(--border);border-radius:8px;}
+  .pause-label{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;width:100%;margin-bottom:2px;}
+  .btn-pausa{padding:7px 12px;border:1.5px solid #fed7aa;background:#fff7ed;color:#c2410c;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;}
+  .btn-pausa:hover{background:#ffedd5;}
+  .btn-reanudar{padding:9px 18px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 3px 10px rgba(16,185,129,.3);}
+  .pausa-activa{background:#fffbeb;border:2px solid #fcd34d;border-radius:10px;padding:10px 14px;margin-top:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+  .pausa-info{font-size:13px;font-weight:700;color:#92400e;}
   /* PAGINACIÓN */
   .paginacion{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:20px;}
   .btn-pag{padding:7px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;}
@@ -266,6 +273,8 @@
             errorAreaReporta:  se.error_area || '',
             errorDesc:         se.error_desc || '',
             diseñadorAsignado: se.diseñador_asignado || '',
+            pausaMotivo:       se.pausa_motivo || '',
+            enPausa:           se.pausa_motivo ? true : false,
             // Guardar sub para actualizaciones locales
             _subs:        subs,
             _ordenId:     orden.id,
@@ -377,7 +386,7 @@
 
   // ── RENDER PRENDA ─────────────────────────────────────────
   function renderPrenda(item) {
-    const { ordenId, ordenNum, prendaIdx, prenda, ruta, marca, esPrioritario, entrega, estado, estadoDiseno, tieneError, errorAreaReporta, errorDesc, diseñadorAsignado } = item;
+    const { ordenId, ordenNum, prendaIdx, prenda, ruta, marca, esPrioritario, entrega, estado, estadoDiseno, tieneError, errorAreaReporta, errorDesc, diseñadorAsignado, enPausa, pausaMotivo } = item;
     const entregaF  = entrega ? new Date(entrega + 'T12:00:00').toLocaleDateString('es-CO', { day:'2-digit', month:'short' }) : '—';
     const idxActual = ruta.indexOf(areaActual);
     const areaSig   = idxActual >= 0 && idxActual < ruta.length - 1 ? ruta[idxActual + 1] : null;
@@ -410,10 +419,16 @@
     var timerKey   = String(ordenId) + '-' + prendaIdx;
     var timerMins  = getTiempoActivo(ordenId, prendaIdx);
     var timerColor = timerMins === null ? '#94a3b8' : timerMins < 30 ? '#10b981' : timerMins < 60 ? '#f59e0b' : '#ef4444';
-    var timerHTML  = estado === 'en_proceso'
-      ? '<div id="timer-' + timerKey + '" style="display:inline-flex;align-items:center;gap:6px;background:' + (timerMins === null ? '#f8fafc' : timerMins < 30 ? '#ecfdf5' : timerMins < 60 ? '#fffbeb' : '#fff1f2') + ';border:2px solid ' + (timerMins === null ? '#e2e8f0' : timerMins < 30 ? '#6ee7b7' : timerMins < 60 ? '#fcd34d' : '#fca5a5') + ';padding:6px 14px;border-radius:20px;margin-top:6px">'
-          + '<span style="font-size:18px">⏱️</span>'
-          + '<span style="font-size:16px;font-weight:800;font-family:JetBrains Mono,monospace;color:' + timerColor + '">' + (timerMins !== null ? formatTiempo(timerMins) : 'Iniciado') + '</span>'
+    var pausado   = item.enPausa || false;
+    var timerHTML = estado === 'en_proceso'
+      ? '<div id="timer-' + timerKey + '" style="display:inline-flex;align-items:center;gap:6px;'
+          + 'background:' + (pausado ? '#fffbeb' : timerMins === null ? '#f8fafc' : timerMins < 30 ? '#ecfdf5' : timerMins < 60 ? '#fffbeb' : '#fff1f2') + ';'
+          + 'border:2px solid '  + (pausado ? '#fcd34d' : timerMins === null ? '#e2e8f0' : timerMins < 30 ? '#6ee7b7' : timerMins < 60 ? '#fcd34d' : '#fca5a5') + ';'
+          + 'padding:6px 14px;border-radius:20px;margin-top:6px">'
+          + '<span style="font-size:18px">' + (pausado ? '⏸️' : '⏱️') + '</span>'
+          + '<span style="font-size:16px;font-weight:800;font-family:JetBrains Mono,monospace;color:' + (pausado ? '#92400e' : timerColor) + '">'
+            + (pausado ? '⏸️ ' + item.pausaMotivo : (timerMins !== null ? formatTiempo(timerMins) : 'Iniciado'))
+          + '</span>'
         + '</div>'
       : '';
 
@@ -464,8 +479,23 @@
           + '<button class="btn-action btn-error" data-oid="' + oid + '" data-idx="' + pidx + '" onclick="pBtnError(this)">🔴 Reportar Error</button>'
           + '</div></div>';
       } else {
-        accionesHTML = '<button class="btn-action btn-listo" data-oid="' + oid + '" data-idx="' + pidx + '" data-est="lista" onclick="pBtnCambiar(this)">✅ Marcar Lista</button>'
-          + '<button class="btn-action btn-error" data-oid="' + oid + '" data-idx="' + pidx + '" onclick="pBtnError(this)">🔴 Reportar Error</button>';
+        // enPausa y pausaMotivo vienen del item
+        if (enPausa) {
+          accionesHTML = '<div class="pausa-activa">'
+            + '<span class="pausa-info">⏸️ Pausado: ' + pausaMotivo + '</span>'
+            + '<button class="btn-reanudar" data-oid="' + oid + '" data-idx="' + pidx + '" onclick="pBtnReanudar(this)">▶️ Reanudar</button>'
+          + '</div>';
+        } else {
+          accionesHTML = '<button class="btn-action btn-listo" data-oid="' + oid + '" data-idx="' + pidx + '" data-est="lista" onclick="pBtnCambiar(this)">✅ Marcar Lista</button>'
+            + '<button class="btn-action btn-error" data-oid="' + oid + '" data-idx="' + pidx + '" onclick="pBtnError(this)">🔴 Reportar Error</button>'
+            + '<div class="pause-btns">'
+              + '<span class="pause-label">⏸️ Pausar:</span>'
+              + '<button class="btn-pausa" data-oid="' + oid + '" data-idx="' + pidx + '" data-motivo="Almuerzo" onclick="pBtnPausar(this)">🍽️ Almuerzo</button>'
+              + '<button class="btn-pausa" data-oid="' + oid + '" data-idx="' + pidx + '" data-motivo="Baño" onclick="pBtnPausar(this)">🚻 Baño</button>'
+              + '<button class="btn-pausa" data-oid="' + oid + '" data-idx="' + pidx + '" data-motivo="Otro trabajo" onclick="pBtnPausar(this)">🔧 Otro trabajo</button>'
+              + '<button class="btn-pausa" data-oid="' + oid + '" data-idx="' + pidx + '" data-motivo="Pausa" onclick="pBtnPausar(this)">⏸️ Pausa</button>'
+            + '</div>';
+        }
       }
     }
     if (estado === 'lista') {
@@ -495,6 +525,17 @@
   }
 
   // Funciones auxiliares via data-attributes
+  function pBtnPausar(btn) {
+    var oid    = btn.getAttribute('data-oid');
+    var pidx   = parseInt(btn.getAttribute('data-idx'));
+    var motivo = btn.getAttribute('data-motivo');
+    pausarTiempo(oid, pidx, motivo);
+  }
+  function pBtnReanudar(btn) {
+    var oid  = btn.getAttribute('data-oid');
+    var pidx = parseInt(btn.getAttribute('data-idx'));
+    reanudarTiempo(oid, pidx);
+  }
   function pBtnCambiar(btn) { cambiarEstado(btn.getAttribute('data-oid'), parseInt(btn.getAttribute('data-idx')), btn.getAttribute('data-est')); }
   function pBtnEnviar(btn)  { enviarSiguiente(btn.getAttribute('data-oid'), parseInt(btn.getAttribute('data-idx')), btn.getAttribute('data-area')); }
   function pBtnDiseno(btn)  { cambiarEstadoDiseno(btn.getAttribute('data-oid'), parseInt(btn.getAttribute('data-idx')), btn.getAttribute('data-dis')); }
@@ -911,6 +952,55 @@
   var _tiemposActivos = {};
   var _timerInterval  = null;
 
+  // ── PAUSA / REANUDAR ─────────────────────────────────────
+  async function pausarTiempo(ordenId, prendaIdx, motivo) {
+    var key = String(ordenId) + '-' + prendaIdx;
+    var reg = _tiemposActivos[key];
+
+    // Guardar minutos acumulados hasta ahora
+    if (reg) {
+      var ahora = new Date();
+      reg.minutos_acumulados = (reg.minutos_acumulados || 0) + Math.round((ahora - reg.inicio) / 60000);
+      reg.pausado = true;
+      reg.inicio  = null; // pausado — no contamos más
+    }
+
+    // Actualizar UI de listas locales
+    for (var lk of ['_pendientes','_proceso','_listas']) {
+      var arr = window[lk] || [];
+      var item = arr.find(function(p){ return String(p.ordenId)===String(ordenId) && p.prendaIdx===prendaIdx; });
+      if (item) { item.enPausa = true; item.pausaMotivo = motivo; break; }
+    }
+    renderTab();
+    showToast('⏸️ Pausado: ' + motivo);
+
+    // Guardar pausa en Supabase en background
+    actualizarSubEstado(ordenId, prendaIdx, { pausa_motivo: motivo, pausa_inicio: new Date().toISOString() }).catch(function(){});
+  }
+
+  async function reanudarTiempo(ordenId, prendaIdx) {
+    var key = String(ordenId) + '-' + prendaIdx;
+    var reg = _tiemposActivos[key];
+
+    // Reiniciar el timer desde ahora
+    if (reg) {
+      reg.inicio  = new Date();
+      reg.pausado = false;
+    }
+
+    // Actualizar UI
+    for (var lk of ['_pendientes','_proceso','_listas']) {
+      var arr = window[lk] || [];
+      var item = arr.find(function(p){ return String(p.ordenId)===String(ordenId) && p.prendaIdx===prendaIdx; });
+      if (item) { item.enPausa = false; item.pausaMotivo = ''; break; }
+    }
+    renderTab();
+    showToast('▶️ Reanudado — timer activo');
+
+    // Limpiar pausa en Supabase en background
+    actualizarSubEstado(ordenId, prendaIdx, { pausa_motivo: null, pausa_inicio: null }).catch(function(){});
+  }
+
   function iniciarTiempo(ordenId, prendaIdx, item) {
     var key   = ordenId + '-' + prendaIdx;
     var ahora = new Date();
@@ -971,8 +1061,9 @@
 
   function actualizarTimers() {
     Object.keys(_tiemposActivos).forEach(function(key) {
-      var reg   = _tiemposActivos[key];
-      var mins  = Math.round((new Date() - reg.inicio) / 60000);
+      var reg = _tiemposActivos[key];
+      if (reg.pausado || !reg.inicio) return; // no actualizar si está pausado
+      var mins = (reg.minutos_acumulados || 0) + Math.round((new Date() - reg.inicio) / 60000);
       var el    = document.getElementById('timer-' + key);
       if (!el) return;
       var color     = mins < 30 ? '#10b981' : mins < 60 ? '#f59e0b' : '#ef4444';
@@ -997,10 +1088,11 @@
   }
 
   function getTiempoActivo(ordenId, prendaIdx) {
-    var key = ordenId + '-' + prendaIdx;
+    var key = String(ordenId) + '-' + prendaIdx;
     var reg = _tiemposActivos[key];
     if (!reg) return null;
-    return Math.round((new Date() - reg.inicio) / 60000);
+    if (reg.pausado || !reg.inicio) return reg.minutos_acumulados || 0;
+    return (reg.minutos_acumulados || 0) + Math.round((new Date() - reg.inicio) / 60000);
   }
 
   function showToast(msg) {

@@ -779,91 +779,123 @@
     if (!statsEl || !tablaEl) return;
     tablaEl.innerHTML = '<p style="color:var(--text-muted);font-size:13px">⏳ Cargando...</p>';
 
-    const area    = document.getElementById('filtro-area-tiempo')?.value || '';
-    const dias    = parseInt(document.getElementById('filtro-periodo-tiempo')?.value || '7');
-    const desde   = new Date();
+    const area = document.getElementById('filtro-area-tiempo')?.value || '';
+    const dias  = parseInt(document.getElementById('filtro-periodo-tiempo')?.value || '7');
+    const desde = new Date();
     desde.setDate(desde.getDate() - dias);
 
-    let url = SB_URL + '/rest/v1/tiempos_produccion?fecha_inicio=gte.' + desde.toISOString()
-            + '&estado=eq.COMPLETADO&order=fecha_inicio.desc&limit=200';
-    if (area) url += '&area=eq.' + encodeURIComponent(area);
+    // ── Query optimizada: solo lo necesario, límite razonable ──
+    // Columnas mínimas para stats + tabla (sin traer datos innecesarios)
+    // Limit 50 para tabla — los stats los calculamos con una query separada de agregados
+    let baseUrl = SB_URL + '/rest/v1/tiempos_produccion'
+      + '?fecha_inicio=gte.' + desde.toISOString()
+      + '&estado=eq.COMPLETADO'
+      + '&select=id,numero_orden,tipo_prenda,area,usuario,minutos,fecha_inicio'
+      + '&order=fecha_inicio.desc';
 
-    const r    = await fetch(url, { headers: HDR });
-    const data = await r.json();
-    if (!Array.isArray(data) || !data.length) {
-      statsEl.innerHTML = '';
-      tablaEl.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted)"><div style="font-size:32px;margin-bottom:10px">⏱️</div><p>Sin registros de tiempo para este período</p></div>';
-      return;
+    if (area) baseUrl += '&area=eq.' + encodeURIComponent(area);
+
+    try {
+      // Consulta 1: stats agregados (solo minutos y área) — muy liviana
+      const urlStats = SB_URL + '/rest/v1/tiempos_produccion'
+        + '?fecha_inicio=gte.' + desde.toISOString()
+        + '&estado=eq.COMPLETADO'
+        + '&select=area,minutos'
+        + (area ? '&area=eq.' + encodeURIComponent(area) : '');
+
+      // Consulta 2: detalle para tabla — paginada a 50 registros
+      const urlDetalle = baseUrl + '&limit=50';
+
+      const [rStats, rDetalle] = await Promise.all([
+        fetch(urlStats,   { headers: HDR }),
+        fetch(urlDetalle, { headers: HDR })
+      ]);
+
+      const statsData  = await rStats.json();
+      const detalleData= await rDetalle.json();
+
+      if (!Array.isArray(statsData) || !statsData.length) {
+        statsEl.innerHTML = '';
+        tablaEl.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted)"><div style="font-size:32px;margin-bottom:10px">⏱️</div><p>Sin registros para este período</p></div>';
+        return;
+      }
+
+      // ── Stats calculados desde la query liviana ──
+      const totalRegistros = statsData.length;
+      const totalMinutos   = statsData.reduce((s,t) => s + (t.minutos||0), 0);
+      const promMinutos    = Math.round(totalMinutos / totalRegistros);
+      const maxMinutos     = Math.max(...statsData.map(t => t.minutos||0));
+
+      // Agrupar por área
+      const porArea = {};
+      statsData.forEach(t => {
+        if (!porArea[t.area]) porArea[t.area] = { total: 0, count: 0 };
+        porArea[t.area].total += (t.minutos||0);
+        porArea[t.area].count++;
+      });
+
+      // ── Render stats ──
+      statsEl.innerHTML =
+        '<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px">'
+          + '<div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Total Registros</div>'
+          + '<div style="font-size:22px;font-weight:800;font-family:JetBrains Mono,monospace;color:var(--blue)">' + totalRegistros + '</div>'
+        + '</div>'
+        + '<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px">'
+          + '<div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Tiempo Total</div>'
+          + '<div style="font-size:22px;font-weight:800;font-family:JetBrains Mono,monospace;color:var(--purple)">' + formatMins(totalMinutos) + '</div>'
+        + '</div>'
+        + '<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px">'
+          + '<div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Promedio por Prenda</div>'
+          + '<div style="font-size:22px;font-weight:800;font-family:JetBrains Mono,monospace;color:var(--green)">' + formatMins(promMinutos) + '</div>'
+        + '</div>'
+        + '<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px">'
+          + '<div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Máximo Registrado</div>'
+          + '<div style="font-size:22px;font-weight:800;font-family:JetBrains Mono,monospace;color:var(--red)">' + formatMins(maxMinutos) + '</div>'
+        + '</div>';
+
+      // ── Resumen por área ──
+      let resumenArea = '<div style="margin-bottom:20px">'
+        + '<div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:10px">Tiempo por Área</div>'
+        + '<div style="display:flex;flex-wrap:wrap;gap:8px">'
+        + Object.entries(porArea).sort((a,b) => b[1].total - a[1].total).map(([a, d]) =>
+            '<span style="padding:5px 12px;background:var(--purple-light);border:1px solid #ede9fe;border-radius:20px;font-size:12px;font-weight:700;color:var(--purple)">'
+            + a + ': ' + formatMins(d.total) + ' (' + d.count + ' prendas)</span>'
+          ).join('')
+        + '</div>'
+        + (totalRegistros > 50 ? '<div style="font-size:12px;color:var(--text-muted);margin-top:8px">📊 Stats calculados sobre ' + totalRegistros + ' registros · Tabla muestra los últimos 50</div>' : '')
+        + '</div>';
+
+      // ── Tabla detalle (máx 50 filas) ──
+      const detalle = Array.isArray(detalleData) ? detalleData : [];
+      tablaEl.innerHTML = resumenArea
+        + '<div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:10px">Últimos registros (50)</div>'
+        + '<table style="width:100%;border-collapse:collapse;font-size:13px">'
+        + '<thead><tr>'
+          + '<th style="background:var(--surface2);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border)">Orden</th>'
+          + '<th style="background:var(--surface2);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border)">Prenda</th>'
+          + '<th style="background:var(--surface2);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border)">Área</th>'
+          + '<th style="background:var(--surface2);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border)">Usuario</th>'
+          + '<th style="background:var(--surface2);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border)">Tiempo</th>'
+          + '<th style="background:var(--surface2);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border)">Fecha</th>'
+        + '</tr></thead><tbody>'
+        + detalle.map(t => {
+            const mins  = t.minutos || 0;
+            const color = mins < 30 ? 'var(--green)' : mins < 60 ? 'var(--amber)' : 'var(--red)';
+            const fecha = t.fecha_inicio ? new Date(t.fecha_inicio).toLocaleDateString('es-CO',{day:'2-digit',month:'short'}) : '--';
+            return '<tr style="border-bottom:1px solid var(--border)">'
+              + '<td style="padding:9px 12px;font-family:JetBrains Mono,monospace;font-size:12px;font-weight:700;color:var(--blue)">' + (t.numero_orden||'--') + '</td>'
+              + '<td style="padding:9px 12px;font-weight:600">' + (t.tipo_prenda||'--') + '</td>'
+              + '<td style="padding:9px 12px"><span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;background:var(--purple-light);color:var(--purple)">' + t.area + '</span></td>'
+              + '<td style="padding:9px 12px;font-size:12px;color:var(--text-secondary)">' + (t.usuario||'--') + '</td>'
+              + '<td style="padding:9px 12px;font-family:JetBrains Mono,monospace;font-weight:800;color:' + color + '">' + formatMins(mins) + '</td>'
+              + '<td style="padding:9px 12px;font-size:12px;color:var(--text-muted)">' + fecha + '</td>'
+            + '</tr>';
+          }).join('')
+        + '</tbody></table>';
+
+    } catch(e) {
+      tablaEl.innerHTML = '<p style="color:var(--red)">Error: ' + e.message + '</p>';
     }
-
-    // Calcular stats
-    const totalRegistros = data.length;
-    const totalMinutos   = data.reduce((s,t) => s + (t.minutos||0), 0);
-    const promMinutos    = Math.round(totalMinutos / totalRegistros);
-    const maxMinutos     = Math.max(...data.map(t => t.minutos||0));
-
-    // Agrupar por área
-    const porArea = {};
-    data.forEach(t => {
-      if (!porArea[t.area]) porArea[t.area] = { total: 0, count: 0 };
-      porArea[t.area].total += (t.minutos||0);
-      porArea[t.area].count++;
-    });
-
-    statsEl.innerHTML =
-      '<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px">'
-        + '<div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Total Registros</div>'
-        + '<div style="font-size:22px;font-weight:800;font-family:JetBrains Mono,monospace;color:var(--blue)">' + totalRegistros + '</div>'
-      + '</div>'
-      + '<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px">'
-        + '<div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Tiempo Total</div>'
-        + '<div style="font-size:22px;font-weight:800;font-family:JetBrains Mono,monospace;color:var(--purple)">' + formatMins(totalMinutos) + '</div>'
-      + '</div>'
-      + '<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px">'
-        + '<div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Promedio por Prenda</div>'
-        + '<div style="font-size:22px;font-weight:800;font-family:JetBrains Mono,monospace;color:var(--green)">' + formatMins(promMinutos) + '</div>'
-      + '</div>'
-      + '<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px">'
-        + '<div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Máximo Registrado</div>'
-        + '<div style="font-size:22px;font-weight:800;font-family:JetBrains Mono,monospace;color:var(--red)">' + formatMins(maxMinutos) + '</div>'
-      + '</div>';
-
-    // Resumen por área
-    let resumenArea = '<div style="margin-bottom:20px">'
-      + '<div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:10px">Tiempo por Área</div>'
-      + '<div style="display:flex;flex-wrap:wrap;gap:8px">'
-      + Object.entries(porArea).sort((a,b) => b[1].total - a[1].total).map(([area, d]) =>
-          '<span style="padding:5px 12px;background:var(--purple-light);border:1px solid #ede9fe;border-radius:20px;font-size:12px;font-weight:700;color:var(--purple)">'
-          + area + ': ' + formatMins(d.total) + ' (' + d.count + ' prendas)</span>'
-        ).join('')
-      + '</div></div>';
-
-    // Tabla de registros
-    tablaEl.innerHTML = resumenArea
-      + '<div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:10px">Detalle de Registros</div>'
-      + '<table style="width:100%;border-collapse:collapse;font-size:13px">'
-      + '<thead><tr>'
-        + '<th style="background:var(--surface2);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border)">Orden</th>'
-        + '<th style="background:var(--surface2);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border)">Prenda</th>'
-        + '<th style="background:var(--surface2);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border)">Área</th>'
-        + '<th style="background:var(--surface2);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border)">Usuario</th>'
-        + '<th style="background:var(--surface2);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border)">Tiempo</th>'
-        + '<th style="background:var(--surface2);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border)">Inicio</th>'
-      + '</tr></thead><tbody>'
-      + data.map(t => {
-          const mins   = t.minutos || 0;
-          const color  = mins < 30 ? 'var(--green)' : mins < 60 ? 'var(--amber)' : 'var(--red)';
-          const fecha  = t.fecha_inicio ? new Date(t.fecha_inicio).toLocaleDateString('es-CO',{day:'2-digit',month:'short'}) : '--';
-          return '<tr style="border-bottom:1px solid var(--border)">'
-            + '<td style="padding:9px 12px;font-family:JetBrains Mono,monospace;font-size:12px;font-weight:700;color:var(--blue)">' + (t.numero_orden||'--') + '</td>'
-            + '<td style="padding:9px 12px;font-weight:600">' + (t.tipo_prenda||'--') + '</td>'
-            + '<td style="padding:9px 12px"><span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;background:var(--purple-light);color:var(--purple)">' + t.area + '</span></td>'
-            + '<td style="padding:9px 12px;font-size:12px;color:var(--text-secondary)">' + (t.usuario||'--') + '</td>'
-            + '<td style="padding:9px 12px;font-family:JetBrains Mono,monospace;font-weight:800;color:' + color + '">' + formatMins(mins) + '</td>'
-            + '<td style="padding:9px 12px;font-size:12px;color:var(--text-muted)">' + fecha + '</td>'
-          + '</tr>';
-        }).join('')
-      + '</tbody></table>';
   }
 
   function formatMins(mins) {
