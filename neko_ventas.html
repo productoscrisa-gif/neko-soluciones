@@ -1545,7 +1545,178 @@
       + aprobHTML
       + '<div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">📦 Prendas del Pedido</div>'
       + (prendasHTML || '<p style="color:#94a3b8;font-size:13px">Sin prendas registradas</p>')
+    + (o.orden_padre
+        ? '<div style="margin-top:10px;padding:8px 14px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;font-size:12px;color:#1d4ed8;font-weight:600">🔗 Orden adicional de: <strong>' + o.orden_padre + '</strong></div>'
+        : '')
+    + '<div style="margin-top:12px;border-top:1px solid #f1f5f9;padding-top:12px">'
+      + '<button onclick="abrirModalHija(' + "'" + o.id + "'" + ',' + "'" + o.numero_orden + "'" + ')" '
+        + 'style="display:inline-flex;align-items:center;gap:6px;padding:9px 16px;background:#f0fdf4;color:#16a34a;border:1.5px solid #86efac;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">'
+        + '➕ Agregar Productos a esta Orden'
+      + '</button>'
+    + '</div>'
     + '</div>';
+  }
+
+  // ── ORDEN HIJA ───────────────────────────────────────────
+  let _hijaOrdenId    = null;
+  let _hijaOrdenNum   = null;
+  let _hijaOrden      = null;  // datos de la orden padre
+  let _hijaCounter    = 0;
+
+  async function abrirModalHija(ordenId, ordenNum) {
+    _hijaOrdenId  = ordenId;
+    _hijaOrdenNum = ordenNum;
+    _hijaCounter  = 0;
+
+    // Cargar datos del padre para heredar cliente
+    const r = await fetch(SUPABASE_URL + '/rest/v1/ordenes?id=eq.' + ordenId
+      + '&select=nombre_cliente,telefono,direccion,barrio,ciudad,departamento,doc_cliente,email,tipo_envio,marca,vendedora,canal', {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+    });
+    const data = await r.json();
+    _hijaOrden = data[0] || {};
+
+    document.getElementById('hija-padre-num').textContent = ordenNum;
+    document.getElementById('hija-products-list').innerHTML = '';
+    document.getElementById('hija-total').value   = '';
+    document.getElementById('hija-pagado').value  = '';
+    document.getElementById('hija-tipo-pago').value  = '';
+    document.getElementById('hija-medio-pago').value = '';
+    document.getElementById('modal-hija').style.display = 'block';
+    agregarProductoHija(); // agregar 1 prenda por defecto
+  }
+
+  function cerrarModalHija() {
+    document.getElementById('modal-hija').style.display = 'none';
+    _hijaOrdenId = null; _hijaOrden = null;
+  }
+
+  function agregarProductoHija() {
+    _hijaCounter++;
+    const id  = 'hija_' + _hijaCounter;
+    const num = _hijaCounter;
+    const div = document.createElement('div');
+    div.className = 'product-item';
+    div.id = id;
+    div.innerHTML = `
+      <div class="product-item-header">
+        <span class="product-item-title">📦 Producto Adicional #${num}</span>
+        <button class="btn-remove" onclick="document.getElementById('${id}').remove()">✕</button>
+      </div>
+      <div class="grid-3">
+        <div class="field"><label>Tipo <span class="req">*</span></label>
+          <select name="tipo_${id}" required><option value="">— Tipo —</option>
+            ${tiposProducto.map(t => '<option>' + t + '</option>').join('')}
+          </select></div>
+        <div class="field"><label>Horma</label>
+          <select name="horma_${id}">${['','Unisex','Masculino','Femenino','Oversize','Junior','Varias','Otras'].map(h=>'<option>'+h+'</option>').join('')}</select></div>
+        <div class="field"><label>Talla <span class="req">*</span></label>
+          ${buildSelectTalla('talla_' + id)}</div>
+      </div>
+      <div class="grid-3" style="margin-top:10px">
+        <div class="field"><label>Cantidad <span class="req">*</span></label>
+          <input type="number" name="cantidad_${id}" min="1" value="1"></div>
+        <div class="field col-span-2"><label>URL Referencia</label>
+          <input type="url" name="url_${id}" placeholder="https://..."></div>
+      </div>
+      <div class="field" style="margin-top:10px"><label>📝 Observaciones</label>
+        <textarea name="notas_${id}" placeholder="Color, diseño, referencias especiales..."></textarea></div>`;
+    document.getElementById('hija-products-list').appendChild(div);
+  }
+
+  async function generarOrdenHija() {
+    if (!_hijaOrdenId) return;
+
+    // Recolectar productos del modal hija
+    const items = document.getElementById('hija-products-list').querySelectorAll('.product-item');
+    if (!items.length) { alert('Agrega al menos un producto.'); return; }
+
+    const productos = [];
+    for (const item of items) {
+      const id   = item.id;
+      const tipo = item.querySelector('[name="tipo_' + id + '"]')?.value;
+      if (!tipo) { alert('Selecciona el tipo de producto en todos los ítems.'); return; }
+      productos.push({
+        tipo,
+        horma:    item.querySelector('[name="horma_' + id + '"]')?.value || '',
+        talla:    item.querySelector('[name="talla_' + id + '"]')?.value || '',
+        cantidad: item.querySelector('[name="cantidad_' + id + '"]')?.value || '1',
+        url:      item.querySelector('[name="url_' + id + '"]')?.value || '',
+        notas:    item.querySelector('[name="notas_' + id + '"]')?.value || '',
+      });
+    }
+
+    const total  = parseFloat(document.getElementById('hija-total').value)  || 0;
+    const pagado = parseFloat(document.getElementById('hija-pagado').value) || 0;
+    const tipo_pago  = document.getElementById('hija-tipo-pago').value;
+    const medio_pago = document.getElementById('hija-medio-pago').value;
+    if (!tipo_pago)  { alert('Selecciona el tipo de pago.'); return; }
+    if (!medio_pago) { alert('Selecciona el medio de pago.'); return; }
+
+    const btn = document.getElementById('btn-generar-hija');
+    btn.disabled = true; btn.textContent = '⏳ Generando...';
+
+    try {
+      // Generar número de orden hija: 00123-B, 00123-C...
+      const letras = 'BCDEFGHIJKLMNOPQRSTUVWXYZ';
+      const rHijas = await fetch(SUPABASE_URL + '/rest/v1/ordenes?orden_padre=eq.' + _hijaOrdenNum
+        + '&select=numero_orden', {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+      });
+      const hijasExist = await rHijas.json();
+      const letraIdx   = Array.isArray(hijasExist) ? hijasExist.length : 0;
+      const letra      = letras[letraIdx] || ('Z' + (letraIdx - 24));
+      const numHija    = _hijaOrdenNum + '-' + letra;
+
+      // Marcar padre como tiene_hijas
+      await fetch(SUPABASE_URL + '/rest/v1/ordenes?id=eq.' + _hijaOrdenId, {
+        method: 'PATCH',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY,
+                   'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ tiene_hijas: true })
+      });
+
+      // Crear orden hija
+      await fetch(SUPABASE_URL + '/rest/v1/ordenes', {
+        method: 'POST',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY,
+                   'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify({
+          numero_orden:    numHija,
+          orden_padre:     _hijaOrdenNum,
+          nombre_cliente:  _hijaOrden.nombre_cliente,
+          doc_cliente:     _hijaOrden.doc_cliente,
+          telefono:        _hijaOrden.telefono,
+          email:           _hijaOrden.email || '',
+          direccion:       _hijaOrden.direccion,
+          barrio:          _hijaOrden.barrio,
+          ciudad:          _hijaOrden.ciudad,
+          departamento:    _hijaOrden.departamento,
+          tipo_envio:      _hijaOrden.tipo_envio,
+          marca:           _hijaOrden.marca,
+          vendedora:       _hijaOrden.vendedora,
+          canal:           _hijaOrden.canal,
+          productos:       productos,
+          valor_total:     total,
+          monto_pagado:    pagado,
+          saldo_pendiente: Math.max(0, total - pagado),
+          tipo_pago:       tipo_pago,
+          medio_pago:      medio_pago,
+          estado:          'EN_ANALISIS',
+          es_prioritario:  false,
+          nivel_urgencia:  'normal'
+        })
+      });
+
+      showToast('✅ Orden ' + numHija + ' creada y enviada a Análisis');
+      cerrarModalHija();
+      buscarSeguimiento();
+
+    } catch(e) {
+      alert('❌ Error: ' + e.message);
+      btn.disabled = false;
+      btn.textContent = '🚀 GENERAR ORDEN ADICIONAL Y ENVIAR A ANÁLISIS';
+    }
   }
 
   // ── APROBACIÓN DE ARTE ──────────────────────────────────
@@ -1558,6 +1729,40 @@
     document.getElementById('fecha_entrega').min = hoy;
   });
 </script>
+<!-- MODAL ORDEN HIJA -->
+<div id="modal-hija" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;overflow-y:auto;padding:20px">
+  <div style="max-width:700px;margin:0 auto;background:#fff;border-radius:16px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div>
+        <div style="font-size:16px;font-weight:800;color:#0f172a">➕ Productos Adicionales</div>
+        <div style="font-size:13px;color:#64748b;margin-top:2px">Orden hija de: <strong id="hija-padre-num"></strong></div>
+      </div>
+      <button onclick="cerrarModalHija()" style="background:#f1f5f9;border:none;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:14px">✕ Cerrar</button>
+    </div>
+    <div id="hija-products-list" class="products-list"></div>
+    <button class="btn-add-product" onclick="agregarProductoHija()" style="margin-top:8px">＋ AGREGAR PRODUCTO</button>
+    <div style="margin-top:16px;padding:16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px">💰 Valor Adicional</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="field"><label>Valor Total Adicional</label>
+          <div class="input-icon-wrap"><span class="icon">$</span><input type="number" id="hija-total" placeholder="0" min="0"><span class="suffix">COP</span></div></div>
+        <div class="field"><label>Monto Pagado</label>
+          <div class="input-icon-wrap"><span class="icon">💵</span><input type="number" id="hija-pagado" placeholder="0" min="0"><span class="suffix">COP</span></div></div>
+        <div class="field"><label>Tipo de Pago</label>
+          <select id="hija-tipo-pago"><option value="">— Seleccionar —</option><option value="total">Pago Total</option><option value="parcial">Pago Parcial / Abono</option></select></div>
+        <div class="field"><label>Medio de Pago</label>
+          <select id="hija-medio-pago"><option value="">— Seleccionar —</option>
+            <option>ADDI</option><option>PAYU</option><option>BANCOLOMBIA</option><option>NEQUI</option>
+            <option>DAVIPLATA</option><option>DAVIVIENDA</option><option>LLAVE</option><option>Efectivo</option>
+          </select></div>
+      </div>
+    </div>
+    <button id="btn-generar-hija" onclick="generarOrdenHija()"
+      style="width:100%;margin-top:16px;padding:14px;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 4px 16px rgba(22,163,74,.3)">
+      🚀 GENERAR ORDEN ADICIONAL Y ENVIAR A ANÁLISIS
+    </button>
+  </div>
+</div>
 </body>
 </html>
 

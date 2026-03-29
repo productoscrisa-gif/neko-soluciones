@@ -236,7 +236,7 @@ function mostrarTab(tab) {
 async function cargarPendientes() {
   document.getElementById("panel-pendientes").innerHTML = '<div class="state-box"><div class="icon">⏳</div><p>Cargando...</p></div>';
   try {
-    var r = await fetch(SB + "/rest/v1/ordenes?estado=eq.EN_PRODUCCION&select=id,numero_orden,nombre_cliente,telefono,doc_cliente,direccion,barrio,ciudad,departamento,usuario_red,marca,vendedora,productos,sub_estados,es_prioritario,fecha_entrega,fecha_creacion,valor_total,monto_pagado,saldo_pendiente,es_contraentrega,pago_confirmado,confirmado_por,guia_numero,guia_url,link_drive,tipo_envio,transportadora&order=es_prioritario.desc,fecha_creacion.asc", { headers: H });
+    var r = await fetch(SB + "/rest/v1/ordenes?estado=eq.EN_PRODUCCION&select=id,numero_orden,nombre_cliente,telefono,doc_cliente,direccion,barrio,ciudad,departamento,usuario_red,marca,vendedora,productos,sub_estados,es_prioritario,fecha_entrega,fecha_creacion,valor_total,monto_pagado,saldo_pendiente,es_contraentrega,pago_confirmado,confirmado_por,guia_numero,guia_url,link_drive,tipo_envio,transportadora,tiene_hijas,orden_padre&order=es_prioritario.desc,fecha_creacion.asc", { headers: H });
     var all = await r.json();
     if (!Array.isArray(all)) all = [];
     // Solo las que tienen prendas en Almacén
@@ -456,7 +456,7 @@ function buildCard(o, isDespachado) {
   return "<div class='order-card "+cardClass+"' id='card-"+oid+"'>"
     + "<div class='order-header' onclick='doToggle(\""+oid+"\")'>"
       + "<div>"
-        + "<div class='order-num'>"+o.numero_orden+" &nbsp;·&nbsp; <span style='font-size:13px;font-weight:600;color:var(--text-primary)'>"+(o.nombre_cliente||"-")+"</span></div>"
+        + "<div class='order-num'>"+o.numero_orden+" &nbsp;·&nbsp; <span style='font-size:13px;font-weight:600;color:var(--text-primary)'>"+(o.nombre_cliente||"-")+"</span>"+(o.tiene_hijas?" &nbsp;<span style='background:#fef9c3;border:1px solid #ca8a04;color:#854d0e;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700'>📦 Con adicionales</span>":"")+(o.orden_padre?" &nbsp;<span style='background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700'>🔗 Adicional de "+o.orden_padre+"</span>":"")+"</div>"
         + "<div class='order-meta'>📅 "+fecha+" &nbsp;·&nbsp; 🚚 Entrega: "+entrega+(o.tipo_envio?" &nbsp;·&nbsp; "+o.tipo_envio+(o.transportadora?" - "+o.transportadora:""):"")+(o.es_prioritario?" &nbsp;·&nbsp; 🔴 PRIORITARIO":"")+"</div>"
       + "</div>"
       + "<div class='order-header-right'>"+pagoConfBadge+statusBadge+(o.es_prioritario&&!isDespachado?'<span class="badge badge-priority">🔴</span>':"")+
@@ -484,12 +484,36 @@ function doToggle(oid) {
   }
 }
 
-function doDespachar(oid) {
+async function doDespachar(oid) {
   var gnEl = document.getElementById("gn-"+oid);
   var guEl = document.getElementById("gu-"+oid);
   var gn = gnEl ? gnEl.value.trim() : "";
   var gu = guEl ? guEl.value.trim() : "";
   if (!gn) { alert("Ingresa el numero de guia antes de despachar."); return; }
+
+  // Verificar si tiene órdenes hijas y si todas están en Almacén
+  var ordenActual = ordenesEnAlmacen.find(function(o){ return String(o.id) === String(oid); });
+  if (ordenActual && ordenActual.tiene_hijas) {
+    var rHijas = await fetch(SB + "/rest/v1/ordenes?orden_padre=eq." + ordenActual.numero_orden
+      + "&select=numero_orden,estado,sub_estados,productos", { headers: H });
+    var hijas = await rHijas.json();
+    if (Array.isArray(hijas) && hijas.length > 0) {
+      var hijasPendientes = hijas.filter(function(h) {
+        // Verificar si todas las prendas de la hija están en Almacén
+        var prods = h.productos || [];
+        var subs  = h.sub_estados || [];
+        var todasEnAlmacen = prods.every(function(p, idx) {
+          var se = subs.find(function(s){ return s.prenda_idx === idx; });
+          return se && (se.area_actual === 'Almacén' || se.area_actual === 'Almacen');
+        });
+        return !todasEnAlmacen;
+      });
+      if (hijasPendientes.length > 0) {
+        alert('No se puede despachar todavia.\n\nOrdenes adicionales pendientes en produccion:\n' + hijasPendientes.map(function(h){ return '- ' + h.numero_orden; }).join('\n') + '\n\nDeben llegar todas a Almacen antes de despachar.');
+        return;
+      }
+    }
+  }
   var btn = document.getElementById("btn-d-"+oid);
   if (btn) { btn.disabled = true; btn.textContent = "⏳ Despachando..."; }
   var transEl2 = document.getElementById("trans-"+oid);
