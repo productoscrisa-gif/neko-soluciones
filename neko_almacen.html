@@ -461,21 +461,18 @@ function buildCard(o, isDespachado, esHija, hijasData) {
   }
 
   // Alerta estado
-  // Calcular saldoBloquea aqui para usarlo en alertHTML y en acciones
-  var saldoBloquea = (o.saldo_pendiente > 0) && !o.es_contraentrega && !o.pago_confirmado;
-
   var alertHTML = "";
   if (!isDespachado) {
-    // Alerta saldo pendiente sin contraentrega — bloquea despacho
-    if (saldoBloquea) {
+    // Saldo pendiente sin contraentrega — bloquea y avisa
+    if (o.saldo_pendiente > 0 && !o.es_contraentrega && !o.pago_confirmado) {
       alertHTML += "<div class='alert-box warning' style='background:#fff1f2;border-color:#fca5a5;margin-bottom:12px'>"
-        + "<span>🔒</span><div><strong>Despacho bloqueado</strong> — Saldo pendiente de <strong>$"
+        + "<span>🔒</span><div><strong>Despacho bloqueado — Saldo pendiente: $"
         + Number(o.saldo_pendiente||0).toLocaleString("es-CO")
-        + " COP</strong>. La vendedora debe confirmar el pago antes de despachar.</div></div>";
+        + " COP</strong><br><small>La vendedora debe confirmar el pago o marcar como Contraentrega.</small></div></div>";
     }
     alertHTML += completo
       ? "<div class='alert-box success'><span>✅</span><div><strong>Pedido completo</strong> - Registra la guia y despacha.</div></div>"
-      : "<div class='alert-box warning'><span>⚠️</span><div><strong>Pedido incompleto</strong> - "+enAlmacen+"/"+total+" prendas llegaron. Faltan "+faltantes+" en produccion.</div></div>";
+      : "<div class='alert-box warning'><span>⚠️</span><div><strong>Pedido incompleto</strong> - "+enAlmacen+"/"+total+" prendas. Faltan "+faltantes+" en produccion.</div></div>";
   }
 
   // Guia
@@ -526,17 +523,16 @@ function buildCard(o, isDespachado, esHija, hijasData) {
     var fdp = o.fecha_despacho ? new Date(o.fecha_despacho).toLocaleDateString("es-CO",{day:"2-digit",month:"short",year:"numeric"}) : "-";
     accionesHTML = "<span style='font-size:13px;font-weight:700;color:var(--indigo)'>📦 Despachado el "+fdp+(o.guia_numero?" · Guia: "+o.guia_numero:"")+"</span>";
   } else {
-    // Bloquear si saldo pendiente sin contraentrega (pago parcial sin confirmar)
-  // saldoBloquea ya calculado arriba
-  var bloqueado     = !completo || saldoBloquea;
-  var disAttr       = bloqueado ? "disabled" : "";
-  var motivoBloqueo = !completo
-    ? "Faltan prendas en Almacen"
-    : saldoBloquea
-      ? "Saldo pendiente — si paga al recibir, activa Contraentrega"
+    // Bloquear si: prendas incompletas O (saldo pendiente SIN contraentrega)
+    var saldoPendiente  = (o.saldo_pendiente > 0) && !o.es_contraentrega && !o.pago_confirmado;
+    var bloqueado       = !completo || saldoPendiente;
+    var disAttr         = bloqueado ? "disabled" : "";
+    var motivoBloqueo   = !completo
+      ? "Faltan " + faltantes + " prenda(s) en Almacen"
+      : saldoPendiente ? "Saldo pendiente — la vendedora debe marcar Contraentrega o confirmar pago"
       : "";
-  var tooltipAttr = motivoBloqueo ? 'title="' + motivoBloqueo + '"' : '';
-    var motivoDiv = motivoBloqueo
+    var tooltipAttr     = motivoBloqueo ? 'title="' + motivoBloqueo + '"' : '';
+    var motivoDiv       = motivoBloqueo
       ? "<div style='margin-bottom:8px;padding:8px 12px;background:#fff1f2;border:1px solid #fca5a5;border-radius:8px;font-size:12px;font-weight:700;color:#dc2626'>Bloqueado: " + motivoBloqueo + "</div>"
       : "";
     accionesHTML = motivoDiv
