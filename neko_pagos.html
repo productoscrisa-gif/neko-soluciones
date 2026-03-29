@@ -190,7 +190,7 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
         + "<div class=\"pi-right\">"
           + "<span style=\"" + badgeStyle + "\">" + badgeTxt + "</span>"
           + "<span class=\"pi-saldo\">$" + Number(monto).toLocaleString("es-CO") + "</span>"
-          + "<button class=\"btn-gestionar\" onclick=\"cargarOrdenConsolidado('" + o.numero_orden + "'," + JSON.stringify(hijasDelPadre.map(function(h){return h.numero_orden;})) + ")\">💳 Gestionar</button>"
+          + "<button class=\"btn-gestionar\" data-padre=\"" + o.numero_orden + "\" data-hijas=\"" + (hijasDelPadre.map(function(h){return h.numero_orden;}).join('|')) + "\" onclick=\"_clickGestionar(this)\">💳 Gestionar</button>"
         + "</div>"
       + "</div>";
     });
@@ -202,6 +202,13 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
     document.getElementById("buscar-input").value = num;
     buscarOrden();
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function _clickGestionar(btn) {
+    var padre = btn.getAttribute('data-padre');
+    var hijasStr = btn.getAttribute('data-hijas') || '';
+    var hijas = hijasStr ? hijasStr.split('|').filter(function(h){ return h; }) : [];
+    cargarOrdenConsolidado(padre, hijas);
   }
 
   async function cargarOrdenConsolidado(numPadre, numerosHijas) {
@@ -296,7 +303,13 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
         + "<div class=\"field\" style=\"margin-bottom:12px\"><label>Notas</label>"
         + "<input type=\"text\" id=\"pago-notas\" placeholder=\"Ej: Transferencia recibida...\"></div>"
         + "<div id=\"pago-alerta\"></div>"
-        + "<button class=\"btn-confirmar\" id=\"btn-confirmar\" onclick=\"confirmarPagoGrupo('" + padre.id + "','" + padre.numero_orden + "'," + JSON.stringify(hijas.map(function(h){return {id:h.id,num:h.numero_orden,saldo:h.saldo_pendiente||0};})) + "," + montoACobrar + "," + saldoTotal + ")\">✅ Confirmar Pago y Notificar Almacen</button>"
+        + "<button class=\"btn-confirmar\" id=\"btn-confirmar\""
+        + " data-padre-id=\"" + padre.id + "\""
+        + " data-padre-num=\"" + padre.numero_orden + "\""
+        + " data-hijas-info=\"" + encodeURIComponent(JSON.stringify(hijas.map(function(h){return {id:h.id,num:h.numero_orden,saldo:h.saldo_pendiente||0};}))) + "\""
+        + " data-monto=\"" + montoACobrar + "\""
+        + " data-saldo=\"" + saldoTotal + "\""
+        + " onclick=\"_clickConfirmarGrupo(this)\">✅ Confirmar Pago y Notificar Almacen</button>"
         + "</div>";
     }
 
@@ -315,6 +328,15 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
       + "<div class=\"historial\"><div class=\"section-label\">📋 Historial de Pagos</div>" + histHtml + "</div>"
       + formHtml
     + "</div>";
+  }
+
+  function _clickConfirmarGrupo(btn) {
+    var padreId     = btn.getAttribute('data-padre-id');
+    var padreNum    = btn.getAttribute('data-padre-num');
+    var hijasInfo   = JSON.parse(decodeURIComponent(btn.getAttribute('data-hijas-info') || '[]'));
+    var montoACobrar= parseFloat(btn.getAttribute('data-monto')) || 0;
+    var saldoTotal  = parseFloat(btn.getAttribute('data-saldo'))  || 0;
+    confirmarPagoGrupo(padreId, padreNum, hijasInfo, montoACobrar, saldoTotal);
   }
 
   async function confirmarPagoGrupo(padreId, padreNum, hijasInfo, montoACobrar, saldoTotal) {
