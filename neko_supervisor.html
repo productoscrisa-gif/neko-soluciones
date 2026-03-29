@@ -197,6 +197,7 @@
     <button class="nav-tab" id="ntab-confeccion" onclick="cambiarNavTab('confeccion')">🧵 Confección</button>
     <button class="nav-tab" id="ntab-compras" onclick="cambiarNavTab('compras')">🛍️ Compras</button>
     <button class="nav-tab" id="ntab-materiales" onclick="cambiarNavTab('materiales')">🔩 Materiales <span id="badge-mat-sup" style="display:none;background:#7c3aed;color:#fff;border-radius:20px;padding:1px 6px;font-size:10px;margin-left:3px">0</span></button>
+    <button class="nav-tab" id="ntab-telas" onclick="cambiarNavTab('telas')">🧵 Catálogo Telas</button>
   </div>
 
   <!-- ══ PESTAÑA 1: SEGUIMIENTO GENERAL ══ -->
@@ -402,6 +403,40 @@
   </div>
 </div>
 
+  <!-- TAB CATÁLOGO TELAS -->
+  <div class="tab-content" id="tab-telas">
+    <div class="conf-wrap">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+        <div style="font-size:15px;font-weight:800;color:var(--text-primary)">🧵 Catálogo de Telas</div>
+        <button onclick="abrirModalTela(null)" style="padding:10px 18px;background:linear-gradient(135deg,#0d9488,#0f766e);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 3px 10px rgba(13,148,136,.3)">+ Nueva Tela</button>
+      </div>
+      <div id="catalogo-telas-lista"><div style="color:var(--text-muted);font-size:13px;text-align:center;padding:40px">Cargando...</div></div>
+    </div>
+  </div>
+
+  <!-- MODAL NUEVA/EDITAR TELA -->
+  <div id="modal-tela" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center;padding:20px">
+    <div style="background:#fff;border-radius:16px;padding:24px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div style="font-size:15px;font-weight:800;color:#0f172a" id="modal-tela-titulo">🧵 Nueva Tela</div>
+        <button onclick="cerrarModalTela()" style="background:#f1f5f9;border:none;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:14px">✕</button>
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px;color:#374151">Nombre de la Tela *</label>
+        <input type="text" id="tela-nombre" placeholder="Ej: Jersey Algodón, Tela Licra, Gabardina..." style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box;outline:none">
+      </div>
+      <div style="margin-bottom:20px">
+        <label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px;color:#374151">Color</label>
+        <input type="text" id="tela-color" placeholder="Ej: Negro, Blanco, Azul rey..." style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box;outline:none">
+      </div>
+      <input type="hidden" id="tela-id">
+      <div style="display:flex;gap:8px">
+        <button onclick="cerrarModalTela()" style="flex:1;padding:11px;background:#f1f5f9;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;color:#374151">Cancelar</button>
+        <button onclick="guardarTela()" style="flex:2;padding:11px;background:linear-gradient(135deg,#0d9488,#0f766e);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer">💾 Guardar Tela</button>
+      </div>
+    </div>
+  </div>
+
 <div id="toast"></div>
 
 <script>
@@ -452,7 +487,7 @@
   // ── NAV TABS ─────────────────────────────────────────────
   function cambiarNavTab(tab) {
     navActual = tab;
-    ['seguimiento','analisis','confeccion','compras','materiales'].forEach(t => {
+    ['seguimiento','analisis','confeccion','compras','materiales','telas'].forEach(t => {
       document.getElementById('ntab-' + t).classList.toggle('active', t === tab);
       document.getElementById('tab-' + t).classList.toggle('active', t === tab);
     });
@@ -461,6 +496,7 @@
     if (tab === 'analisis') {
       cargarCatalogoInsumos(); // Asegurar catálogo fresco al entrar a análisis
     }
+    if (tab === 'telas') cargarCatalogoTelas();
   }
 
   // ════════════════════════════════════════════════════════
@@ -1404,6 +1440,129 @@
   }
 
   // ── UTILIDADES ────────────────────────────────────────────
+  // ── CATÁLOGO DE TELAS ────────────────────────────────────
+  let catalogoTelasGlobal = [];
+  let _telaEditId = null;
+
+  async function cargarCatalogoTelas() {
+    const el = document.getElementById('catalogo-telas-lista');
+    if (!el) return;
+    el.innerHTML = '<div style="color:var(--text-muted);font-size:13px;text-align:center;padding:40px">⏳ Cargando...</div>';
+    try {
+      const r = await fetch(SB_URL + '/rest/v1/insumos_stock?order=nombre.asc,color.asc', { headers: HDR });
+      catalogoTelasGlobal = await r.json();
+      if (!Array.isArray(catalogoTelasGlobal)) catalogoTelasGlobal = [];
+
+      if (!catalogoTelasGlobal.length) {
+        el.innerHTML = '<div style="color:var(--text-muted);font-size:13px;text-align:center;padding:40px">🧵 No hay telas en el catálogo.<br><strong>Agrega la primera tela.</strong></div>';
+        return;
+      }
+
+      el.innerHTML = '<div style="display:flex;flex-direction:column;gap:8px">'
+        + catalogoTelasGlobal.map(t => {
+            const stock = parseFloat(t.stock_actual) || 0;
+            const bajo  = t.stock_minimo > 0 && stock <= t.stock_minimo;
+            const agot  = stock <= 0;
+            const color = agot ? '#dc2626' : bajo ? '#f97316' : '#16a34a';
+            const lbl   = agot ? '🔴 Agotado' : bajo ? '🟡 Stock bajo' : '🟢 OK';
+            return '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;gap:12px;flex-wrap:wrap">'
+              + '<div>'
+                + '<div style="font-size:14px;font-weight:800;color:#0f172a">' + t.nombre + '</div>'
+                + (t.color ? '<div style="font-size:12px;color:#64748b;margin-top:2px">🎨 ' + t.color + '</div>' : '')
+              + '</div>'
+              + '<div style="display:flex;align-items:center;gap:10px">'
+                + '<span style="font-size:12px;font-weight:700;color:' + color + '">' + lbl + ' — ' + stock.toFixed(1) + ' m</span>'
+                + '<button data-id="' + t.id + '" onclick="abrirModalTela(this)" style="padding:7px 14px;background:#eff6ff;color:#2563eb;border:1.5px solid #bfdbfe;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">✏️ Editar</button>'
+                + '<button data-id="' + t.id + '" onclick="eliminarTela(this)" style="padding:7px 14px;background:#fff1f2;color:#dc2626;border:1.5px solid #fca5a5;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🗑️</button>'
+              + '</div>'
+            + '</div>';
+          }).join('')
+        + '</div>';
+    } catch(e) {
+      el.innerHTML = '<div style="color:var(--red);font-size:13px;text-align:center;padding:20px">Error: ' + e.message + '</div>';
+    }
+  }
+
+  function abrirModalTela(btn) {
+    _telaEditId = null;
+    document.getElementById('tela-nombre').value = '';
+    document.getElementById('tela-color').value  = '';
+    document.getElementById('tela-id').value     = '';
+    document.getElementById('modal-tela-titulo').textContent = '🧵 Nueva Tela';
+
+    if (btn) {
+      // Modo edición
+      const id   = btn.getAttribute('data-id');
+      const tela = catalogoTelasGlobal.find(t => String(t.id) === String(id));
+      if (tela) {
+        _telaEditId = id;
+        document.getElementById('tela-nombre').value = tela.nombre || '';
+        document.getElementById('tela-color').value  = tela.color  || '';
+        document.getElementById('tela-id').value     = id;
+        document.getElementById('modal-tela-titulo').textContent = '✏️ Editar Tela';
+      }
+    }
+    document.getElementById('modal-tela').style.display = 'flex';
+  }
+
+  function cerrarModalTela() {
+    document.getElementById('modal-tela').style.display = 'none';
+    _telaEditId = null;
+  }
+
+  async function guardarTela() {
+    const nombre = document.getElementById('tela-nombre').value.trim();
+    const color  = document.getElementById('tela-color').value.trim();
+    if (!nombre) { alert('El nombre de la tela es obligatorio.'); return; }
+
+    try {
+      if (_telaEditId) {
+        // Editar
+        const r = await fetch(SB_URL + '/rest/v1/insumos_stock?id=eq.' + _telaEditId, {
+          method: 'PATCH',
+          headers: Object.assign({}, HDR, {'Content-Type':'application/json','Prefer':'return=minimal'}),
+          body: JSON.stringify({ nombre, color })
+        });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        showToast('✅ Tela actualizada');
+      } else {
+        // Nueva — sin stock inicial (Almacén lo registra)
+        const r = await fetch(SB_URL + '/rest/v1/insumos_stock', {
+          method: 'POST',
+          headers: Object.assign({}, HDR, {'Content-Type':'application/json','Prefer':'return=minimal'}),
+          body: JSON.stringify({ nombre, color, stock_actual: 0, stock_minimo: 0, precio_metro: 0 })
+        });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        showToast('✅ Tela agregada al catálogo');
+      }
+      cerrarModalTela();
+      cargarCatalogoTelas();
+    } catch(e) {
+      alert('Error: ' + e.message);
+    }
+  }
+
+  async function eliminarTela(btn) {
+    const id   = btn.getAttribute('data-id');
+    const tela = catalogoTelasGlobal.find(t => String(t.id) === String(id));
+    const stock = parseFloat(tela?.stock_actual) || 0;
+    if (stock > 0) {
+      alert('⚠️ No se puede eliminar — esta tela tiene ' + stock.toFixed(1) + ' metros en stock.\nPrimero consume el stock existente.');
+      return;
+    }
+    if (!confirm('¿Eliminar "' + (tela?.nombre||'esta tela') + '" del catálogo?')) return;
+    try {
+      await fetch(SB_URL + '/rest/v1/insumos_stock?id=eq.' + id, {
+        method: 'DELETE',
+        headers: Object.assign({}, HDR, {'Prefer':'return=minimal'})
+      });
+      showToast('🗑️ Tela eliminada del catálogo');
+      cargarCatalogoTelas();
+    } catch(e) {
+      alert('Error: ' + e.message);
+    }
+  }
+
   function showToast(msg) {
     const t = document.getElementById('toast');
     t.textContent = msg; t.style.opacity = '1';

@@ -207,43 +207,24 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
         </div>
         <button onclick="cerrarModalEntrada()" style="background:#f1f5f9;border:none;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:14px">✕</button>
       </div>
-      <div style="margin-bottom:16px">
-        <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:8px">¿Qué deseas hacer?</div>
-        <div style="display:flex;gap:8px">
-          <button onclick="setModoEntrada('nueva')" id="btn-modo-nueva" style="flex:1;padding:10px;border:2px solid #10b981;background:#f0fdf4;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;color:#065f46">+ Tela Nueva</button>
-          <button onclick="setModoEntrada('existente')" id="btn-modo-existente" style="flex:1;padding:10px;border:2px solid #e2e8f0;background:#f8fafc;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;color:#374151">📦 Tela Existente</button>
-        </div>
+        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#1d4ed8">
+        ℹ️ Las telas del catálogo son administradas por el Supervisor. Aquí solo registras la entrada de metros.
       </div>
-      <!-- Nueva tela -->
-      <div id="modal-entrada-nueva">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-          <div style="grid-column:1/-1"><label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px">Nombre de la Tela *</label>
-            <input type="text" id="ent-nombre" placeholder="Ej: Jersey Algodón, Tela Licra..." style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box"></div>
-          <div><label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px">Referencia</label>
-            <input type="text" id="ent-ref" placeholder="Código/ref" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box"></div>
-          <div><label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px">Color</label>
-            <input type="text" id="ent-color" placeholder="Ej: Negro, Blanco..." style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box"></div>
-          <div><label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px">Metros *</label>
-            <input type="number" id="ent-cantidad" placeholder="0" min="0.1" step="0.1" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box"></div>
-          <div><label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px">Stock Mínimo</label>
-            <input type="number" id="ent-minimo" placeholder="0" min="0" step="0.1" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box"></div>
-          <div><label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px">Precio/metro COP</label>
-            <input type="number" id="ent-precio" placeholder="0" min="0" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box"></div>
-        </div>
-        <div style="margin-bottom:16px"><label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px">Notas</label>
-          <input type="text" id="ent-notas" placeholder="Proveedor, lote..." style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box"></div>
-        <button onclick="guardarEntradaNueva()" style="width:100%;padding:12px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer">📦 Registrar Tela Nueva</button>
+      <div style="margin-bottom:12px">
+        <label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px;color:#374151">Seleccionar Tela *</label>
+        <select id="ent-tela-id" style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
+          <option value="">— Cargando telas... —</option>
+        </select>
       </div>
-      <!-- Tela existente -->
-      <div id="modal-entrada-existente" style="display:none">
-        <div style="margin-bottom:12px"><label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px">Seleccionar Tela *</label>
-          <select id="ent-tela-id" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit"><option value="">— Seleccionar —</option></select></div>
-        <div style="margin-bottom:12px"><label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px">Metros a Agregar *</label>
-          <input type="number" id="ent-cantidad-ex" placeholder="0" min="0.1" step="0.1" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box"></div>
-        <div style="margin-bottom:16px"><label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px">Notas</label>
-          <input type="text" id="ent-notas-ex" placeholder="Proveedor, lote..." style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box"></div>
-        <button onclick="guardarEntradaExistente()" style="width:100%;padding:12px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer">📦 Agregar al Stock</button>
+      <div style="margin-bottom:12px">
+        <label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px;color:#374151">Metros Recibidos *</label>
+        <input type="number" id="ent-cantidad-ex" placeholder="0" min="0.1" step="0.1" style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box;outline:none">
       </div>
+      <div style="margin-bottom:20px">
+        <label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px;color:#374151">Notas</label>
+        <input type="text" id="ent-notas-ex" placeholder="Proveedor, lote, factura..." style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box;outline:none">
+      </div>
+      <button onclick="guardarEntradaExistente()" style="width:100%;padding:12px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(16,185,129,.3)">📦 Registrar Entrada al Stock</button>
     </div>
   </div>
 
@@ -1278,35 +1259,22 @@ function confirmarError() {
 
   // ── MODAL ENTRADA ────────────────────────────────────────
   function abrirModalEntrada() {
-    setModoEntrada('nueva');
-    ['ent-nombre','ent-ref','ent-color','ent-cantidad','ent-minimo','ent-precio','ent-notas'].forEach(function(id){
-      var el = document.getElementById(id); if(el) el.value = '';
-    });
+    var el = document.getElementById('ent-cantidad-ex'); if(el) el.value = '';
+    var el2 = document.getElementById('ent-notas-ex');  if(el2) el2.value = '';
+    cargarSelectTelas(null);
     document.getElementById('modal-entrada').style.display = 'flex';
   }
 
   function abrirEntradaExistente(btn) {
     var id = btn.getAttribute('data-id');
-    // Pre-seleccionar la tela
-    cargarSelectTelas(id);
-    setModoEntrada('existente');
     var el = document.getElementById('ent-cantidad-ex'); if(el) el.value = '';
-    var el2 = document.getElementById('ent-notas-ex');   if(el2) el2.value = '';
+    var el2 = document.getElementById('ent-notas-ex');  if(el2) el2.value = '';
+    cargarSelectTelas(id);
     document.getElementById('modal-entrada').style.display = 'flex';
   }
 
   function cerrarModalEntrada() {
     document.getElementById('modal-entrada').style.display = 'none';
-  }
-
-  function setModoEntrada(modo) {
-    document.getElementById('modal-entrada-nueva').style.display      = modo === 'nueva' ? 'block' : 'none';
-    document.getElementById('modal-entrada-existente').style.display  = modo === 'existente' ? 'block' : 'none';
-    document.getElementById('btn-modo-nueva').style.borderColor       = modo === 'nueva' ? '#10b981' : '#e2e8f0';
-    document.getElementById('btn-modo-nueva').style.background        = modo === 'nueva' ? '#f0fdf4' : '#f8fafc';
-    document.getElementById('btn-modo-existente').style.borderColor   = modo === 'existente' ? '#10b981' : '#e2e8f0';
-    document.getElementById('btn-modo-existente').style.background    = modo === 'existente' ? '#f0fdf4' : '#f8fafc';
-    if (modo === 'existente') cargarSelectTelas(null);
   }
 
   async function cargarSelectTelas(preselect) {
