@@ -338,7 +338,7 @@ function renderPendientes() {
         var esUltima = i === hijasDelPadre.length - 1;
         html += '<div style="' + (esUltima ? '' : 'border-bottom:1px dashed #ede9fe') + '">';
         html += '<div style="background:#f5f3ff;padding:4px 16px;font-size:11px;font-weight:700;color:#7c3aed">➕ ADICIONAL ' + hija.numero_orden + '</div>';
-        html += buildCard(hija, false);
+        html += buildCard(hija, false, true);
         html += '</div>';
       });
 
@@ -357,7 +357,7 @@ function renderPendientes() {
   hijasHuerfanas.forEach(function(h) {
     html += '<div style="border:2px solid #fcd34d;border-radius:12px;overflow:hidden;margin-bottom:12px">';
     html += '<div style="background:#fffbeb;padding:6px 16px;font-size:12px;font-weight:700;color:#92400e">⚠️ ADICIONAL de ' + h.orden_padre + ' — La orden principal aún no llegó a Almacén</div>';
-    html += buildCard(h, false);
+    html += buildCard(h, false, true);
     html += '</div>';
   });
 
@@ -379,7 +379,7 @@ function renderDespachados() {
 }
 
 // ── CONSTRUIR CARD ────────────────────────────────────────────
-function buildCard(o, isDespachado) {
+function buildCard(o, isDespachado, esHija) {
   var c = contarPrendas(o);
   var total = c.total, enAlmacen = c.enAlmacen;
   var faltantes = total - enAlmacen;
@@ -548,8 +548,8 @@ function buildCard(o, isDespachado) {
       + insumoAlerta + obsEnvioHTML + clienteHTML + pagoHTML + alertHTML
       + "<div class='section-title'>📦 Estado de Prendas</div>"
       + "<table class='prendas-table'><thead><tr><th>Prenda</th><th>Cant</th><th>Ubicacion</th><th>Obs</th></tr></thead><tbody>"+prendasRows+"</tbody></table>"
-      + guiaSec
-      + "<div class='order-actions'>"+accionesHTML+"</div>"
+      + (!esHija ? guiaSec : "")
+      + (!esHija ? "<div class='order-actions'>"+accionesHTML+"</div>" : "")
     + "</div>"
   + "</div>";
 }
@@ -619,17 +619,47 @@ async function doDespachar(oid) {
   var transVal = transEl2 ? transEl2.value : "";
   var ldEl = document.getElementById("ld-"+oid);
   var ldVal = ldEl ? ldEl.value.trim() : "";
+  var despachoData = {
+    estado: "DESPACHADO",
+    guia_numero:   gn,
+    guia_url:      gu,
+    transportadora: transVal,
+    link_drive:    ldVal,
+    fecha_despacho: new Date().toISOString()
+  };
+
+  // Despachar la orden padre
   fetch(SB+"/rest/v1/ordenes?id=eq."+oid, {
     method: "PATCH",
     headers: Object.assign({}, H, {"Content-Type":"application/json","Prefer":"return=minimal"}),
-    body: JSON.stringify({estado:"DESPACHADO", guia_numero:gn, guia_url:gu, transportadora:transVal, link_drive:ldVal, fecha_despacho:new Date().toISOString()})
-  }).then(function(r) {
+    body: JSON.stringify(despachoData)
+  }).then(async function(r) {
     if (!r.ok) throw new Error("HTTP "+r.status);
-    showToast("🚀 Pedido despachado - Guia: "+gn);
-    // Recargar AMBAS tabs para reflejar el cambio
+
+    // Despachar también las hijas con la misma guía
+    var ordenActual = ordenesEnAlmacen.find(function(o){ return String(o.id) === String(oid); });
+    if (ordenActual && ordenActual.tiene_hijas) {
+      var rHijas = await fetch(SB+"/rest/v1/ordenes?orden_padre=eq."+ordenActual.numero_orden+"&select=id", { headers: H });
+      var hijas  = await rHijas.json();
+      if (Array.isArray(hijas) && hijas.length) {
+        // Despachar todas las hijas con la misma guía en paralelo
+        await Promise.all(hijas.map(function(h) {
+          return fetch(SB+"/rest/v1/ordenes?id=eq."+h.id, {
+            method: "PATCH",
+            headers: Object.assign({}, H, {"Content-Type":"application/json","Prefer":"return=minimal"}),
+            body: JSON.stringify(despachoData)
+          });
+        }));
+        showToast("🚀 Grupo despachado — " + (hijas.length+1) + " órdenes · Guia: "+gn);
+      } else {
+        showToast("🚀 Pedido despachado - Guia: "+gn);
+      }
+    } else {
+      showToast("🚀 Pedido despachado - Guia: "+gn);
+    }
+
     cargarPendientes();
     cargarDespachados();
-    // Cambiar a tab despachados para que vea el resultado
     mostrarTab("despachados");
   }).catch(function(e) {
     alert("Error: "+e.message);
