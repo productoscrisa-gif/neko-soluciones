@@ -636,13 +636,28 @@ function buildCard(o, isDespachado, esHija, hijasData, saldoGrupo, esContraentre
             var area = se && se.area_actual ? se.area_actual : 'En ruta';
             var enAlm = (area === 'Almacen' || area === 'Almac\u00e9n');
             var cls  = enAlm ? 'ep-listo' : 'ep-ruta';
-            hjRows += "<tr style='background:#f5f3ff'>"
-              + "<td><strong>" + (p.tipo||'-') + "</strong>"
-              + (p.notas ? "<br><small style='color:#92400e'>Nota: "+p.notas+"</small>" : "")
-              + "</td><td><span style='background:#eff6ff;color:#2563eb;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700'>x"+(p.cantidad||1)+"</span></td>"
-              + "<td><span class='ep "+cls+"'>"+(enAlm?'En Almacen':'En ruta: '+area)+"</span></td><td>-</td></tr>";
+            hjRows += "<tr style='background:#faf5ff;border-left:3px solid #7c3aed'>"
+              + "<td style='padding:8px 10px'>"
+                + "<strong style='font-size:13px;color:#1e1b4b'>" + (p.tipo||'-') + "</strong>"
+                + (p.horma ? "<span style='margin-left:6px;font-size:11px;color:#6b7280'>" + p.horma + "</span>" : "")
+                + (p.talla ? "<span style='margin-left:4px;font-size:11px;color:#6b7280'>· " + p.talla + "</span>" : "")
+                + (p.notas ? "<br><span style='font-size:11px;color:#92400e;background:#fffbeb;padding:2px 6px;border-radius:4px;border-left:2px solid #f59e0b;display:inline-block;margin-top:3px'>📝 "+p.notas+"</span>" : "")
+              + "</td>"
+              + "<td style='padding:8px 6px'><span style='background:#ede9fe;color:#7c3aed;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700'>x"+(p.cantidad||1)+"</span></td>"
+              + "<td style='padding:8px 6px'><span class='ep "+cls+"'>"+(enAlm?"✅ En Almacen":"📍 "+area)+"</span></td>"
+              + "<td style='padding:8px 6px;font-size:11px;color:#6b7280'>-</td>"
+              + "</tr>";
           });
-          return "<tr><td colspan='4' style='padding:4px 8px;background:#ede9fe;font-size:11px;font-weight:800;color:#7c3aed'>+ ADICIONAL " + hija.numero_orden + "</td></tr>" + hjRows;
+          return "<tr><td colspan='4' style='padding:0'>"
+            + "<div style='margin:8px 4px 4px 4px;background:#7c3aed;border-radius:6px;padding:6px 12px;display:flex;align-items:center;gap:8px'>"
+              + "<span style='font-size:13px;font-weight:800;color:#fff'>➕ Adicional: " + hija.numero_orden + "</span>"
+              + "<span style='font-size:11px;color:#ede9fe;margin-left:auto'>"
+                + (hija.productos||[]).length + " prenda(s)"
+              + "</span>"
+            + "</div>"
+            + "</td></tr>"
+            + hjRows
+            + "<tr><td colspan='4' style='padding:2px;background:#ede9fe'></td></tr>";
         }).join('') : '')
       + (!esHija ? guiaSec : "")
       + (!esHija ? "<div class='order-actions'>"+accionesHTML+"</div>" : "")
