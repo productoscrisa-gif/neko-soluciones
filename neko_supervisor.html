@@ -1339,25 +1339,68 @@
     if (!insumosConsumo.length) return;
 
     const orden = ordenesAnalisis.find(o => String(o.id) === String(oid));
-    const rows  = insumosConsumo.map(({p, idx}) => ({
-      orden_id:          parseInt(oid),
-      numero_orden:      orden ? orden.numero_orden : '',
-      prenda_idx:        idx,
-      tipo_prenda:       p.tipo || '',
-      insumo_id:         parseInt(p.insumo_id),
-      nombre_insumo:     p.nombre_insumo || '',
-      color_insumo:      p.color_insumo  || '',
-      cantidad_estimada: p.cantidad_insumo,
-      unidad:            p.unidad_insumo || 'metros',
-      estado_compra:     'PENDIENTE',
-      asignado_por:      sesion ? sesion.nombre : ''
-    }));
 
+    // Verificar stock disponible para cada insumo
+    const insumoIds = [...new Set(insumosConsumo.map(({p}) => p.insumo_id))];
+    let stockMap = {};
+    try {
+      const rS = await fetch(SB_URL + '/rest/v1/insumos_stock?id=in.(' + insumoIds.join(',') + ')&select=id,stock_actual,nombre', { headers: HDR });
+      const stocks = await rS.json();
+      if (Array.isArray(stocks)) stocks.forEach(s => { stockMap[String(s.id)] = parseFloat(s.stock_actual) || 0; });
+    } catch(e) {}
+
+    const rows = [];
+    const descuentos = []; // insumos a descontar del stock por haber stock suficiente
+
+    for (const {p, idx} of insumosConsumo) {
+      const stockDisp = stockMap[String(p.insumo_id)] || 0;
+      const cantNeeded = parseFloat(p.cantidad_insumo) || 0;
+      const hayStock = stockDisp >= cantNeeded;
+
+      rows.push({
+        orden_id:          parseInt(oid),
+        numero_orden:      orden ? orden.numero_orden : '',
+        prenda_idx:        idx,
+        tipo_prenda:       p.tipo || '',
+        insumo_id:         parseInt(p.insumo_id),
+        nombre_insumo:     p.nombre_insumo || '',
+        color_insumo:      p.color_insumo  || '',
+        cantidad_estimada: cantNeeded,
+        unidad:            p.unidad_insumo || 'metros',
+        estado_compra:     hayStock ? 'RECIBIDO' : 'PENDIENTE',
+        asignado_por:      sesion ? sesion.nombre : '',
+        recibido_por:      hayStock ? 'Stock disponible' : null,
+        fecha_recepcion:   hayStock ? new Date().toISOString() : null
+      });
+
+      if (hayStock) {
+        descuentos.push({ id: p.insumo_id, cantidad: cantNeeded, stockActual: stockDisp, orden: orden?.numero_orden || '' });
+        // Actualizar stock local para siguiente iteración (misma tela en varias prendas)
+        stockMap[String(p.insumo_id)] = stockDisp - cantNeeded;
+      }
+    }
+
+    // Insertar consumos
     await fetch(SB_URL + '/rest/v1/consumos_insumo', {
       method: 'POST',
       headers: { ...HDR, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
       body: JSON.stringify(rows)
     }).catch(() => {});
+
+    // Descontar del stock y registrar movimientos
+    for (const d of descuentos) {
+      const stockNuevo = Math.max(0, d.stockActual - d.cantidad);
+      await fetch(SB_URL + '/rest/v1/insumos_stock?id=eq.' + d.id, {
+        method: 'PATCH',
+        headers: { ...HDR, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ stock_actual: stockNuevo })
+      }).catch(() => {});
+      await fetch(SB_URL + '/rest/v1/insumos_movimientos', {
+        method: 'POST',
+        headers: { ...HDR, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ insumo_id: parseInt(d.id), tipo: 'SALIDA', cantidad: d.cantidad, numero_orden: d.orden, registrado_por: sesion?.nombre || 'Análisis', notas: 'Descontado automáticamente — stock disponible' })
+      }).catch(() => {});
+    }
   }
 
   // ── MÓDULO MATERIALES CONSUMIBLES ───────────────────────

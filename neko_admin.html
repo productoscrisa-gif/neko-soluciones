@@ -311,30 +311,8 @@
   <div class="tab-content" id="tab-insumos">
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-md);overflow:hidden;margin-bottom:20px">
       <div style="padding:14px 20px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-        <span style="font-size:14px;font-weight:800">🧵 Control de Insumos — Pendientes de Compra</span>
-        <div style="display:flex;gap:8px">
-          <button onclick="mostrarFormInsumo()" style="padding:7px 14px;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">➕ Nuevo Insumo</button>
-          <button onclick="cargarInsumos()" style="padding:7px 14px;background:var(--surface2);color:var(--text-secondary);border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">🔄</button>
-        </div>
-      </div>
-      <!-- Form nuevo insumo (oculto por defecto) -->
-      <div id="form-nuevo-insumo" style="display:none;padding:16px;background:#fff7ed;border-bottom:1px solid #fed7aa">
-        <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:10px;margin-bottom:10px">
-          <div><label style="font-size:11px;font-weight:700;color:#92400e;display:block;margin-bottom:4px">Nombre *</label>
-            <input id="ni-nombre" type="text" placeholder="Ej: Tela licra negra" style="width:100%;padding:8px 10px;border:1.5px solid #fed7aa;border-radius:8px;font-size:13px;outline:none"></div>
-          <div><label style="font-size:11px;font-weight:700;color:#92400e;display:block;margin-bottom:4px">Tipo *</label>
-            <select id="ni-tipo" style="width:100%;padding:8px 10px;border:1.5px solid #fed7aa;border-radius:8px;font-size:13px;outline:none;appearance:none">
-              <option>Tela</option><option>Tinta</option><option>DTF</option><option>Otro</option>
-            </select></div>
-          <div><label style="font-size:11px;font-weight:700;color:#92400e;display:block;margin-bottom:4px">Unidad</label>
-            <input id="ni-unidad" type="text" value="metros" style="width:100%;padding:8px 10px;border:1.5px solid #fed7aa;border-radius:8px;font-size:13px;outline:none"></div>
-          <div><label style="font-size:11px;font-weight:700;color:#92400e;display:block;margin-bottom:4px">Stock inicial</label>
-            <input id="ni-stock" type="number" value="0" min="0" style="width:100%;padding:8px 10px;border:1.5px solid #fed7aa;border-radius:8px;font-size:13px;outline:none;font-family:JetBrains Mono,monospace"></div>
-        </div>
-        <div style="display:flex;gap:8px">
-          <button onclick="guardarNuevoInsumo()" style="padding:8px 18px;background:linear-gradient(135deg,#c2410c,#b91c1c);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">💾 Guardar Insumo</button>
-          <button onclick="document.getElementById('form-nuevo-insumo').style.display='none'" style="padding:8px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer">Cancelar</button>
-        </div>
+        <span style="font-size:14px;font-weight:800">🧵 Control de Insumos y Materiales</span>
+        <button onclick="cargarInsumos()" style="padding:7px 14px;background:var(--surface2);color:var(--text-secondary);border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">🔄 Actualizar</button>
       </div>
       <div style="padding:20px" id="insumos-body"><p style="color:var(--text-muted)">Cargando...</p></div>
     </div>
@@ -378,7 +356,11 @@
 
 
   <!-- CAJA -->
-  <div class="tab-content" id="tab-caja-admin">
+  <div class="tab-content
+  <!-- Consulta telas -->
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-md);overflow:hidden;margin-bottom:20px" id="card-consulta-telas-admin"><div style="padding:14px 20px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between"><span style="font-size:14px;font-weight:800">Ordenes — Asignacion de Telas</span><button onclick="cargarConsultaTelas_admin('consulta-telas-admin')" style="padding:7px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:12px;cursor:pointer">Actualizar</button></div><div style="padding:20px" id="consulta-telas-admin"></div></div>
+
+  id="tab-caja-admin">
     <!-- Filtros -->
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <select id="caja-periodo" onchange="cargarCajaAdmin()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none">
@@ -440,7 +422,10 @@
     if(tab==='errores') cargarErroresAdmin();
     if(tab==='compras-admin') cargarComprasAdmin();
     if(tab==='tiempos') cargarTiempos();
-    if(tab==='insumos') cargarInsumos();
+    if(tab==='insumos') {
+      cargarInsumos();
+      document.getElementById('card-consulta-telas-admin').style.display = 'block';
+    }
     if(tab==='caja-admin') cargarCajaAdmin();
     if(tab==='retiros-admin') cargarRetirosAdmin();
   }
@@ -1001,8 +986,8 @@
       const rC = await fetch(SB_URL + '/rest/v1/consumos_insumo?estado_compra=in.(PENDIENTE,COMPRANDO)&order=nombre_insumo.asc,fecha_asignacion.asc', { headers: HDR });
       const consumos = await rC.json();
 
-      // Catálogo de insumos
-      const rI = await fetch(SB_URL + '/rest/v1/insumos?activo=eq.true&order=tipo.asc,nombre.asc', { headers: HDR });
+      // Catálogo de telas (insumos_stock)
+      const rI = await fetch(SB_URL + '/rest/v1/insumos_stock?order=nombre.asc,color.asc&select=id,nombre,color,stock_actual', { headers: HDR });
       const insumos = await rI.json();
 
       // Badge
@@ -1122,27 +1107,36 @@
         html += '</div>';
       }
 
-      // ── Catálogo ─────────────────────────────────────────
-      html += '<div style="font-size:12px;font-weight:800;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;letter-spacing:.07em;margin-top:8px">📦 Catálogo de Insumos</div>';
-      html += '<table style="width:100%;border-collapse:collapse;font-size:13px">'
-        + '<thead><tr>'
-          + '<th style="background:var(--surface2);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border)">Nombre</th>'
-          + '<th style="background:var(--surface2);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border)">Tipo</th>'
-          + '<th style="background:var(--surface2);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border)">Stock</th>'
-          + '<th style="background:var(--surface2);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border)">Unidad</th>'
-          + '<th style="background:var(--surface2);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border)">Acciones</th>'
-        + '</tr></thead><tbody>';
-      insumos.forEach(function(i) {
-        html += '<tr style="border-bottom:1px solid var(--border)">'
-          + '<td style="padding:9px 12px;font-weight:600">' + i.nombre + '</td>'
-          + '<td style="padding:9px 12px"><span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;background:#fff7ed;color:#c2410c">' + i.tipo + '</span></td>'
-          + '<td style="padding:9px 12px;font-family:JetBrains Mono,monospace;font-weight:700;color:' + (i.stock_actual <= 0 ? 'var(--red)' : 'var(--green)') + '">' + i.stock_actual + '</td>'
-          + '<td style="padding:9px 12px;color:var(--text-muted)">' + i.unidad + '</td>'
-          + '<td style="padding:9px 12px"><button onclick="editarInsumo(' + i.id + ',\'' + i.nombre + '\',\'' + i.tipo + '\',\'' + i.unidad + '\',' + i.stock_actual + ')" style="padding:5px 10px;background:var(--blue-light);color:var(--blue);border:1px solid var(--blue-mid);border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">✏️ Editar</button></td>'
-        + '</tr>';
-      });
-      html += '</tbody></table>';
+      // ── Catálogo de telas (insumos_stock) ───────────────
+      html += '<div style="font-size:12px;font-weight:800;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;letter-spacing:.07em;margin-top:8px">🧵 Catálogo de Telas — Stock Actual</div>';
+      if (Array.isArray(insumos) && insumos.length) {
+        html += '<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:8px">'
+          + '<thead><tr style="background:var(--surface2)">'
+            + '<th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border)">Tela</th>'
+            + '<th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border)">Color</th>'
+            + '<th style="padding:9px 12px;text-align:right;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border)">Stock (m)</th>'
+            + '<th style="padding:9px 12px;text-align:center;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border)">Estado</th>'
+          + '</tr></thead><tbody>';
+        insumos.forEach(function(t) {
+          var stock   = parseFloat(t.stock_actual) || 0;
+          var agotado = stock <= 0;
+          var colorTx = agotado ? 'var(--red)' : 'var(--green)';
+          var lbl     = agotado ? '🔴 Agotado' : '🟢 Disponible';
+          var stockFmt = stock % 1 === 0 ? stock.toString() : stock.toFixed(2);
+          html += '<tr style="border-bottom:1px solid var(--border)">'
+            + '<td style="padding:9px 12px;font-weight:700">' + t.nombre + '</td>'
+            + '<td style="padding:9px 12px;color:var(--text-secondary)">' + (t.color||'—') + '</td>'
+            + '<td style="padding:9px 12px;text-align:right;font-family:JetBrains Mono,monospace;font-weight:800;color:' + colorTx + '">' + stockFmt + '</td>'
+            + '<td style="padding:9px 12px;text-align:center;font-size:12px;font-weight:700;color:' + colorTx + '">' + lbl + '</td>'
+          + '</tr>';
+        });
+        html += '</tbody></table>';
+      } else {
+        html += '<div style="font-size:13px;color:var(--text-muted);padding:10px 0">No hay telas en el catálogo. El Supervisor debe agregarlas.</div>';
+      }
       el.innerHTML = html;
+      // Cargar tabla de consulta de órdenes con/sin tela
+      cargarConsultaTelas_admin('consulta-telas-admin');
     } catch(e) {
       el.innerHTML = '<p style="color:var(--red)">Error: ' + e.message + '</p>';
     }
@@ -1496,6 +1490,61 @@
     } catch(e) {
       alert("Error al rechazar: " + e.message);
       btn.disabled = false; btn.textContent = "❌ Rechazar";
+    }
+  }
+
+  // ── CONSULTA DE ÓRDENES CON/SIN TELA ─────────────────────
+  async function cargarConsultaTelas_admin(elId) {
+    var HDR_KEY = HDR; var SB = SB_URL;
+    var el = document.getElementById(elId);
+    if (!el) return;
+    el.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:20px">Cargando...</div>';
+    try {
+      var rC = await fetch(SB + '/rest/v1/consumos_insumo?select=orden_id,numero_orden,tipo_prenda,nombre_insumo,color_insumo,cantidad_estimada,unidad,estado_compra&order=numero_orden.asc', { headers: HDR_KEY });
+      var consumos = await rC.json();
+      if (!Array.isArray(consumos)) consumos = [];
+      var rO = await fetch(SB + '/rest/v1/ordenes?estado=in.(EN_ANALISIS,EN_PRODUCCION)&select=id,numero_orden,productos,estado&order=numero_orden.asc', { headers: HDR_KEY });
+      var ordenes = await rO.json();
+      if (!Array.isArray(ordenes)) ordenes = [];
+      var ordenesConTela = new Set(consumos.map(function(c){ return String(c.numero_orden); }));
+      var sinTela = [];
+      ordenes.forEach(function(o) {
+        if (!ordenesConTela.has(String(o.numero_orden))) {
+          (o.productos || []).forEach(function(p) {
+            sinTela.push({ numero_orden: o.numero_orden, tipo_prenda: p.tipo || 'Prenda', estado_orden: o.estado });
+          });
+        }
+      });
+      var html = '';
+      html += '<div style="font-size:12px;font-weight:800;text-transform:uppercase;color:#16a34a;letter-spacing:.07em;margin-bottom:10px">Con Tela Asignada (' + consumos.length + ' prendas)</div>';
+      if (consumos.length) {
+        html += '<div style="overflow-x:auto;margin-bottom:24px"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#f0fdf4"><th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#166534;border-bottom:2px solid #86efac">Orden</th><th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#166534;border-bottom:2px solid #86efac">Prenda</th><th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#166534;border-bottom:2px solid #86efac">Tela</th><th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#166534;border-bottom:2px solid #86efac">Color</th><th style="padding:9px 12px;text-align:right;font-size:11px;font-weight:700;color:#166534;border-bottom:2px solid #86efac">Metros</th><th style="padding:9px 12px;text-align:center;font-size:11px;font-weight:700;color:#166534;border-bottom:2px solid #86efac">Estado</th></tr></thead><tbody>';
+        consumos.forEach(function(c, i) {
+          var est = c.estado_compra || 'PENDIENTE';
+          var eC = est==='RECIBIDO'?'#16a34a':est==='COMPRANDO'?'#f97316':'#2563eb';
+          var eB = est==='RECIBIDO'?'#f0fdf4':est==='COMPRANDO'?'#fff7ed':'#eff6ff';
+          var eL = est==='RECIBIDO'?'En stock':est==='COMPRANDO'?'Comprando':'Pendiente';
+          var m = parseFloat(c.cantidad_estimada)||0;
+          html += '<tr style="background:'+(i%2===0?'#fff':'#f8fafc')+';border-bottom:1px solid #f1f5f9"><td style="padding:9px 12px;font-family:JetBrains Mono,monospace;font-weight:700;color:#2563eb">'+(c.numero_orden||'-')+'</td><td style="padding:9px 12px;font-weight:600">'+(c.tipo_prenda||'-')+'</td><td style="padding:9px 12px">'+(c.nombre_insumo||'-')+'</td><td style="padding:9px 12px;color:#64748b">'+(c.color_insumo||'-')+'</td><td style="padding:9px 12px;text-align:right;font-family:JetBrains Mono,monospace;font-weight:700">'+(m%1===0?m:m.toFixed(2))+'</td><td style="padding:9px 12px;text-align:center"><span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:'+eB+';color:'+eC+'">'+eL+'</span></td></tr>';
+        });
+        html += '</tbody></table></div>';
+      } else {
+        html += '<div style="color:#94a3b8;font-size:13px;padding:8px 0 20px">No hay telas asignadas.</div>';
+      }
+      html += '<div style="font-size:12px;font-weight:800;text-transform:uppercase;color:#dc2626;letter-spacing:.07em;margin-bottom:10px">Sin Tela Asignada (' + sinTela.length + ' prendas)</div>';
+      if (sinTela.length) {
+        html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#fff1f2"><th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#991b1b;border-bottom:2px solid #fca5a5">Orden</th><th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#991b1b;border-bottom:2px solid #fca5a5">Prenda</th><th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#991b1b;border-bottom:2px solid #fca5a5">Estado Orden</th></tr></thead><tbody>';
+        sinTela.forEach(function(s, i) {
+          var eO = s.estado_orden==='EN_ANALISIS'?'En Analisis':'En Produccion';
+          html += '<tr style="background:'+(i%2===0?'#fff':'#fff8f8')+';border-bottom:1px solid #fee2e2"><td style="padding:9px 12px;font-family:JetBrains Mono,monospace;font-weight:700;color:#dc2626">'+s.numero_orden+'</td><td style="padding:9px 12px;font-weight:600">'+s.tipo_prenda+'</td><td style="padding:9px 12px;font-size:12px;font-weight:600;color:#374151">'+eO+'</td></tr>';
+        });
+        html += '</tbody></table></div>';
+      } else {
+        html += '<div style="color:#16a34a;font-size:13px;font-weight:700;padding:8px 0">Todas las prendas tienen tela asignada.</div>';
+      }
+      el.innerHTML = html;
+    } catch(e) {
+      el.innerHTML = '<div style="color:#dc2626;font-size:13px">Error: ' + e.message + '</div>';
     }
   }
 
