@@ -1251,11 +1251,19 @@
 
   async function cargarCatalogoInsumos() {
     try {
-      const r = await fetch(SB_URL + '/rest/v1/insumos?activo=eq.true&order=tipo.asc,nombre.asc&select=id,nombre,tipo,unidad,stock_actual', { headers: HDR });
-      catalogoInsumos = await r.json();
-      if (!Array.isArray(catalogoInsumos)) catalogoInsumos = [];
+      const r = await fetch(SB_URL + '/rest/v1/insumos_stock?order=nombre.asc,color.asc&select=id,nombre,color,stock_actual', { headers: HDR });
+      const data = await r.json();
+      // Mapear insumos_stock al formato que espera el sistema
+      catalogoInsumos = Array.isArray(data) ? data.map(t => ({
+        id:           t.id,
+        nombre:       t.nombre + (t.color ? ' — ' + t.color : ''),
+        nombre_base:  t.nombre,
+        color:        t.color || '',
+        tipo:         'Tela',
+        unidad:       'metros',
+        stock_actual: t.stock_actual || 0
+      })) : [];
     } catch(e) { catalogoInsumos = []; }
-    // Re-renderizar análisis para mostrar selectores con datos
     if (navActual === 'analisis') filtrarAnalisis();
   }
 
@@ -1269,20 +1277,12 @@
     const insumoActual = p.insumo_id || '';
     const cantActual   = p.cantidad_insumo || '';
 
-    let optsI = '<option value="">— Sin insumo —</option>';
-    const grupos = {};
+    let optsI = '<option value="">— Seleccionar tela —</option>';
     catalogoInsumos.forEach(function(i) {
-      if (!grupos[i.tipo]) grupos[i.tipo] = [];
-      grupos[i.tipo].push(i);
-    });
-    Object.entries(grupos).forEach(function([tipo, items]) {
-      optsI += '<optgroup label="' + tipo + '">';
-      items.forEach(function(i) {
-        optsI += '<option value="' + i.id + '"' + (String(insumoActual) === String(i.id) ? ' selected' : '') + '>'
-          + i.nombre + ' (' + i.unidad + ') — Stock: ' + i.stock_actual
+      const stockLbl = i.stock_actual > 0 ? ' (' + i.stock_actual + ' m)' : ' (sin stock)';
+      optsI += '<option value="' + i.id + '"' + (String(insumoActual) === String(i.id) ? ' selected' : '') + '>'
+        + i.nombre + stockLbl
         + '</option>';
-      });
-      optsI += '</optgroup>';
     });
 
     var html = '<div style="margin-top:10px;padding:12px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px">';
@@ -1312,8 +1312,9 @@
     const orden  = ordenesAnalisis.find(o => String(o.id) === String(oid));
     if (orden && orden.productos && orden.productos[idx]) {
       orden.productos[idx].insumo_id    = val;
-      orden.productos[idx].nombre_insumo = insumo ? insumo.nombre : '';
-      orden.productos[idx].unidad_insumo = insumo ? insumo.unidad : '';
+      orden.productos[idx].nombre_insumo = insumo ? (insumo.nombre_base || insumo.nombre) : '';
+      orden.productos[idx].color_insumo  = insumo ? (insumo.color || '') : '';
+      orden.productos[idx].unidad_insumo = insumo ? insumo.unidad : 'metros';
     }
     showToast(insumo ? '🧵 Insumo asignado: ' + insumo.nombre : '🧵 Insumo removido');
     verificarListoEnviar(oid);
@@ -1345,6 +1346,7 @@
       tipo_prenda:       p.tipo || '',
       insumo_id:         parseInt(p.insumo_id),
       nombre_insumo:     p.nombre_insumo || '',
+      color_insumo:      p.color_insumo  || '',
       cantidad_estimada: p.cantidad_insumo,
       unidad:            p.unidad_insumo || 'metros',
       estado_compra:     'PENDIENTE',

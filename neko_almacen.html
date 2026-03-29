@@ -1217,43 +1217,44 @@ function confirmarError() {
     var el = document.getElementById("stock-lista");
     if (!el) return;
     if (!stockTelas.length) {
-      el.innerHTML = '<div class="state-box"><div class="icon">🧵</div><p>No hay telas registradas.<br>Registra la primera entrada.</p></div>';
+      el.innerHTML = '<div class="state-box"><div class="icon">🧵</div><p>No hay telas en el catálogo.<br>El Supervisor debe agregarlas primero.</p></div>';
       return;
     }
-    var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">';
-    stockTelas.forEach(function(t) {
-      var stock     = parseFloat(t.stock_actual) || 0;
-      var minimo    = parseFloat(t.stock_minimo) || 0;
-      var bajo      = minimo > 0 && stock <= minimo;
-      var agotado   = stock <= 0;
-      var color     = agotado ? '#dc2626' : bajo ? '#f97316' : '#16a34a';
-      var bg        = agotado ? '#fff1f2' : bajo ? '#fff7ed' : '#f0fdf4';
-      var brd       = agotado ? '#fca5a5' : bajo ? '#fed7aa' : '#86efac';
-      var icono     = agotado ? '🔴' : bajo ? '🟡' : '🟢';
-      var lbl       = agotado ? 'Agotado' : bajo ? 'Stock Bajo' : 'Disponible';
-      var stockFmt  = stock % 1 === 0 ? stock : stock.toFixed(2);
 
-      html += '<div style="background:' + bg + ';border:2px solid ' + brd + ';border-radius:12px;padding:16px">'
-        + '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">'
-          + '<div>'
-            + '<div style="font-size:14px;font-weight:800;color:#0f172a">' + t.nombre + '</div>'
-            + (t.color ? '<div style="font-size:12px;color:#64748b;margin-top:2px">🎨 ' + t.color + '</div>' : '')
-            + (t.referencia ? '<div style="font-size:11px;color:#94a3b8;margin-top:1px">Ref: ' + t.referencia + '</div>' : '')
+    var html = '<table style="width:100%;border-collapse:collapse;font-size:13px">'
+      + '<thead><tr style="background:#f8fafc">'
+        + '<th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:2px solid #e2e8f0">Tela</th>'
+        + '<th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:2px solid #e2e8f0">Color</th>'
+        + '<th style="padding:10px 14px;text-align:right;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:2px solid #e2e8f0">Stock (m)</th>'
+        + '<th style="padding:10px 14px;text-align:center;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:2px solid #e2e8f0">Estado</th>'
+        + '<th style="padding:10px 14px;text-align:center;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:2px solid #e2e8f0">Acciones</th>'
+      + '</tr></thead><tbody>';
+
+    stockTelas.forEach(function(t, i) {
+      var stock    = parseFloat(t.stock_actual) || 0;
+      var minimo   = parseFloat(t.stock_minimo) || 0;
+      var agotado  = stock <= 0;
+      var bajo     = minimo > 0 && stock <= minimo && !agotado;
+      var colorTxt = agotado ? '#dc2626' : bajo ? '#f97316' : '#16a34a';
+      var bgRow    = agotado ? '#fff1f2' : bajo ? '#fff7ed' : (i%2===0 ? '#fff' : '#f8fafc');
+      var icono    = agotado ? '🔴 Agotado' : bajo ? '🟡 Bajo' : '🟢 OK';
+      var stockFmt = stock % 1 === 0 ? stock.toString() : stock.toFixed(2);
+
+      html += '<tr style="background:' + bgRow + ';border-bottom:1px solid #f1f5f9">'
+        + '<td style="padding:12px 14px;font-weight:700;color:#0f172a">' + t.nombre + '</td>'
+        + '<td style="padding:12px 14px;color:#64748b">' + (t.color || '—') + '</td>'
+        + '<td style="padding:12px 14px;text-align:right;font-family:JetBrains Mono,monospace;font-weight:800;font-size:15px;color:' + colorTxt + '">' + stockFmt + '</td>'
+        + '<td style="padding:12px 14px;text-align:center"><span style="font-size:12px;font-weight:700;color:' + colorTxt + '">' + icono + '</span></td>'
+        + '<td style="padding:12px 14px;text-align:center">'
+          + '<div style="display:flex;gap:6px;justify-content:center">'
+            + '<button data-id="' + t.id + '" onclick="abrirEntradaExistente(this)" style="padding:6px 12px;background:#f0fdf4;color:#16a34a;border:1.5px solid #86efac;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">+ Metros</button>'
+            + '<button data-id="' + t.id + '" onclick="verMovimientos(this)" style="padding:6px 12px;background:#f8fafc;color:#374151;border:1.5px solid #e2e8f0;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">📋</button>'
           + '</div>'
-          + '<span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:' + color + ';color:#fff">' + icono + ' ' + lbl + '</span>'
-        + '</div>'
-        + '<div style="display:flex;align-items:baseline;gap:6px;margin-bottom:8px">'
-          + '<span style="font-size:28px;font-weight:900;color:' + color + '">' + stockFmt + '</span>'
-          + '<span style="font-size:13px;font-weight:600;color:#64748b">metros</span>'
-        + '</div>'
-        + (minimo > 0 ? '<div style="font-size:11px;color:#94a3b8;margin-bottom:10px">Mínimo: ' + minimo + ' metros</div>' : '')
-        + '<div style="display:flex;gap:8px">'
-          + '<button data-id="' + t.id + '" onclick="abrirEntradaExistente(this)" style="flex:1;padding:8px;background:#fff;border:1.5px solid #10b981;color:#065f46;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">+ Agregar</button>'
-          + '<button data-id="' + t.id + '" onclick="verMovimientos(this)" style="flex:1;padding:8px;background:#fff;border:1.5px solid #e2e8f0;color:#374151;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">📋 Historial</button>'
-        + '</div>'
-      + '</div>';
+        + '</td>'
+      + '</tr>';
     });
-    html += '</div>';
+
+    html += '</tbody></table>';
     el.innerHTML = html;
   }
 
