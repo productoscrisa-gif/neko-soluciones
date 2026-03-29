@@ -331,16 +331,10 @@ function renderPendientes() {
       html += '</div>';
 
       // Orden padre
-      html += '<div style="border-bottom:2px dashed #ede9fe">' + buildCard(padre, false) + '</div>';
+      html += '<div style="border-bottom:2px dashed #ede9fe">' + buildCard(padre, false, false, hijasDelPadre) + '</div>';
 
       // Órdenes hijas
-      hijasDelPadre.forEach(function(hija, i) {
-        var esUltima = i === hijasDelPadre.length - 1;
-        html += '<div style="' + (esUltima ? '' : 'border-bottom:1px dashed #ede9fe') + '">';
-        html += '<div style="background:#f5f3ff;padding:4px 16px;font-size:11px;font-weight:700;color:#7c3aed">➕ ADICIONAL ' + hija.numero_orden + '</div>';
-        html += buildCard(hija, false, true);
-        html += '</div>';
-      });
+      // prendas de hijas van en tabla del padre via hijasData
 
       html += '</div>'; // cierre grupo
 
@@ -379,7 +373,7 @@ function renderDespachados() {
 }
 
 // ── CONSTRUIR CARD ────────────────────────────────────────────
-function buildCard(o, isDespachado, esHija) {
+function buildCard(o, isDespachado, esHija, hijasData) {
   var c = contarPrendas(o);
   var total = c.total, enAlmacen = c.enAlmacen;
   var faltantes = total - enAlmacen;
@@ -526,12 +520,21 @@ function buildCard(o, isDespachado, esHija) {
     accionesHTML = "<span style='font-size:13px;font-weight:700;color:var(--indigo)'>📦 Despachado el "+fdp+(o.guia_numero?" · Guia: "+o.guia_numero:"")+"</span>";
   } else {
     // Bloquear si saldo pendiente sin contraentrega (pago parcial sin confirmar)
-  var tieneSaldoSinContra = (o.saldo_pendiente > 0) && !o.es_contraentrega && !o.pago_confirmado;
-  var disAttr = (!completo || tieneSaldoSinContra) ? "disabled" : "";
-  var tooltipAttr = !completo ? 'title="Faltan prendas en produccion"'
-    : tieneSaldoSinContra ? 'title="Saldo pendiente - El cliente debe pagar antes de despachar"'
-    : '';
-    accionesHTML = "<button class='btn-despachar' id='btn-d-"+oid+"' "+disAttr+" onclick='doDespachar(\""+oid+"\")'>📤 Confirmar Despacho</button>"
+  // Bloquear si prendas incompletas O saldo pendiente SIN contraentrega y sin confirmar
+  var saldoBloquea  = (o.saldo_pendiente > 0) && !o.es_contraentrega && !o.pago_confirmado;
+  var bloqueado     = !completo || saldoBloquea;
+  var disAttr       = bloqueado ? "disabled" : "";
+  var motivoBloqueo = !completo
+    ? "Faltan prendas en Almacen"
+    : saldoBloquea
+      ? "Saldo pendiente — si paga al recibir, activa Contraentrega"
+      : "";
+  var tooltipAttr = motivoBloqueo ? 'title="' + motivoBloqueo + '"' : '';
+    var motivoDiv = motivoBloqueo
+      ? "<div style='margin-bottom:8px;padding:8px 12px;background:#fff1f2;border:1px solid #fca5a5;border-radius:8px;font-size:12px;font-weight:700;color:#dc2626'>Bloqueado: " + motivoBloqueo + "</div>"
+      : "";
+    accionesHTML = motivoDiv
+      + "<button class='btn-despachar' id='btn-d-"+oid+"' "+disAttr+" "+tooltipAttr+" onclick='doDespachar(\""+oid+"\")'>Confirmar Despacho</button>"
       + "<button class='btn-error-rep' onclick='doError(\""+oid+"\")'>🔴 Reportar Problema</button>";
   }
 
@@ -548,6 +551,21 @@ function buildCard(o, isDespachado, esHija) {
       + insumoAlerta + obsEnvioHTML + clienteHTML + pagoHTML + alertHTML
       + "<div class='section-title'>📦 Estado de Prendas</div>"
       + "<table class='prendas-table'><thead><tr><th>Prenda</th><th>Cant</th><th>Ubicacion</th><th>Obs</th></tr></thead><tbody>"+prendasRows+"</tbody></table>"
+      + (hijasData && hijasData.length ? hijasData.map(function(hija) {
+          var hjRows = '';
+          (hija.productos || []).forEach(function(p, pidx) {
+            var se = (hija.sub_estados || []).find(function(s){ return s.prenda_idx === pidx; });
+            var area = se && se.area_actual ? se.area_actual : 'En ruta';
+            var enAlm = (area === 'Almacen' || area === 'Almac\u00e9n');
+            var cls  = enAlm ? 'ep-listo' : 'ep-ruta';
+            hjRows += "<tr style='background:#f5f3ff'>"
+              + "<td><strong>" + (p.tipo||'-') + "</strong>"
+              + (p.notas ? "<br><small style='color:#92400e'>Nota: "+p.notas+"</small>" : "")
+              + "</td><td><span style='background:#eff6ff;color:#2563eb;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700'>x"+(p.cantidad||1)+"</span></td>"
+              + "<td><span class='ep "+cls+"'>"+(enAlm?'En Almacen':'En ruta: '+area)+"</span></td><td>-</td></tr>";
+          });
+          return "<tr><td colspan='4' style='padding:4px 8px;background:#ede9fe;font-size:11px;font-weight:800;color:#7c3aed'>+ ADICIONAL " + hija.numero_orden + "</td></tr>" + hjRows;
+        }).join('') : '')
       + (!esHija ? guiaSec : "")
       + (!esHija ? "<div class='order-actions'>"+accionesHTML+"</div>" : "")
     + "</div>"
