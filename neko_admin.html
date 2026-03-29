@@ -1409,7 +1409,7 @@
     if (!el) return;
     el.innerHTML = "<div style='color:var(--text-muted);font-size:13px;text-align:center;padding:40px'>⏳ Cargando...</div>";
     try {
-      var r = await fetch(SB_URL + "/rest/v1/retiros_caja?order=fecha_solicitud.desc&limit=50", { headers: H });
+      var r = await fetch(SB_URL + "/rest/v1/retiros_caja?order=fecha_solicitud.desc&limit=50", { headers: HDR });
       var retiros = await r.json();
       if (!Array.isArray(retiros) || !retiros.length) {
         el.innerHTML = "<div style='color:var(--text-muted);font-size:13px;text-align:center;padding:40px'>✅ No hay solicitudes de retiro</div>";
