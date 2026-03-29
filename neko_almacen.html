@@ -239,13 +239,27 @@ async function cargarPendientes() {
     var r = await fetch(SB + "/rest/v1/ordenes?estado=eq.EN_PRODUCCION&select=id,numero_orden,nombre_cliente,telefono,doc_cliente,direccion,barrio,ciudad,departamento,usuario_red,marca,vendedora,productos,sub_estados,es_prioritario,fecha_entrega,fecha_creacion,valor_total,monto_pagado,saldo_pendiente,es_contraentrega,pago_confirmado,confirmado_por,guia_numero,guia_url,link_drive,tipo_envio,transportadora,tiene_hijas,orden_padre,obs_envio,obs_envio_leido&order=es_prioritario.desc,fecha_creacion.asc", { headers: H });
     var all = await r.json();
     if (!Array.isArray(all)) all = [];
-    // Solo las que tienen prendas en Almacén
-    ordenesEnAlmacen = all.filter(function(o) {
+    // Órdenes con al menos 1 prenda en Almacén
+    var conAlmacen = all.filter(function(o) {
       return (o.productos || []).some(function(p, idx) {
         var se = (o.sub_estados || []).find(function(s) { return s.prenda_idx === idx; });
         return se && (se.area_actual === "Almacen" || se.area_actual === "Almacén");
       });
     });
+
+    // Incluir también las hijas de padres que ya están en Almacén
+    // (para mostrar el grupo completo aunque la hija aún no llegó)
+    var numPadresEnAlmacen = conAlmacen
+      .filter(function(o) { return !o.orden_padre; })
+      .map(function(o) { return o.numero_orden; });
+
+    var hijasExtra = all.filter(function(o) {
+      return o.orden_padre
+        && numPadresEnAlmacen.includes(o.orden_padre)
+        && !conAlmacen.find(function(x) { return x.id === o.id; });
+    });
+
+    ordenesEnAlmacen = conAlmacen.concat(hijasExtra);
     actualizarStats();
     renderPendientes();
   } catch(e) {
@@ -294,8 +308,59 @@ function renderPendientes() {
     el.innerHTML = '<div class="state-box"><div class="icon">📦</div><p>No hay pedidos en Almacen</p></div>';
     return;
   }
+
+  // Agrupar: padres primero, hijas anidadas dentro del padre
+  var padres = ordenesEnAlmacen.filter(function(o) { return !o.orden_padre; });
+  var hijas  = ordenesEnAlmacen.filter(function(o) { return !!o.orden_padre;  });
+
   var html = '<div class="orders-list">';
-  ordenesEnAlmacen.forEach(function(o) { html += buildCard(o, false); });
+
+  padres.forEach(function(padre) {
+    // Buscar hijas de este padre
+    var hijasDelPadre = hijas.filter(function(h) {
+      return h.orden_padre === padre.numero_orden;
+    });
+
+    if (hijasDelPadre.length > 0) {
+      // Renderizar como grupo agrupado
+      html += '<div style="border:2px solid #7c3aed;border-radius:14px;overflow:hidden;margin-bottom:16px">';
+
+      // Header del grupo
+      html += '<div style="background:#f5f3ff;padding:10px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #ede9fe">';
+      html += '<span style="font-size:12px;font-weight:800;color:#7c3aed">📦 GRUPO — ' + hijasDelPadre.length + ' orden(es) adicional(es) · Se despachan juntas</span>';
+      html += '</div>';
+
+      // Orden padre
+      html += '<div style="border-bottom:2px dashed #ede9fe">' + buildCard(padre, false) + '</div>';
+
+      // Órdenes hijas
+      hijasDelPadre.forEach(function(hija, i) {
+        var esUltima = i === hijasDelPadre.length - 1;
+        html += '<div style="' + (esUltima ? '' : 'border-bottom:1px dashed #ede9fe') + '">';
+        html += '<div style="background:#f5f3ff;padding:4px 16px;font-size:11px;font-weight:700;color:#7c3aed">➕ ADICIONAL ' + hija.numero_orden + '</div>';
+        html += buildCard(hija, false);
+        html += '</div>';
+      });
+
+      html += '</div>'; // cierre grupo
+
+    } else {
+      // Orden sola sin hijas
+      html += buildCard(padre, false);
+    }
+  });
+
+  // Hijas huérfanas (cuya madre no llegó aún a Almacén — caso raro)
+  var hijasHuerfanas = hijas.filter(function(h) {
+    return !padres.find(function(p) { return p.numero_orden === h.orden_padre; });
+  });
+  hijasHuerfanas.forEach(function(h) {
+    html += '<div style="border:2px solid #fcd34d;border-radius:12px;overflow:hidden;margin-bottom:12px">';
+    html += '<div style="background:#fffbeb;padding:6px 16px;font-size:12px;font-weight:700;color:#92400e">⚠️ ADICIONAL de ' + h.orden_padre + ' — La orden principal aún no llegó a Almacén</div>';
+    html += buildCard(h, false);
+    html += '</div>';
+  });
+
   html += '</div>';
   el.innerHTML = html;
 }
