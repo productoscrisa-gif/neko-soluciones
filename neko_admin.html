@@ -110,6 +110,7 @@
     <button class="nav-tab" onclick="cambiarTab('tiempos')" style="color:#7c3aed">⏱️ Tiempos</button>
     <button class="nav-tab" onclick="cambiarTab('insumos')" style="color:#c2410c">🧵 Insumos <span id="badge-insumos" style="display:none;background:#c2410c;color:#fff;border-radius:20px;padding:1px 6px;font-size:10px;margin-left:3px">0</span></button>
     <button class="nav-tab" onclick="cambiarTab('caja-admin')" style="color:#0d9488">💵 Caja</button>
+    <button class="nav-tab" onclick="cambiarTab('retiros-admin')" style="color:#f97316">💸 Retiros <span id="badge-retiros" style="display:none;background:#f97316;color:#fff;border-radius:20px;padding:1px 7px;font-size:10px;margin-left:3px">0</span></button>
   </div>
 
   <!-- DASHBOARD -->
@@ -438,6 +439,7 @@
     if(tab==='tiempos') cargarTiempos();
     if(tab==='insumos') cargarInsumos();
     if(tab==='caja-admin') cargarCajaAdmin();
+    if(tab==='retiros-admin') cargarRetirosAdmin();
   }
 
   // ── ERRORES ADMIN ─────────────────────────────────────────
@@ -1401,12 +1403,82 @@
     return '$ ' + Number(n).toLocaleString('es-CO');
   }
 
+  // ── RETIROS ADMIN ───────────────────────────────────────
+  async function cargarRetirosAdmin() {
+    var el = document.getElementById("retiros-admin-lista");
+    if (!el) return;
+    el.innerHTML = "<div style='color:var(--text-muted);font-size:13px;text-align:center;padding:40px'>⏳ Cargando...</div>";
+    try {
+      var r = await fetch(SB + "/rest/v1/retiros_caja?order=fecha_solicitud.desc&limit=50", { headers: H });
+      var retiros = await r.json();
+      if (!Array.isArray(retiros) || !retiros.length) {
+        el.innerHTML = "<div style='color:var(--text-muted);font-size:13px;text-align:center;padding:40px'>✅ No hay solicitudes de retiro</div>";
+        return;
+      }
+      var pendientes = retiros.filter(function(x){ return x.estado === "PENDIENTE"; }).length;
+      var badge = document.getElementById("badge-retiros");
+      if (badge) { badge.style.display = pendientes > 0 ? "inline" : "none"; badge.textContent = pendientes; }
+
+      el.innerHTML = "<div style='display:flex;flex-direction:column;gap:10px'>" +
+        retiros.map(function(ret) {
+          var fecha = new Date(ret.fecha_solicitud).toLocaleDateString("es-CO",{day:"2-digit",month:"short",year:"numeric"});
+          var color  = ret.estado==="APROBADO" ? "#16a34a" : ret.estado==="RECHAZADO" ? "#dc2626" : "#f97316";
+          var bg     = ret.estado==="APROBADO" ? "#f0fdf4" : ret.estado==="RECHAZADO" ? "#fff1f2" : "#fff7ed";
+          var brd    = ret.estado==="APROBADO" ? "#86efac" : ret.estado==="RECHAZADO" ? "#fca5a5" : "#fed7aa";
+          var lbl    = ret.estado==="APROBADO" ? "✅ Aprobado" : ret.estado==="RECHAZADO" ? "❌ Rechazado" : "⏳ Pendiente";
+          var btns   = ret.estado==="PENDIENTE"
+            ? "<div style='display:flex;gap:8px;margin-top:10px'>"
+              + "<button data-rid='" + ret.id + "' data-monto='" + ret.monto + "' onclick='aprobarRetiro(this)' style='padding:7px 16px;background:#16a34a;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer'>✅ Aprobar</button>"
+              + "<button data-rid='" + ret.id + "' onclick='rechazarRetiro(this)' style='padding:7px 16px;background:#dc2626;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer'>❌ Rechazar</button>"
+              + "</div>" : "";
+          return "<div style='background:" + bg + ";border:1.5px solid " + brd + ";border-radius:10px;padding:14px 16px'>"
+            + "<div style='display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap'>"
+              + "<div><div style='font-size:15px;font-weight:800'>$" + Number(ret.monto).toLocaleString("es-CO") + " COP</div>"
+              + "<div style='font-size:12px;color:#64748b;margin-top:2px'>📝 " + (ret.motivo||"-") + "</div>"
+              + "<div style='font-size:11px;color:#94a3b8;margin-top:2px'>👤 " + (ret.solicitado_por||"-") + " · 📅 " + fecha + "</div>"
+              + (ret.aprobado_por ? "<div style='font-size:11px;color:" + color + ";margin-top:2px'>" + lbl + " por " + ret.aprobado_por + "</div>" : "") + "</div>"
+              + "<span style='padding:4px 12px;background:" + color + ";color:#fff;border-radius:20px;font-size:11px;font-weight:700'>" + lbl + "</span>"
+            + "</div>" + btns + "</div>";
+        }).join("") + "</div>";
+    } catch(e) {
+      el.innerHTML = "<div style='color:var(--red)'>Error: " + e.message + "</div>";
+    }
+  }
+
+  async function aprobarRetiro(btn) {
+    var id    = btn.getAttribute("data-rid");
+    var monto = btn.getAttribute("data-monto");
+    if (!confirm("Aprobar retiro de $" + Number(monto).toLocaleString("es-CO") + " COP?")) return;
+    await fetch(SB + "/rest/v1/retiros_caja?id=eq." + id, {
+      method: "PATCH",
+      headers: Object.assign({},H,{"Content-Type":"application/json","Prefer":"return=minimal"}),
+      body: JSON.stringify({estado:"APROBADO", aprobado_por: sesionAdmin?.nombre||"Admin", fecha_aprobacion: new Date().toISOString()})
+    });
+    showToast("✅ Retiro aprobado");
+    cargarRetirosAdmin();
+  }
+
+  async function rechazarRetiro(btn) {
+    var id = btn.getAttribute("data-rid");
+    if (!confirm("Rechazar esta solicitud?")) return;
+    await fetch(SB + "/rest/v1/retiros_caja?id=eq." + id, {
+      method: "PATCH",
+      headers: Object.assign({},H,{"Content-Type":"application/json","Prefer":"return=minimal"}),
+      body: JSON.stringify({estado:"RECHAZADO", aprobado_por: sesionAdmin?.nombre||"Admin", fecha_aprobacion: new Date().toISOString()})
+    });
+    showToast("❌ Retiro rechazado");
+    cargarRetirosAdmin();
+  }
+
   function showToast(msg){
     const t=document.getElementById('toast');
     t.textContent=msg;t.style.opacity='1';
     clearTimeout(t._tid);t._tid=setTimeout(()=>{t.style.opacity='0';},3500);
   }
 </script>
+
+<!-- TAB RETIROS ADMIN -->
+<div class="tab-content" id="tab-retiros-admin"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px"><div style="font-size:15px;font-weight:800">💸 Solicitudes de Retiro</div><button onclick="cargarRetirosAdmin()" style="padding:8px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;font-weight:700;cursor:pointer">🔄 Actualizar</button></div><div id="retiros-admin-lista"></div></div>
 </body>
 </html>
 
