@@ -192,7 +192,7 @@
   async function cargarOrdenes() {
     document.getElementById('orders-container').innerHTML = '<div class="state-box"><div class="icon">⏳</div><p>Cargando órdenes...</p></div>';
     try {
-      const r = await fetch(`${SB_URL}/rest/v1/ordenes?estado=eq.EN_ANALISIS&order=es_prioritario.desc,fecha_creacion.asc`, { headers: HDR });
+      const r = await fetch(`${SB_URL}/rest/v1/ordenes?estado=eq.EN_ANALISIS&select=*,orden_padre&order=es_prioritario.desc,fecha_creacion.asc`, { headers: HDR });
       ordenes = await r.json();
       actualizarStats();
       aplicarFiltros();
@@ -239,11 +239,22 @@
     const fecha   = o.fecha_creacion ? new Date(o.fecha_creacion).toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'}) : '—';
     const entrega = o.fecha_entrega  ? new Date(o.fecha_entrega+'T12:00:00').toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'}) : '—';
 
+    // Alerta si es orden hija
+    const alertaHija = o.orden_padre
+      ? `<div style="background:#fff7ed;border:2px solid #fcd34d;border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px">
+           <span style="font-size:20px">⚠️</span>
+           <div>
+             <div style="font-size:13px;font-weight:800;color:#92400e">Orden Adicional — Parte del pedido <strong>${o.orden_padre}</strong></div>
+             <div style="font-size:12px;color:#92400e;margin-top:2px">Esta orden debe despacharse junto con la orden original. Coordinar con Almacén para envío conjunto.</div>
+           </div>
+         </div>`
+      : '';
+
     return `
     <div class="order-card ${o.es_prioritario?'priority':''}" id="card-${o.id}">
       <div class="order-header" onclick="toggleCard('${o.id}')">
         <div>
-          <div class="order-num">${o.numero_orden||'SIN #'} &nbsp;·&nbsp; <span style="font-size:13px;font-weight:600;color:var(--text-primary)">${prods.length} prenda${prods.length!==1?'s':''}</span></div>
+          <div class="order-num">${o.numero_orden||'SIN #'}${o.orden_padre?' <span style="font-size:11px;background:#fff7ed;color:#f97316;border:1px solid #fed7aa;padding:2px 8px;border-radius:20px;font-weight:700">Adicional de '+o.orden_padre+'</span>':''} &nbsp;·&nbsp; <span style="font-size:13px;font-weight:600;color:var(--text-primary)">${prods.length} prenda${prods.length!==1?'s':''}</span></div>
           <div class="order-meta">📅 ${fecha} &nbsp;·&nbsp; 🚚 Entrega: ${entrega} &nbsp;·&nbsp; 👩 ${o.vendedora||'—'}</div>
           <div class="rp-bar-wrap">
             <div class="rp-bar"><div class="rp-fill" id="rpf-${o.id}" style="width:${pct}%"></div></div>
@@ -257,6 +268,7 @@
         </div>
       </div>
       <div class="order-body" id="body-${o.id}">
+        ${alertaHija}
         <div class="section-title">📦 Prendas — Asignar Ruta por Prenda</div>
         <div class="prendas-list">${prods.map((p,i)=>prendaHTML(o.id,i,p)).join('')}</div>
         <div class="section-title">📝 Observaciones de Análisis</div>
