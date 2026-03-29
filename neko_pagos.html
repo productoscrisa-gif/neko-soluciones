@@ -140,7 +140,7 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
   async function cargar() {
     try {
       var hoy = new Date().toISOString().split("T")[0];
-      var r = await fetch(SB_URL + "/rest/v1/ordenes?select=id,numero_orden,nombre_cliente,telefono,valor_total,monto_pagado,saldo_pendiente,tipo_pago,es_contraentrega,pago_confirmado,vendedora,estado&or=(saldo_pendiente.gt.0,es_contraentrega.eq.true)&pago_confirmado=is.false&order=fecha_creacion.desc", { headers: HDR });
+      var r = await fetch(SB_URL + "/rest/v1/ordenes?select=id,numero_orden,nombre_cliente,telefono,valor_total,monto_pagado,saldo_pendiente,tipo_pago,es_contraentrega,pago_confirmado,vendedora,estado,orden_padre,tiene_hijas&or=(saldo_pendiente.gt.0,es_contraentrega.eq.true)&pago_confirmado=is.false&order=fecha_creacion.desc", { headers: HDR });
       var ordenes = await r.json();
       if (!Array.isArray(ordenes)) ordenes = [];
       var rHoy = await fetch(SB_URL + "/rest/v1/pagos?select=id&fecha_pago=gte." + hoy + "T00:00:00", { headers: HDR });
@@ -158,26 +158,39 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
   function renderPendientes(ordenes) {
     var el = document.getElementById("lista-pendientes");
     if (!ordenes.length) { el.innerHTML = "<div class=\"empty\"><div class=\"icon\">✅</div><p>No hay pagos pendientes</p></div>"; return; }
+
+    // Separar padres e hijas — ocultar hijas (van consolidadas con el padre)
+    var padres = ordenes.filter(function(o) { return !o.orden_padre; });
+    var hijas   = ordenes.filter(function(o) { return !!o.orden_padre; });
+
     var html = "<div class=\"pendientes-list\">";
-    ordenes.forEach(function(o) {
+    padres.forEach(function(o) {
       var esContra = o.es_contraentrega;
-      var saldo = o.saldo_pendiente || 0;
+      // Calcular saldo consolidado (padre + hijas)
+      var hijasDelPadre = hijas.filter(function(h) { return h.orden_padre === o.numero_orden; });
+      var saldoConsolidado = Number(o.saldo_pendiente || 0)
+        + hijasDelPadre.reduce(function(s, h) { return s + Number(h.saldo_pendiente || 0); }, 0);
+      var tieneHijas = hijasDelPadre.length > 0;
+
       var cls = esContra ? "contra" : "saldo";
-      var badgeTxt = esContra ? "🚚 Contraentrega" : "💰 Abono parcial";
+      var badgeTxt = esContra ? "🚚 Contraentrega"
+        : tieneHijas ? "💰 Saldo grupo: $" + Number(saldoConsolidado).toLocaleString("es-CO") + " COP"
+        : "💰 Saldo: $" + Number(saldoConsolidado).toLocaleString("es-CO") + " COP";
       var badgeStyle = esContra
         ? "padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;background:#fff7ed;color:#f97316;border:1px solid #fed7aa"
         : "padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;background:var(--red-light);color:var(--red);border:1px solid var(--red-border)";
-      var monto = esContra ? (o.valor_total || 0) : saldo;
+      var monto = esContra ? (o.valor_total || 0) : saldoConsolidado;
+
       html += "<div class=\"pi " + cls + "\">"
         + "<div class=\"pi-info\">"
-          + "<span class=\"pi-num\">" + o.numero_orden + "</span>"
+          + "<span class=\"pi-num\">" + o.numero_orden + (tieneHijas ? " <span style='font-size:10px;background:#ede9fe;color:#7c3aed;padding:1px 6px;border-radius:20px'>+"+hijasDelPadre.length+" adicional(es)</span>" : "") + "</span>"
           + "<span class=\"pi-cliente\">" + (o.nombre_cliente || "-") + "</span>"
           + "<span class=\"pi-meta\">📱 " + (o.telefono || "-") + " · 👩 " + (o.vendedora || "-") + "</span>"
         + "</div>"
         + "<div class=\"pi-right\">"
           + "<span style=\"" + badgeStyle + "\">" + badgeTxt + "</span>"
           + "<span class=\"pi-saldo\">$" + Number(monto).toLocaleString("es-CO") + "</span>"
-          + "<button class=\"btn-gestionar\" onclick=\"cargarOrden('" + o.numero_orden + "')\">💳 Gestionar</button>"
+          + "<button class=\"btn-gestionar\" onclick=\"cargarOrdenConsolidado('" + o.numero_orden + "'," + JSON.stringify(hijasDelPadre.map(function(h){return h.numero_orden;})) + ")\">💳 Gestionar</button>"
         + "</div>"
       + "</div>";
     });
@@ -189,6 +202,170 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
     document.getElementById("buscar-input").value = num;
     buscarOrden();
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function cargarOrdenConsolidado(numPadre, numerosHijas) {
+    document.getElementById("buscar-input").value = numPadre;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    var el = document.getElementById("resultado-busqueda");
+    el.innerHTML = "<div style='color:var(--text-muted);font-size:13px;margin-top:8px'>⏳ Cargando grupo...</div>";
+    try {
+      // Cargar padre
+      var rP = await fetch(SB_URL + "/rest/v1/ordenes?numero_orden=eq." + encodeURIComponent(numPadre) + "&limit=1", { headers: HDR });
+      var dp  = await rP.json();
+      if (!Array.isArray(dp) || !dp.length) { el.innerHTML = "<div style='color:var(--red)'>No encontrado</div>"; return; }
+      var padre = dp[0];
+
+      // Cargar hijas si hay
+      var hijas = [];
+      if (numerosHijas && numerosHijas.length) {
+        var rH = await fetch(SB_URL + "/rest/v1/ordenes?numero_orden=in.(" + numerosHijas.map(function(n){ return encodeURIComponent(n); }).join(",") + ")", { headers: HDR });
+        hijas = await rH.json();
+        if (!Array.isArray(hijas)) hijas = [];
+      }
+
+      // Calcular saldo consolidado
+      var saldoTotal = Number(padre.saldo_pendiente || 0)
+        + hijas.reduce(function(s, h) { return s + Number(h.saldo_pendiente || 0); }, 0);
+      var valorTotal = Number(padre.valor_total || 0)
+        + hijas.reduce(function(s, h) { return s + Number(h.valor_total || 0); }, 0);
+      var montoPagado = Number(padre.monto_pagado || 0)
+        + hijas.reduce(function(s, h) { return s + Number(h.monto_pagado || 0); }, 0);
+
+      // Cargar historial de pagos del padre
+      var rPagos = await fetch(SB_URL + "/rest/v1/pagos?orden_id=eq." + padre.id + "&order=fecha_pago.desc", { headers: HDR });
+      padre._pagos = await rPagos.json();
+      if (!Array.isArray(padre._pagos)) padre._pagos = [];
+
+      // Renderizar con datos consolidados
+      renderOrdenConsolidado(padre, hijas, saldoTotal, valorTotal, montoPagado);
+    } catch(e) {
+      el.innerHTML = "<div style='color:var(--red)'>Error: " + e.message + "</div>";
+    }
+  }
+
+  function renderOrdenConsolidado(padre, hijas, saldoTotal, valorTotal, montoPagado) {
+    var el = document.getElementById("resultado-busqueda");
+    var esContra  = padre.es_contraentrega;
+    var confirmado = padre.pago_confirmado;
+    var montoACobrar = esContra ? valorTotal : saldoTotal;
+
+    var estadoStyle, estadoTxt;
+    if (confirmado) {
+      estadoStyle = "background:var(--green-light);color:var(--green);border:1px solid var(--green-border)";
+      estadoTxt = "✅ Pago Confirmado";
+    } else if (esContra) {
+      estadoStyle = "background:#fff7ed;color:#f97316;border:1px solid #fed7aa";
+      estadoTxt = "🚚 Contraentrega";
+    } else if (saldoTotal > 0) {
+      estadoStyle = "background:var(--red-light);color:var(--red);border:1px solid var(--red-border)";
+      estadoTxt = "💰 Saldo Pendiente del Grupo";
+    } else {
+      estadoStyle = "background:var(--green-light);color:var(--green);border:1px solid var(--green-border)";
+      estadoTxt = "✅ Grupo Pagado";
+    }
+
+    var alertaTxt = "";
+    if (confirmado) {
+      alertaTxt = "<div class=\"alerta verde\"><span>✅</span><div><strong>Pago confirmado</strong> — Almacen puede despachar.</div></div>";
+    } else if (esContra) {
+      alertaTxt = "<div class=\"alerta naranja\"><span>🚚</span><div><strong>Contraentrega</strong> — Cobrar <strong>$" + Number(valorTotal).toLocaleString("es-CO") + " COP</strong> al entregar (total del grupo).</div></div>";
+    } else if (saldoTotal > 0) {
+      alertaTxt = "<div class=\"alerta rojo\"><span>⚠️</span><div><strong>Saldo pendiente del grupo: $" + Number(saldoTotal).toLocaleString("es-CO") + " COP</strong>"
+        + (hijas.length ? "<br><small>Padre: $" + Number(padre.saldo_pendiente||0).toLocaleString("es-CO")
+          + hijas.map(function(h){ return " · " + h.numero_orden + ": $" + Number(h.saldo_pendiente||0).toLocaleString("es-CO"); }).join("") + "</small>" : "")
+        + "</div></div>";
+    }
+
+    var histHtml = padre._pagos.length ? padre._pagos.map(function(p) {
+      var fecha = new Date(p.fecha_pago).toLocaleDateString("es-CO",{day:"2-digit",month:"short",year:"numeric"});
+      return "<div class=\"hi\"><div><div class=\"hi-monto\">+$" + Number(p.monto).toLocaleString("es-CO") + "</div><div class=\"hi-meta\">" + (p.medio_pago||"-") + " · " + (p.registrado_por||"-") + (p.notas?" · "+p.notas:"") + "</div></div><span class=\"hi-fecha\">" + fecha + "</span></div>";
+    }).join("") : "<div style=\"font-size:13px;color:var(--text-muted)\">Sin pagos registrados</div>";
+
+    var formHtml = "";
+    if (!confirmado) {
+      formHtml = "<div class=\"form-pago\">"
+        + "<div class=\"section-label\">💳 Registrar Pago del Grupo</div>"
+        + alertaTxt
+        + "<div class=\"form-grid\">"
+          + "<div class=\"field\"><label>Monto Recibido *</label>"
+          + "<input type=\"number\" id=\"pago-monto\" placeholder=\"0\" min=\"0\" value=\"" + montoACobrar + "\" oninput=\"verificarMonto(" + montoACobrar + ")\"></div>"
+          + "<div class=\"field\"><label>Medio de Pago *</label>"
+          + "<select id=\"pago-medio\"><option value=\"\">- Seleccionar -</option><option>NEQUI</option><option>DAVIPLATA</option><option>BANCOLOMBIA</option><option>ADDI</option><option>PAYU</option><option>DAVIVIENDA</option><option>LLAVE</option><option>Efectivo</option></select></div>"
+        + "</div>"
+        + "<div class=\"field\" style=\"margin-bottom:12px\"><label>Notas</label>"
+        + "<input type=\"text\" id=\"pago-notas\" placeholder=\"Ej: Transferencia recibida...\"></div>"
+        + "<div id=\"pago-alerta\"></div>"
+        + "<button class=\"btn-confirmar\" id=\"btn-confirmar\" onclick=\"confirmarPagoGrupo('" + padre.id + "','" + padre.numero_orden + "'," + JSON.stringify(hijas.map(function(h){return {id:h.id,num:h.numero_orden,saldo:h.saldo_pendiente||0};})) + "," + montoACobrar + "," + saldoTotal + ")\">✅ Confirmar Pago y Notificar Almacen</button>"
+        + "</div>";
+    }
+
+    el.innerHTML = "<div class=\"orden-card\">"
+      + "<div class=\"orden-header\">"
+        + "<div><div class=\"orden-num\">" + padre.numero_orden + (hijas.length ? " + " + hijas.length + " adicional(es)" : "") + "</div>"
+        + "<div class=\"orden-cliente\">" + (padre.nombre_cliente||"-") + "</div>"
+        + "<div class=\"orden-meta\">📱 " + (padre.telefono||"-") + " · 👩 " + (padre.vendedora||"-") + "</div></div>"
+        + "<span class=\"badge-estado\" style=\"" + estadoStyle + "\">" + estadoTxt + "</span>"
+      + "</div>"
+      + "<div class=\"resumen\">"
+        + "<div class=\"rf\"><div class=\"rf-label\">Total Grupo</div><div class=\"rf-value blue\">$" + Number(valorTotal).toLocaleString("es-CO") + "</div></div>"
+        + "<div class=\"rf\"><div class=\"rf-label\">Total Pagado</div><div class=\"rf-value green\">$" + Number(montoPagado).toLocaleString("es-CO") + "</div></div>"
+        + "<div class=\"rf\"><div class=\"rf-label\">Por Cobrar</div><div class=\"rf-value red\">$" + Number(montoACobrar).toLocaleString("es-CO") + "</div></div>"
+      + "</div>"
+      + "<div class=\"historial\"><div class=\"section-label\">📋 Historial de Pagos</div>" + histHtml + "</div>"
+      + formHtml
+    + "</div>";
+  }
+
+  async function confirmarPagoGrupo(padreId, padreNum, hijasInfo, montoACobrar, saldoTotal) {
+    var monto = parseFloat(document.getElementById("pago-monto").value) || 0;
+    var medio = document.getElementById("pago-medio").value;
+    var notas = document.getElementById("pago-notas").value || "";
+    if (!monto || monto <= 0) { alert("Ingresa el monto recibido."); return; }
+    if (!medio) { alert("Selecciona el medio de pago."); return; }
+    var btn = document.getElementById("btn-confirmar");
+    btn.disabled = true; btn.textContent = "⏳ Confirmando...";
+    try {
+      // Registrar pago en el padre
+      await fetch(SB_URL + "/rest/v1/pagos", {
+        method: "POST",
+        headers: Object.assign({}, HDR, { "Content-Type": "application/json", "Prefer": "return=minimal" }),
+        body: JSON.stringify({ orden_id: parseInt(padreId), numero_orden: padreNum, monto: monto, medio_pago: medio, notas: notas + (hijasInfo.length?" (cubre grupo)":""), registrado_por: sesion.nombre })
+      });
+
+      var quedaSaldado = monto >= saldoTotal;
+
+      // Actualizar saldo del padre
+      var rPadre = await fetch(SB_URL + "/rest/v1/ordenes?id=eq." + padreId + "&select=monto_pagado,saldo_pendiente", { headers: HDR });
+      var dPadre = await rPadre.json();
+      var mpAnterior = dPadre[0] ? (dPadre[0].monto_pagado || 0) : 0;
+      var updatePadre = { monto_pagado: mpAnterior + monto, saldo_pendiente: Math.max(0, (dPadre[0]?.saldo_pendiente||0) - monto) };
+      if (quedaSaldado) { updatePadre.pago_confirmado = true; updatePadre.confirmado_por = sesion.nombre; updatePadre.fecha_pago_confirmado = new Date().toISOString(); }
+      await fetch(SB_URL + "/rest/v1/ordenes?id=eq." + padreId, {
+        method: "PATCH",
+        headers: Object.assign({}, HDR, { "Content-Type": "application/json", "Prefer": "return=minimal" }),
+        body: JSON.stringify(updatePadre)
+      });
+
+      // Si quedó saldado, marcar hijas también como pagadas
+      if (quedaSaldado && hijasInfo.length) {
+        await Promise.all(hijasInfo.map(function(h) {
+          return fetch(SB_URL + "/rest/v1/ordenes?id=eq." + h.id, {
+            method: "PATCH",
+            headers: Object.assign({}, HDR, { "Content-Type": "application/json", "Prefer": "return=minimal" }),
+            body: JSON.stringify({ saldo_pendiente: 0, monto_pagado: h.saldo || 0, pago_confirmado: true, confirmado_por: sesion.nombre, fecha_pago_confirmado: new Date().toISOString() })
+          });
+        }));
+      }
+
+      showToast(quedaSaldado ? "✅ Grupo saldado — Almacen puede despachar" : "💰 Abono registrado en el grupo");
+      await cargar();
+      await cargarOrdenConsolidado(padreNum, hijasInfo.map(function(h){return h.num;}));
+    } catch(e) {
+      alert("Error: " + e.message);
+      btn.disabled = false;
+      btn.textContent = "✅ Confirmar Pago y Notificar Almacen";
+    }
   }
 
   async function buscarOrden() {
