@@ -146,6 +146,7 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
     <button class="tab" id="tab-btn-despachados" onclick="mostrarTab('despachados')">&#9989; Despachados</button>
     <button class="tab" id="tab-btn-servicios" onclick="mostrarTab('servicios')">&#9889; Servicios <span id="badge-servicios" style="display:none;background:#0d9488;color:#fff;border-radius:20px;padding:1px 7px;font-size:10px;margin-left:3px">0</span></button>
     <button class="tab" id="tab-btn-insumos" onclick="mostrarTab('insumos')">&#129525; Insumos <span id="badge-insumos-alm" style="display:none;background:#c2410c;color:#fff;border-radius:20px;padding:1px 7px;font-size:10px;margin-left:3px">0</span></button>
+    <button class="tab" id="tab-btn-stock" onclick="mostrarTab('stock')">&#128230; Stock Telas</button>
   </div>
 
   <!-- TAB POR DESPACHAR -->
@@ -187,6 +188,65 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
     <div class="state-box"><div class="icon">&#9203;</div><p>Cargando servicios...</p></div>
   </div>
 
+  <!-- TAB STOCK TELAS -->
+  <div class="tab-panel" id="panel-stock">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div style="font-size:15px;font-weight:800;color:#0f172a">🧵 Stock de Telas en Almacén</div>
+      <button onclick="abrirModalEntrada()" style="padding:10px 18px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 3px 10px rgba(16,185,129,.3)">+ Registrar Entrada de Tela</button>
+    </div>
+    <div id="stock-lista"><div class="state-box"><div class="icon">⏳</div><p>Cargando...</p></div></div>
+  </div>
+
+  <!-- MODAL ENTRADA TELA -->
+  <div id="modal-entrada" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center;padding:20px">
+    <div style="background:#fff;border-radius:16px;padding:24px;max-width:480px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div>
+          <div style="font-size:16px;font-weight:800;color:#0f172a">+ Registrar Entrada de Tela</div>
+          <div style="font-size:12px;color:#64748b;margin-top:2px">El stock se actualizará automáticamente</div>
+        </div>
+        <button onclick="cerrarModalEntrada()" style="background:#f1f5f9;border:none;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:14px">✕</button>
+      </div>
+      <div style="margin-bottom:16px">
+        <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:8px">¿Qué deseas hacer?</div>
+        <div style="display:flex;gap:8px">
+          <button onclick="setModoEntrada('nueva')" id="btn-modo-nueva" style="flex:1;padding:10px;border:2px solid #10b981;background:#f0fdf4;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;color:#065f46">+ Tela Nueva</button>
+          <button onclick="setModoEntrada('existente')" id="btn-modo-existente" style="flex:1;padding:10px;border:2px solid #e2e8f0;background:#f8fafc;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;color:#374151">📦 Tela Existente</button>
+        </div>
+      </div>
+      <!-- Nueva tela -->
+      <div id="modal-entrada-nueva">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+          <div style="grid-column:1/-1"><label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px">Nombre de la Tela *</label>
+            <input type="text" id="ent-nombre" placeholder="Ej: Jersey Algodón, Tela Licra..." style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box"></div>
+          <div><label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px">Referencia</label>
+            <input type="text" id="ent-ref" placeholder="Código/ref" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box"></div>
+          <div><label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px">Color</label>
+            <input type="text" id="ent-color" placeholder="Ej: Negro, Blanco..." style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box"></div>
+          <div><label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px">Metros *</label>
+            <input type="number" id="ent-cantidad" placeholder="0" min="0.1" step="0.1" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box"></div>
+          <div><label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px">Stock Mínimo</label>
+            <input type="number" id="ent-minimo" placeholder="0" min="0" step="0.1" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box"></div>
+          <div><label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px">Precio/metro COP</label>
+            <input type="number" id="ent-precio" placeholder="0" min="0" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box"></div>
+        </div>
+        <div style="margin-bottom:16px"><label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px">Notas</label>
+          <input type="text" id="ent-notas" placeholder="Proveedor, lote..." style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box"></div>
+        <button onclick="guardarEntradaNueva()" style="width:100%;padding:12px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer">📦 Registrar Tela Nueva</button>
+      </div>
+      <!-- Tela existente -->
+      <div id="modal-entrada-existente" style="display:none">
+        <div style="margin-bottom:12px"><label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px">Seleccionar Tela *</label>
+          <select id="ent-tela-id" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit"><option value="">— Seleccionar —</option></select></div>
+        <div style="margin-bottom:12px"><label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px">Metros a Agregar *</label>
+          <input type="number" id="ent-cantidad-ex" placeholder="0" min="0.1" step="0.1" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box"></div>
+        <div style="margin-bottom:16px"><label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px">Notas</label>
+          <input type="text" id="ent-notas-ex" placeholder="Proveedor, lote..." style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box"></div>
+        <button onclick="guardarEntradaExistente()" style="width:100%;padding:12px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer">📦 Agregar al Stock</button>
+      </div>
+    </div>
+  </div>
+
 <div id="toast"></div>
 
 <script>
@@ -222,7 +282,7 @@ function actualizarTodo() {
 
 // Cambiar tab - solo cambia la visibilidad, NO recarga datos
 function mostrarTab(tab) {
-  ["pendientes","despachados","servicios","insumos"].forEach(function(t) {
+  ["pendientes","despachados","servicios","insumos","stock"].forEach(function(t) {
     var btn = document.getElementById("tab-btn-" + t);
     var pan = document.getElementById("panel-" + t);
     if (btn) btn.classList.toggle("active", t === tab);
@@ -230,6 +290,7 @@ function mostrarTab(tab) {
   });
   if (tab === "servicios") cargarServicios();
   if (tab === "insumos")   cargarInsumosAlmacen();
+  if (tab === "stock")     cargarStockTelas();
 }
 
 // ── CARGAR PENDIENTES (EN_PRODUCCION con prendas en Almacén) ──
@@ -1087,13 +1148,43 @@ function confirmarError() {
   }
 
   async function recibirInsumo(consumoId, oid) {
-    await fetch(SB_URL + '/rest/v1/consumos_insumo?id=eq.' + consumoId, {
+    try {
+      // Marcar como recibido
+      var r = await fetch(SB_URL + '/rest/v1/consumos_insumo?id=eq.' + consumoId + '&select=*', { headers: H });
+      var consumos = await r.json();
+      await fetch(SB_URL + '/rest/v1/consumos_insumo?id=eq.' + consumoId, {
+        method: 'PATCH',
+        headers: Object.assign({}, H, {'Content-Type':'application/json','Prefer':'return=minimal'}),
+        body: JSON.stringify({ estado_compra: 'RECIBIDO', recibido_por: sesion.nombre, fecha_recepcion: new Date().toISOString() })
+      });
+      // Descontar del stock si hay insumo_id asignado
+      if (consumos.length && consumos[0].insumo_id) {
+        await descontarStock(consumos[0].insumo_id, consumos[0].cantidad_estimada, consumos[0].numero_orden);
+      }
+      showToast('📦 Tela asignada y descontada del stock');
+      cargarInsumosOrden(oid);
+      cargarStockTelas();
+    } catch(e) {
+      alert('Error: ' + e.message);
+    }
+  }
+
+  async function descontarStock(insumoId, cantidad, numeroOrden) {
+    var rT = await fetch(SB + "/rest/v1/insumos_stock?id=eq." + insumoId + "&select=stock_actual,nombre", { headers: H });
+    var telas = await rT.json();
+    if (!telas.length) return;
+    var stockNuevo = Math.max(0, (parseFloat(telas[0].stock_actual)||0) - (parseFloat(cantidad)||0));
+    await fetch(SB + "/rest/v1/insumos_stock?id=eq." + insumoId, {
       method: 'PATCH',
       headers: Object.assign({}, H, {'Content-Type':'application/json','Prefer':'return=minimal'}),
-      body: JSON.stringify({ estado_compra: 'RECIBIDO', recibido_por: sesion.nombre, fecha_recepcion: new Date().toISOString() })
+      body: JSON.stringify({ stock_actual: stockNuevo })
     });
-    showToast('📦 Insumo marcado como recibido — ✅ Tela Asignada');
-    cargarInsumosOrden(oid);
+    // Registrar movimiento de salida
+    await fetch(SB + "/rest/v1/insumos_movimientos", {
+      method: 'POST',
+      headers: Object.assign({}, H, {'Content-Type':'application/json','Prefer':'return=minimal'}),
+      body: JSON.stringify({ insumo_id: parseInt(insumoId), tipo: 'SALIDA', cantidad: parseFloat(cantidad)||0, numero_orden: numeroOrden, registrado_por: sesion.nombre, notas: 'Asignado a orden ' + (numeroOrden||'') })
+    });
   }
 
   async function recibirSolicitud(btn) {
@@ -1111,6 +1202,213 @@ function confirmarError() {
       alert("Error: " + e.message);
       btn.disabled = false; btn.textContent = "📦 Recibido";
     }
+  }
+
+  function _cerrarOverlay(btn) {
+    var p = btn.parentElement;
+    while (p && p !== document.body) {
+      if (p.style && p.style.position === 'fixed') { p.remove(); return; }
+      p = p.parentElement;
+    }
+  }
+
+  // ── STOCK DE TELAS ──────────────────────────────────────
+  var stockTelas = [];
+
+  // Agregar 'stock' a mostrarTab
+  // (ya está en el forEach de mostrarTab, solo agregar carga)
+
+  async function cargarStockTelas() {
+    var el = document.getElementById("stock-lista");
+    if (!el) return;
+    el.innerHTML = '<div class="state-box"><div class="icon">⏳</div><p>Cargando...</p></div>';
+    try {
+      var r = await fetch(SB + "/rest/v1/insumos_stock?order=nombre.asc", { headers: H });
+      stockTelas = await r.json();
+      if (!Array.isArray(stockTelas)) stockTelas = [];
+      renderStockTelas();
+    } catch(e) {
+      el.innerHTML = '<div class="state-box"><div class="icon">❌</div><p>' + e.message + '</p></div>';
+    }
+  }
+
+  function renderStockTelas() {
+    var el = document.getElementById("stock-lista");
+    if (!el) return;
+    if (!stockTelas.length) {
+      el.innerHTML = '<div class="state-box"><div class="icon">🧵</div><p>No hay telas registradas.<br>Registra la primera entrada.</p></div>';
+      return;
+    }
+    var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">';
+    stockTelas.forEach(function(t) {
+      var stock     = parseFloat(t.stock_actual) || 0;
+      var minimo    = parseFloat(t.stock_minimo) || 0;
+      var bajo      = minimo > 0 && stock <= minimo;
+      var agotado   = stock <= 0;
+      var color     = agotado ? '#dc2626' : bajo ? '#f97316' : '#16a34a';
+      var bg        = agotado ? '#fff1f2' : bajo ? '#fff7ed' : '#f0fdf4';
+      var brd       = agotado ? '#fca5a5' : bajo ? '#fed7aa' : '#86efac';
+      var icono     = agotado ? '🔴' : bajo ? '🟡' : '🟢';
+      var lbl       = agotado ? 'Agotado' : bajo ? 'Stock Bajo' : 'Disponible';
+      var stockFmt  = stock % 1 === 0 ? stock : stock.toFixed(2);
+
+      html += '<div style="background:' + bg + ';border:2px solid ' + brd + ';border-radius:12px;padding:16px">'
+        + '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">'
+          + '<div>'
+            + '<div style="font-size:14px;font-weight:800;color:#0f172a">' + t.nombre + '</div>'
+            + (t.color ? '<div style="font-size:12px;color:#64748b;margin-top:2px">🎨 ' + t.color + '</div>' : '')
+            + (t.referencia ? '<div style="font-size:11px;color:#94a3b8;margin-top:1px">Ref: ' + t.referencia + '</div>' : '')
+          + '</div>'
+          + '<span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:' + color + ';color:#fff">' + icono + ' ' + lbl + '</span>'
+        + '</div>'
+        + '<div style="display:flex;align-items:baseline;gap:6px;margin-bottom:8px">'
+          + '<span style="font-size:28px;font-weight:900;color:' + color + '">' + stockFmt + '</span>'
+          + '<span style="font-size:13px;font-weight:600;color:#64748b">metros</span>'
+        + '</div>'
+        + (minimo > 0 ? '<div style="font-size:11px;color:#94a3b8;margin-bottom:10px">Mínimo: ' + minimo + ' metros</div>' : '')
+        + '<div style="display:flex;gap:8px">'
+          + '<button data-id="' + t.id + '" onclick="abrirEntradaExistente(this)" style="flex:1;padding:8px;background:#fff;border:1.5px solid #10b981;color:#065f46;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">+ Agregar</button>'
+          + '<button data-id="' + t.id + '" onclick="verMovimientos(this)" style="flex:1;padding:8px;background:#fff;border:1.5px solid #e2e8f0;color:#374151;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">📋 Historial</button>'
+        + '</div>'
+      + '</div>';
+    });
+    html += '</div>';
+    el.innerHTML = html;
+  }
+
+  // ── MODAL ENTRADA ────────────────────────────────────────
+  function abrirModalEntrada() {
+    setModoEntrada('nueva');
+    ['ent-nombre','ent-ref','ent-color','ent-cantidad','ent-minimo','ent-precio','ent-notas'].forEach(function(id){
+      var el = document.getElementById(id); if(el) el.value = '';
+    });
+    document.getElementById('modal-entrada').style.display = 'flex';
+  }
+
+  function abrirEntradaExistente(btn) {
+    var id = btn.getAttribute('data-id');
+    // Pre-seleccionar la tela
+    cargarSelectTelas(id);
+    setModoEntrada('existente');
+    var el = document.getElementById('ent-cantidad-ex'); if(el) el.value = '';
+    var el2 = document.getElementById('ent-notas-ex');   if(el2) el2.value = '';
+    document.getElementById('modal-entrada').style.display = 'flex';
+  }
+
+  function cerrarModalEntrada() {
+    document.getElementById('modal-entrada').style.display = 'none';
+  }
+
+  function setModoEntrada(modo) {
+    document.getElementById('modal-entrada-nueva').style.display      = modo === 'nueva' ? 'block' : 'none';
+    document.getElementById('modal-entrada-existente').style.display  = modo === 'existente' ? 'block' : 'none';
+    document.getElementById('btn-modo-nueva').style.borderColor       = modo === 'nueva' ? '#10b981' : '#e2e8f0';
+    document.getElementById('btn-modo-nueva').style.background        = modo === 'nueva' ? '#f0fdf4' : '#f8fafc';
+    document.getElementById('btn-modo-existente').style.borderColor   = modo === 'existente' ? '#10b981' : '#e2e8f0';
+    document.getElementById('btn-modo-existente').style.background    = modo === 'existente' ? '#f0fdf4' : '#f8fafc';
+    if (modo === 'existente') cargarSelectTelas(null);
+  }
+
+  async function cargarSelectTelas(preselect) {
+    var sel = document.getElementById('ent-tela-id');
+    if (!sel) return;
+    if (!stockTelas.length) {
+      var r = await fetch(SB + "/rest/v1/insumos_stock?order=nombre.asc", { headers: H });
+      stockTelas = await r.json();
+      if (!Array.isArray(stockTelas)) stockTelas = [];
+    }
+    sel.innerHTML = '<option value="">— Seleccionar —</option>'
+      + stockTelas.map(function(t) {
+          var sel = preselect && String(t.id) === String(preselect) ? ' selected' : '';
+          var stock = parseFloat(t.stock_actual)||0;
+          return '<option value="' + t.id + '"' + sel + '>' + t.nombre + (t.color?' - '+t.color:'') + ' (' + stock + ' m)</option>';
+        }).join('');
+  }
+
+  async function guardarEntradaNueva() {
+    var nombre   = document.getElementById('ent-nombre').value.trim();
+    var cantidad = parseFloat(document.getElementById('ent-cantidad').value) || 0;
+    if (!nombre) { alert('Ingresa el nombre de la tela.'); return; }
+    if (!cantidad || cantidad <= 0) { alert('Ingresa la cantidad en metros.'); return; }
+    var ref     = document.getElementById('ent-ref').value.trim();
+    var color   = document.getElementById('ent-color').value.trim();
+    var minimo  = parseFloat(document.getElementById('ent-minimo').value) || 0;
+    var precio  = parseFloat(document.getElementById('ent-precio').value) || 0;
+    var notas   = document.getElementById('ent-notas').value.trim();
+    try {
+      // Crear tela en stock
+      var r = await fetch(SB + "/rest/v1/insumos_stock", {
+        method: 'POST',
+        headers: Object.assign({}, H, {'Content-Type':'application/json','Prefer':'return=representation'}),
+        body: JSON.stringify({ nombre, referencia: ref, color, stock_actual: cantidad, stock_minimo: minimo, precio_metro: precio })
+      });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      var tela = (await r.json())[0];
+      // Registrar movimiento de entrada
+      await fetch(SB + "/rest/v1/insumos_movimientos", {
+        method: 'POST',
+        headers: Object.assign({}, H, {'Content-Type':'application/json','Prefer':'return=minimal'}),
+        body: JSON.stringify({ insumo_id: tela.id, tipo: 'ENTRADA', cantidad, registrado_por: sesion.nombre, notas: notas || 'Entrada inicial' })
+      });
+      cerrarModalEntrada();
+      showToast('✅ Tela registrada — ' + cantidad + ' metros en stock');
+      cargarStockTelas();
+    } catch(e) { alert('Error: ' + e.message); }
+  }
+
+  async function guardarEntradaExistente() {
+    var telaId   = document.getElementById('ent-tela-id').value;
+    var cantidad = parseFloat(document.getElementById('ent-cantidad-ex').value) || 0;
+    if (!telaId) { alert('Selecciona la tela.'); return; }
+    if (!cantidad || cantidad <= 0) { alert('Ingresa la cantidad en metros.'); return; }
+    var notas = document.getElementById('ent-notas-ex').value.trim();
+    try {
+      // Obtener stock actual
+      var rT = await fetch(SB + "/rest/v1/insumos_stock?id=eq." + telaId + "&select=stock_actual,nombre", { headers: H });
+      var telas = await rT.json();
+      if (!telas.length) throw new Error('Tela no encontrada');
+      var stockNuevo = (parseFloat(telas[0].stock_actual) || 0) + cantidad;
+      // Actualizar stock
+      await fetch(SB + "/rest/v1/insumos_stock?id=eq." + telaId, {
+        method: 'PATCH',
+        headers: Object.assign({}, H, {'Content-Type':'application/json','Prefer':'return=minimal'}),
+        body: JSON.stringify({ stock_actual: stockNuevo })
+      });
+      // Registrar movimiento
+      await fetch(SB + "/rest/v1/insumos_movimientos", {
+        method: 'POST',
+        headers: Object.assign({}, H, {'Content-Type':'application/json','Prefer':'return=minimal'}),
+        body: JSON.stringify({ insumo_id: parseInt(telaId), tipo: 'ENTRADA', cantidad, registrado_por: sesion.nombre, notas: notas || 'Entrada de stock' })
+      });
+      cerrarModalEntrada();
+      showToast('✅ ' + cantidad + ' metros agregados — Stock: ' + stockNuevo.toFixed(2) + ' m');
+      cargarStockTelas();
+    } catch(e) { alert('Error: ' + e.message); }
+  }
+
+  async function verMovimientos(btn) {
+    var id = btn.getAttribute('data-id');
+    var tela = stockTelas.find(function(t){ return String(t.id) === String(id); });
+    var r = await fetch(SB + "/rest/v1/insumos_movimientos?insumo_id=eq." + id + "&order=fecha.desc&limit=20", { headers: H });
+    var movs = await r.json();
+    if (!Array.isArray(movs)) movs = [];
+    var html = '<div style="font-weight:800;font-size:14px;margin-bottom:12px">📋 Historial: ' + (tela ? tela.nombre : '') + '</div>'
+      + (movs.length ? movs.map(function(m) {
+          var fecha = new Date(m.fecha).toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'});
+          var esEntrada = m.tipo === 'ENTRADA';
+          return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f1f5f9">'
+            + '<div><span style="font-weight:700;color:' + (esEntrada?'#16a34a':'#dc2626') + '">' + (esEntrada?'▲ ':'▼ ') + m.tipo + '</span>'
+            + ' <span style="font-size:13px">' + m.cantidad + ' m</span>'
+            + '<div style="font-size:11px;color:#94a3b8">' + (m.numero_orden ? 'Orden: '+m.numero_orden+' · ' : '') + (m.registrado_por||'') + ' · ' + fecha + '</div>'
+            + (m.notas ? '<div style="font-size:11px;color:#64748b">📝 '+m.notas+'</div>' : '')
+            + '</div></div>';
+        }).join('') : '<div style="color:#94a3b8;font-size:13px">Sin movimientos</div>');
+    var overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+    overlay.innerHTML = '<div style="background:#fff;border-radius:16px;padding:24px;max-width:440px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)">'
+      + html
+      + '<button onclick="_cerrarOverlay(this)" style="width:100%;margin-top:16px;padding:10px;background:#f1f5f9;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Cerrar</button>'      + '</div>';
+    document.body.appendChild(overlay);
   }
 
   function showToast(msg) {
