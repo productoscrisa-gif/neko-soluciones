@@ -237,27 +237,38 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
 <!-- MODAL APERTURA -->
 <!-- Modal Retiro -->
 <div class="modal-overlay" id="modal-retiro">
-  <div class="modal-box" style="max-width:420px">
-    <div class="modal-header">
-      <div class="modal-title">💸 Solicitar Retiro de Caja</div>
-      <button class="modal-close" onclick="cerrarModal('modal-retiro')">✕</button>
+  <div class="modal" style="max-width:440px;width:100%">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+      <div>
+        <h3 style="margin:0;font-size:16px;font-weight:800;color:#0f172a">💸 Solicitar Retiro de Caja</h3>
+        <p style="margin:4px 0 0;font-size:12px;color:#64748b">Solo en efectivo — requiere aprobación del Admin</p>
+      </div>
+      <button onclick="cerrarModal('modal-retiro')" style="background:#f1f5f9;border:none;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:14px;color:#64748b;font-weight:700">✕</button>
     </div>
-    <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#92400e">
-      ⚠️ El retiro debe ser aprobado por el Administrador antes de efectuarse.
+
+    <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#92400e;display:flex;gap:8px;align-items:flex-start">
+      <span>⚠️</span>
+      <span>El retiro quedará en estado <strong>Pendiente</strong> hasta que el Admin lo apruebe. Solo después se descuenta del efectivo de caja.</span>
     </div>
-    <div class="field" style="margin-bottom:12px">
-      <label>Monto a Retirar (Efectivo) *</label>
-      <div class="input-icon-wrap">
-        <span class="icon">$</span>
-        <input type="number" id="retiro-monto" placeholder="0" min="1">
-        <span class="suffix">COP</span>
+
+    <div class="field" style="margin-bottom:14px">
+      <label style="font-size:12px;font-weight:700;color:#374151;display:block;margin-bottom:6px">Monto a Retirar *</label>
+      <div style="display:flex;align-items:center;border:1.5px solid #e2e8f0;border-radius:8px;overflow:hidden;background:#fff">
+        <span style="padding:10px 12px;background:#f8fafc;border-right:1px solid #e2e8f0;font-size:13px;font-weight:700;color:#64748b">$</span>
+        <input type="number" id="retiro-monto" placeholder="0" min="1"
+          style="flex:1;border:none;outline:none;padding:10px 12px;font-size:14px;font-weight:600;font-family:inherit">
+        <span style="padding:10px 12px;background:#f8fafc;border-left:1px solid #e2e8f0;font-size:12px;color:#94a3b8">COP</span>
       </div>
     </div>
-    <div class="field" style="margin-bottom:16px">
-      <label>Motivo del Retiro *</label>
-      <input type="text" id="retiro-motivo" placeholder="Ej: Gastos de mensajería, cambio de turno...">
+
+    <div class="field" style="margin-bottom:20px">
+      <label style="font-size:12px;font-weight:700;color:#374151;display:block;margin-bottom:6px">Motivo del Retiro *</label>
+      <input type="text" id="retiro-motivo" placeholder="Ej: Gastos mensajería, vueltos, insumos..."
+        style="width:100%;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box">
     </div>
-    <button id="btn-solicitar-retiro" class="btn-primary" style="width:100%;background:linear-gradient(135deg,#f97316,#ea580c)" onclick="solicitarRetiro()">
+
+    <button id="btn-solicitar-retiro" onclick="solicitarRetiro()"
+      style="width:100%;padding:12px;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(234,88,12,.3)">
       📨 Enviar Solicitud al Admin
     </button>
   </div>
