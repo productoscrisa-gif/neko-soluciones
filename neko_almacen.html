@@ -239,6 +239,7 @@ async function cargarPendientes() {
     var r = await fetch(SB + "/rest/v1/ordenes?estado=eq.EN_PRODUCCION&select=id,numero_orden,nombre_cliente,telefono,doc_cliente,direccion,barrio,ciudad,departamento,usuario_red,marca,vendedora,productos,sub_estados,es_prioritario,fecha_entrega,fecha_creacion,valor_total,monto_pagado,saldo_pendiente,es_contraentrega,pago_confirmado,confirmado_por,guia_numero,guia_url,link_drive,tipo_envio,transportadora,tiene_hijas,orden_padre,obs_envio,obs_envio_leido&order=es_prioritario.desc,fecha_creacion.asc", { headers: H });
     var all = await r.json();
     if (!Array.isArray(all)) all = [];
+
     // Órdenes con al menos 1 prenda en Almacén
     var conAlmacen = all.filter(function(o) {
       return (o.productos || []).some(function(p, idx) {
@@ -247,19 +248,34 @@ async function cargarPendientes() {
       });
     });
 
-    // Incluir también las hijas de padres que ya están en Almacén
-    // (para mostrar el grupo completo aunque la hija aún no llegó)
+    // Padres con prendas en Almacén
     var numPadresEnAlmacen = conAlmacen
       .filter(function(o) { return !o.orden_padre; })
       .map(function(o) { return o.numero_orden; });
 
-    var hijasExtra = all.filter(function(o) {
-      return o.orden_padre
-        && numPadresEnAlmacen.includes(o.orden_padre)
-        && !conAlmacen.find(function(x) { return x.id === o.id; });
+    // Traer TODAS las hijas de esos padres sin importar su estado
+    // (pueden estar en EN_ANALISIS, EN_PRODUCCION, etc.)
+    var hijasAll = [];
+    if (numPadresEnAlmacen.length) {
+      var rHijas = await fetch(SB + "/rest/v1/ordenes?orden_padre=in.(" + numPadresEnAlmacen.join(",") + ")&select=id,numero_orden,orden_padre,estado,productos,sub_estados,saldo_pendiente,monto_pagado,valor_total,pago_confirmado", { headers: H });
+      hijasAll = await rHijas.json();
+      if (!Array.isArray(hijasAll)) hijasAll = [];
+    }
+
+    // Hijas que ya están en Almacén (para mostrar sus prendas)
+    var hijasEnAlmacen = hijasAll.filter(function(h) {
+      return (h.productos || []).some(function(p, idx) {
+        var se = (h.sub_estados || []).find(function(s) { return s.prenda_idx === idx; });
+        return se && (se.area_actual === "Almacen" || se.area_actual === "Almacén");
+      });
     });
 
-    ordenesEnAlmacen = conAlmacen.concat(hijasExtra);
+    // Guardar todas las hijas (en y fuera de Almacén) para consulta en renderPendientes
+    window._todasLasHijas = hijasAll;
+
+    ordenesEnAlmacen = conAlmacen.concat(hijasEnAlmacen.filter(function(h) {
+      return !conAlmacen.find(function(x) { return x.id === h.id; });
+    }));
     actualizarStats();
     renderPendientes();
   } catch(e) {
@@ -322,6 +338,15 @@ function renderPendientes() {
       return h.orden_padre === padre.numero_orden;
     });
 
+    // Hijas totales del padre (incluyendo las que aún no están en Almacén)
+    var todasHijasPadre = (window._todasLasHijas || []).filter(function(h) {
+      return h.orden_padre === padre.numero_orden;
+    });
+    // ¿Hay hijas que aún NO están en Almacén?
+    var hijasAunFuera = todasHijasPadre.some(function(h) {
+      return !hijasDelPadre.find(function(x){ return x.id === h.id; });
+    });
+
     if (hijasDelPadre.length > 0) {
       // Calcular saldo consolidado del grupo
       var saldoGrupo = Number(padre.saldo_pendiente || 0)
@@ -341,7 +366,7 @@ function renderPendientes() {
       html += '</div>';
 
       // Orden padre (pasando saldoGrupo y esContraentregaGrupo para el botón)
-      html += '<div style="border-bottom:2px dashed #ede9fe">' + buildCard(padre, false, false, hijasDelPadre, saldoGrupo, esContraentregaGrupo) + '</div>';
+      html += '<div style="border-bottom:2px dashed #ede9fe">' + buildCard(padre, false, false, hijasDelPadre, saldoGrupo, esContraentregaGrupo, hijasAunFuera) + '</div>';
 
       // Órdenes hijas
       // prendas de hijas van en tabla del padre via hijasData
@@ -349,8 +374,13 @@ function renderPendientes() {
       html += '</div>'; // cierre grupo
 
     } else {
-      // Orden sola sin hijas
-      html += buildCard(padre, false);
+      // Orden sin hijas EN ALMACÉN
+      // Si tiene_hijas=true pero hijasDelPadre vacío → hija aún no llegó
+      if (hijasAunFuera || padre.tiene_hijas) {
+        html += buildCard(padre, false, false, null, null, null, true);
+      } else {
+        html += buildCard(padre, false);
+      }
     }
   });
 
@@ -387,7 +417,7 @@ function renderDespachados() {
 }
 
 // ── CONSTRUIR CARD ────────────────────────────────────────────
-function buildCard(o, isDespachado, esHija, hijasData, saldoGrupo, esContraentregaGrupo) {
+function buildCard(o, isDespachado, esHija, hijasData, saldoGrupo, esContraentregaGrupo, hijasAunFuera) {
   var c = contarPrendas(o);
   var total = c.total, enAlmacen = c.enAlmacen;
   var faltantes = total - enAlmacen;
@@ -546,7 +576,11 @@ function buildCard(o, isDespachado, esHija, hijasData, saldoGrupo, esContraentre
     // Verificar que las hijas también tienen TODAS sus prendas en Almacén
     var hijasCompletas = true;
     var hijasFaltantes = 0;
-    if (hijasData && hijasData.length) {
+    if (hijasAunFuera) {
+      // Padre tiene hijas pero ninguna llegó a Almacén todavía
+      hijasCompletas = false;
+      hijasFaltantes = 1; // al menos 1 hija pendiente
+    } else if (hijasData && hijasData.length) {
       hijasData.forEach(function(hija) {
         var hProds = hija.productos || [];
         var hSubs  = hija.sub_estados || [];
