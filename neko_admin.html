@@ -2,6 +2,9 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -1448,26 +1451,52 @@
   async function aprobarRetiro(btn) {
     var id    = btn.getAttribute("data-rid");
     var monto = btn.getAttribute("data-monto");
+    if (!id) { alert("Error: ID de retiro no encontrado"); return; }
     if (!confirm("Aprobar retiro de $" + Number(monto).toLocaleString("es-CO") + " COP?")) return;
-    await fetch(SB_URL + "/rest/v1/retiros_caja?id=eq." + id, {
-      method: "PATCH",
-      headers: Object.assign({},HDR,{"Content-Type":"application/json","Prefer":"return=minimal"}),
-      body: JSON.stringify({estado:"APROBADO", aprobado_por: sesionAdmin?.nombre||sesion?.nombre||"Admin", fecha_aprobacion: new Date().toISOString()})
-    });
-    showToast("✅ Retiro aprobado");
-    cargarRetirosAdmin();
+    btn.disabled = true; btn.textContent = "⏳...";
+    try {
+      var aprobadoPor = (sesion && sesion.nombre) ? sesion.nombre : "Admin";
+      var url = SB_URL + "/rest/v1/retiros_caja?id=eq." + id;
+      var r = await fetch(url, {
+        method: "PATCH",
+        headers: Object.assign({}, HDR, {"Content-Type":"application/json","Prefer":"return=minimal"}),
+        body: JSON.stringify({estado:"APROBADO", aprobado_por: aprobadoPor, fecha_aprobacion: new Date().toISOString()})
+      });
+      if (!r.ok) {
+        var txt = await r.text();
+        throw new Error("HTTP " + r.status + " — " + txt);
+      }
+      showToast("✅ Retiro aprobado — $" + Number(monto).toLocaleString("es-CO") + " COP");
+      await cargarRetirosAdmin();
+    } catch(e) {
+      alert("Error al aprobar: " + e.message);
+      btn.disabled = false; btn.textContent = "✅ Aprobar";
+    }
   }
 
   async function rechazarRetiro(btn) {
     var id = btn.getAttribute("data-rid");
+    if (!id) { alert("Error: ID de retiro no encontrado"); return; }
     if (!confirm("Rechazar esta solicitud?")) return;
-    await fetch(SB_URL + "/rest/v1/retiros_caja?id=eq." + id, {
-      method: "PATCH",
-      headers: Object.assign({},HDR,{"Content-Type":"application/json","Prefer":"return=minimal"}),
-      body: JSON.stringify({estado:"RECHAZADO", aprobado_por: sesionAdmin?.nombre||"Admin", fecha_aprobacion: new Date().toISOString()})
-    });
-    showToast("❌ Retiro rechazado");
-    cargarRetirosAdmin();
+    btn.disabled = true; btn.textContent = "⏳...";
+    try {
+      var aprobadoPor = (sesion && sesion.nombre) ? sesion.nombre : "Admin";
+      var url = SB_URL + "/rest/v1/retiros_caja?id=eq." + id;
+      var r = await fetch(url, {
+        method: "PATCH",
+        headers: Object.assign({}, HDR, {"Content-Type":"application/json","Prefer":"return=minimal"}),
+        body: JSON.stringify({estado:"RECHAZADO", aprobado_por: aprobadoPor, fecha_aprobacion: new Date().toISOString()})
+      });
+      if (!r.ok) {
+        var txt = await r.text();
+        throw new Error("HTTP " + r.status + " — " + txt);
+      }
+      showToast("❌ Retiro rechazado");
+      await cargarRetirosAdmin();
+    } catch(e) {
+      alert("Error al rechazar: " + e.message);
+      btn.disabled = false; btn.textContent = "❌ Rechazar";
+    }
   }
 
   function showToast(msg){
@@ -1482,4 +1511,4 @@
 </body>
 </html>
 
-<!-- NEKO v2.1.0 -->
+<!-- NEKO v2.2.0 -->

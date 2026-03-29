@@ -437,10 +437,15 @@ function mostrarCajaAbierta() {
 // ── RETIROS DEL TURNO ────────────────────────────────────
 async function cargarRetirosTurno() {
   if (!turnoActual) return;
-  var r = await fetch(SB + "/rest/v1/retiros_caja?turno_id=eq." + turnoActual.id + "&order=fecha_solicitud.desc", { headers: H });
-  retirosTurno = await r.json();
-  if (!Array.isArray(retirosTurno)) retirosTurno = [];
-  renderRetiros();
+  try {
+    var r = await fetch(SB + "/rest/v1/retiros_caja?turno_id=eq." + turnoActual.id + "&order=fecha_solicitud.desc", { headers: H });
+    if (!r.ok) { console.error("retiros_caja error:", r.status, await r.text()); return; }
+    retirosTurno = await r.json();
+    if (!Array.isArray(retirosTurno)) retirosTurno = [];
+    renderRetiros();
+  } catch(e) {
+    console.error("cargarRetirosTurno:", e.message);
+  }
 }
 
 function renderRetiros() {
