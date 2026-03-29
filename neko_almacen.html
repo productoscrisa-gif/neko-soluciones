@@ -457,10 +457,13 @@ function buildCard(o, isDespachado, esHija, hijasData) {
   }
 
   // Alerta estado
+  // Calcular saldoBloquea aqui para usarlo en alertHTML y en acciones
+  var saldoBloquea = (o.saldo_pendiente > 0) && !o.es_contraentrega && !o.pago_confirmado;
+
   var alertHTML = "";
   if (!isDespachado) {
     // Alerta saldo pendiente sin contraentrega — bloquea despacho
-    if (tieneSaldoSinContra) {
+    if (saldoBloquea) {
       alertHTML += "<div class='alert-box warning' style='background:#fff1f2;border-color:#fca5a5;margin-bottom:12px'>"
         + "<span>🔒</span><div><strong>Despacho bloqueado</strong> — Saldo pendiente de <strong>$"
         + Number(o.saldo_pendiente||0).toLocaleString("es-CO")
@@ -520,8 +523,7 @@ function buildCard(o, isDespachado, esHija, hijasData) {
     accionesHTML = "<span style='font-size:13px;font-weight:700;color:var(--indigo)'>📦 Despachado el "+fdp+(o.guia_numero?" · Guia: "+o.guia_numero:"")+"</span>";
   } else {
     // Bloquear si saldo pendiente sin contraentrega (pago parcial sin confirmar)
-  // Bloquear si prendas incompletas O saldo pendiente SIN contraentrega y sin confirmar
-  var saldoBloquea  = (o.saldo_pendiente > 0) && !o.es_contraentrega && !o.pago_confirmado;
+  // saldoBloquea ya calculado arriba
   var bloqueado     = !completo || saldoBloquea;
   var disAttr       = bloqueado ? "disabled" : "";
   var motivoBloqueo = !completo
