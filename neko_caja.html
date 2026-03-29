@@ -234,6 +234,17 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
 
 </div>
 
+  <!-- Card Retiros del Turno -->
+  <div class="card" id="card-retiros" style="display:none;margin-top:16px">
+    <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+      <span class="card-title">💸 Retiros del Turno</span>
+      <button onclick="cargarRetirosTurno().then(renderRetiros)" style="padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">🔄</button>
+    </div>
+    <div class="card-body" id="lista-retiros-body">
+      <div class="empty-state"><div class="icon">💸</div><p>Sin retiros registrados</p></div>
+    </div>
+  </div>
+
 <!-- MODAL APERTURA -->
 <!-- Modal Retiro -->
 <div class="modal-overlay" id="modal-retiro">
@@ -412,6 +423,12 @@ function mostrarCajaAbierta() {
   // Formulario y lista
   document.getElementById("card-nueva-venta").style.display = "block";
   document.getElementById("card-lista-ventas").style.display = "block";
+  renderRetiros();
+  // Polling cada 15s para que la vendedora vea cuando Admin aprueba
+  clearInterval(window._retiroInterval);
+  window._retiroInterval = setInterval(function() {
+    if (turnoActual) cargarRetirosTurno();
+  }, 15000);
   document.getElementById("turno-hora-info").textContent = ventasTurno.length + " servicios registrados";
 
   renderVentas();
@@ -423,6 +440,44 @@ async function cargarRetirosTurno() {
   var r = await fetch(SB + "/rest/v1/retiros_caja?turno_id=eq." + turnoActual.id + "&order=fecha_solicitud.desc", { headers: H });
   retirosTurno = await r.json();
   if (!Array.isArray(retirosTurno)) retirosTurno = [];
+  renderRetiros();
+}
+
+function renderRetiros() {
+  var card = document.getElementById("card-retiros");
+  var el   = document.getElementById("lista-retiros-body");
+  if (!card || !el) return;
+
+  if (!retirosTurno.length) {
+    card.style.display = "none";
+    return;
+  }
+  card.style.display = "block";
+
+  el.innerHTML = retirosTurno.map(function(ret) {
+    var color = ret.estado === "APROBADO" ? "#16a34a"
+      : ret.estado === "RECHAZADO" ? "#dc2626" : "#f97316";
+    var bg = ret.estado === "APROBADO" ? "#f0fdf4"
+      : ret.estado === "RECHAZADO" ? "#fff1f2" : "#fff7ed";
+    var brd = ret.estado === "APROBADO" ? "#86efac"
+      : ret.estado === "RECHAZADO" ? "#fca5a5" : "#fed7aa";
+    var icono = ret.estado === "APROBADO" ? "✅"
+      : ret.estado === "RECHAZADO" ? "❌" : "⏳";
+    var lbl = ret.estado === "APROBADO" ? "Aprobado"
+      : ret.estado === "RECHAZADO" ? "Rechazado" : "Pendiente — esperando Admin";
+    var hora = new Date(ret.fecha_solicitud).toLocaleTimeString("es-CO",{hour:"2-digit",minute:"2-digit"});
+
+    return "<div style='display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);gap:12px'>"
+      + "<div style='display:flex;align-items:center;gap:10px'>"
+        + "<div style='width:36px;height:36px;border-radius:50%;background:" + bg + ";border:2px solid " + brd + ";display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0'>" + icono + "</div>"
+        + "<div>"
+          + "<div style='font-size:13px;font-weight:700;color:#0f172a'>$" + Number(ret.monto).toLocaleString("es-CO") + " COP</div>"
+          + "<div style='font-size:11px;color:#64748b;margin-top:1px'>📝 " + (ret.motivo||"-") + " · 🕐 " + hora + "</div>"
+          + "<div style='font-size:11px;font-weight:700;color:" + color + ";margin-top:2px'>" + lbl + "</div>"
+        + "</div>"
+      + "</div>"
+    + "</div>";
+  }).join("") || "<div class='empty-state'><div class='icon'>💸</div><p>Sin retiros</p></div>";
 }
 
 // ── VENTAS DEL TURNO ──────────────────────────────────────
@@ -708,8 +763,11 @@ async function confirmarCierre() {
   });
 
   cerrarModal("modal-cierre");
+  clearInterval(window._retiroInterval);
   turnoActual = null;
   ventasTurno = [];
+  retirosTurno = [];
+  document.getElementById("card-retiros").style.display = "none";
   mostrarCajaCerrada();
   showToast("🔴 Caja cerrada correctamente");
   cargarHistorial();
