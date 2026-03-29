@@ -304,6 +304,7 @@ function contarPrendas(o) {
 // ── RENDER PENDIENTES ─────────────────────────────────────────
 function renderPendientes() {
   var el = document.getElementById("panel-pendientes");
+  try {
   if (!ordenesEnAlmacen.length) {
     el.innerHTML = '<div class="state-box"><div class="icon">📦</div><p>No hay pedidos en Almacen</p></div>';
     return;
@@ -357,6 +358,10 @@ function renderPendientes() {
 
   html += '</div>';
   el.innerHTML = html;
+  } catch(err) {
+    el.innerHTML = '<div class="state-box"><div class="icon">❌</div><p>Error renderizando: ' + err.message + '</p></div>';
+    console.error('renderPendientes error:', err);
+  }
 }
 
 // ── RENDER DESPACHADOS ────────────────────────────────────────
@@ -433,18 +438,17 @@ function buildCard(o, isDespachado, esHija, hijasData) {
   // Alerta de actualización de datos de envío
   var obsEnvioHTML = "";
   if (!isDespachado && o.obs_envio) {
-    var leidoCls = o.obs_envio_leido ? "background:#f0fdf4;border-color:#86efac;" : "background:#fff7ed;border-color:#fcd34d;";
-    obsEnvioHTML = "<div style='" + leidoCls + "border:2px solid;border-radius:10px;padding:12px 16px;margin-bottom:12px'>"
-      + "<div style='display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px'>"
-        + "<div>"
-          + "<div style='font-size:13px;font-weight:800;color:#92400e;margin-bottom:4px'>✏️ Actualización de Datos de Envío</div>"
-          + "<div style='font-size:13px;color:#0f172a'>" + o.obs_envio + "</div>"
-        + "</div>"
-        + (!o.obs_envio_leido
-            ? '<button data-oid="' + oid + '" onclick="_clickMarcarObs(this)" style="padding:7px 14px;background:#f97316;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">✅ Marcar como visto</button>'
-            : "<span style='font-size:12px;font-weight:700;color:#16a34a'>✅ Visto</span>")
-      + "</div>"
-    + "</div>";
+    var obsBg  = o.obs_envio_leido ? "background:#f0fdf4;border:2px solid #86efac;" : "background:#fff7ed;border:2px solid #fcd34d;";
+    var obsBtn = o.obs_envio_leido
+      ? '<span style="font-size:12px;font-weight:700;color:#16a34a">Visto</span>'
+      : '<button data-oid="' + oid + '" onclick="_clickMarcarObs(this)" style="padding:7px 14px;background:#f97316;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Marcar como visto</button>';
+    obsEnvioHTML = '<div style="' + obsBg + 'border-radius:10px;padding:12px 16px;margin-bottom:12px">'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">'
+        + '<div><div style="font-size:13px;font-weight:800;color:#92400e;margin-bottom:4px">Actualizacion de Datos de Envio</div>'
+        + '<div style="font-size:13px;color:#0f172a">' + o.obs_envio + '</div></div>'
+        + obsBtn
+      + '</div>'
+    + '</div>';
   }
 
   var pagoHTML = "";
