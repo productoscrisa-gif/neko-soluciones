@@ -749,13 +749,8 @@ function buildCard(o, isDespachado, esHija, hijasData, saldoGrupo, esContraentre
           body: JSON.stringify({ insumo_id: parseInt(insumoId), tipo: 'ENTRADA', cantidad: metros, registrado_por: sesion.nombre, notas: 'Recepcion: ' + nombre })
         });
       }
-      var filtro = consumoIds.length === 1 ? 'id=eq.' + consumoIds[0] : 'id=in.(' + consumoIds.join(',') + ')';
-      await fetch(SB + '/rest/v1/consumos_insumo?' + filtro, {
-        method: 'PATCH',
-        headers: Object.assign({}, H, {'Content-Type':'application/json','Prefer':'return=minimal'}),
-        body: JSON.stringify({ estado_compra: 'RECIBIDO', recibido_por: sesion.nombre, fecha_recepcion: new Date().toISOString() })
-      });
-      showToast(metros + ' metros de ' + nombre + ' recibidos y agregados al stock');
+      // NO marcar como RECIBIDO aquí — eso lo hace Almacén al asignar la tela a cada orden
+      showToast(metros + ' metros de ' + nombre + ' agregados al stock. Ahora asigna en Stock Telas.');
       cargarInsumosAlmacen();
       cargarStockTelas();
       cargarConsultaTelas_alm('consulta-telas-alm');
@@ -1207,21 +1202,14 @@ function confirmarError() {
 
   async function recibirInsumo(consumoId, oid) {
     try {
-      // Marcar como recibido
-      var r = await fetch(SB_URL + '/rest/v1/consumos_insumo?id=eq.' + consumoId + '&select=*', { headers: H });
-      var consumos = await r.json();
+      // Solo marcar como recibido — el stock se maneja en Almacén → Stock Telas
       await fetch(SB_URL + '/rest/v1/consumos_insumo?id=eq.' + consumoId, {
         method: 'PATCH',
         headers: Object.assign({}, H, {'Content-Type':'application/json','Prefer':'return=minimal'}),
         body: JSON.stringify({ estado_compra: 'RECIBIDO', recibido_por: sesion.nombre, fecha_recepcion: new Date().toISOString() })
       });
-      // Descontar del stock si hay insumo_id asignado
-      if (consumos.length && consumos[0].insumo_id) {
-        await descontarStock(consumos[0].insumo_id, consumos[0].cantidad_estimada, consumos[0].numero_orden);
-      }
-      showToast('📦 Tela asignada y descontada del stock');
+      showToast('Tela marcada como recibida');
       cargarInsumosOrden(oid);
-      cargarStockTelas();
     } catch(e) {
       alert('Error: ' + e.message);
     }
