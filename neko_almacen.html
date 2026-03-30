@@ -1573,27 +1573,57 @@ function confirmarError() {
       });
       if (!r1.ok) throw new Error('Error marcando recibido: HTTP ' + r1.status);
 
-      // 2. Descontar del stock si tiene insumo_id
-      if (insumoId) {
-        var rS = await fetch(SB + '/rest/v1/insumos_stock?id=eq.' + insumoId + '&select=stock_actual,nombre', { headers: H });
-        var telas = await rS.json();
-        if (Array.isArray(telas) && telas.length) {
-          var stockNuevo = Math.max(0, (parseFloat(telas[0].stock_actual)||0) - metros);
-          await fetch(SB + '/rest/v1/insumos_stock?id=eq.' + insumoId, {
-            method: 'PATCH',
-            headers: Object.assign({}, H, {'Content-Type':'application/json','Prefer':'return=minimal'}),
-            body: JSON.stringify({ stock_actual: stockNuevo })
-          });
-          // 3. Registrar movimiento de salida
-          await fetch(SB + '/rest/v1/insumos_movimientos', {
-            method: 'POST',
-            headers: Object.assign({}, H, {'Content-Type':'application/json','Prefer':'return=minimal'}),
-            body: JSON.stringify({ insumo_id: parseInt(insumoId), tipo: 'SALIDA', cantidad: metros, registrado_por: sesion.nombre, notas: 'Asignado manualmente por Almacén' })
-          });
-          showToast('Tela asignada — ' + metros + ' metros descontados. Stock: ' + stockNuevo.toFixed(2) + ' m');
+      // 2. Descontar del stock — buscar por insumo_id o por nombre
+      var telaId   = insumoId;
+      var telaData = null;
+
+      if (telaId) {
+        var rS = await fetch(SB + '/rest/v1/insumos_stock?id=eq.' + telaId + '&select=id,stock_actual,nombre', { headers: H });
+        var ts = await rS.json();
+        if (Array.isArray(ts) && ts.length) telaData = ts[0];
+      }
+
+      // Si no encontró por id, buscar el consumo para obtener el nombre y buscar por nombre
+      if (!telaData) {
+        var rC2 = await fetch(SB + '/rest/v1/consumos_insumo?id=eq.' + consumoId + '&select=nombre_insumo,insumo_id', { headers: H });
+        var cc = await rC2.json();
+        if (Array.isArray(cc) && cc.length) {
+          if (cc[0].insumo_id) telaId = cc[0].insumo_id;
+          if (cc[0].nombre_insumo) {
+            // Buscar en stock por nombre
+            var nombreBusq = encodeURIComponent(cc[0].nombre_insumo);
+            var rN = await fetch(SB + '/rest/v1/insumos_stock?nombre_insumo=ilike.*' + nombreBusq + '*&select=id,stock_actual,nombre&limit=1', { headers: H });
+            var tn = await rN.json();
+            if (!Array.isArray(tn) || !tn.length) {
+              // Buscar dividiendo nombre — color
+              var partes = cc[0].nombre_insumo.split(' — ');
+              var rN2 = await fetch(SB + '/rest/v1/insumos_stock?nombre=ilike.*' + encodeURIComponent(partes[0].trim()) + '*&select=id,stock_actual,nombre&limit=5', { headers: H });
+              tn = await rN2.json();
+              if (Array.isArray(tn)) {
+                var colorBusq = partes[1] ? partes[1].trim().toLowerCase() : '';
+                tn = tn.filter(function(t){ return !colorBusq || (t.color||'').toLowerCase().includes(colorBusq); });
+              }
+            }
+            if (Array.isArray(tn) && tn.length) { telaData = tn[0]; telaId = tn[0].id; }
+          }
         }
+      }
+
+      if (telaData) {
+        var stockNuevo = Math.max(0, (parseFloat(telaData.stock_actual)||0) - metros);
+        await fetch(SB + '/rest/v1/insumos_stock?id=eq.' + telaData.id, {
+          method: 'PATCH',
+          headers: Object.assign({}, H, {'Content-Type':'application/json','Prefer':'return=minimal'}),
+          body: JSON.stringify({ stock_actual: stockNuevo })
+        });
+        await fetch(SB + '/rest/v1/insumos_movimientos', {
+          method: 'POST',
+          headers: Object.assign({}, H, {'Content-Type':'application/json','Prefer':'return=minimal'}),
+          body: JSON.stringify({ insumo_id: parseInt(telaData.id), tipo: 'SALIDA', cantidad: metros, registrado_por: sesion.nombre, notas: 'Asignado por Almacen' })
+        });
+        showToast('Asignado — ' + metros + ' m descontados. Stock: ' + stockNuevo.toFixed(2) + ' m');
       } else {
-        showToast('Tela asignada correctamente');
+        showToast('Tela asignada (sin stock vinculado)');
       }
       // Recargar la tabla
       cargarConsultaTelas_alm('consulta-telas-alm');
