@@ -1465,11 +1465,11 @@
     if (!el) return;
     el.innerHTML = '<p style="color:#94a3b8;font-size:13px">Cargando...</p>';
     try {
-      var rC = await fetch(SB_URL + '/rest/v1/consumos_insumo?select=orden_id,numero_orden,tipo_prenda,nombre_insumo,color_insumo,cantidad_estimada,unidad,estado_compra&order=numero_orden.asc', { headers: HDR });
+      var rC = await fetch(SB_URL + '/rest/v1/consumos_insumo?select=*&order=numero_orden.asc&limit=500', { headers: HDR });
       if (!rC.ok) throw new Error('HTTP ' + rC.status);
       var consumos = await rC.json();
       if (!Array.isArray(consumos)) consumos = [];
-      var rO = await fetch(SB_URL + '/rest/v1/ordenes?estado=in.(EN_ANALISIS,EN_PRODUCCION)&select=id,numero_orden,productos,estado&order=numero_orden.asc', { headers: HDR });
+      var rO = await fetch(SB_URL + '/rest/v1/ordenes?estado=in.(EN_ANALISIS,EN_PRODUCCION)&select=id,numero_orden,estado&order=numero_orden.asc', { headers: HDR });
       if (!rO.ok) throw new Error('HTTP ' + rO.status);
       var ordenes = await rO.json();
       if (!Array.isArray(ordenes)) ordenes = [];
@@ -1482,11 +1482,11 @@
     if (!el) return;
     el.innerHTML = '<p style="color:#94a3b8;font-size:13px">Cargando...</p>';
     try {
-      var rC = await fetch(SB + '/rest/v1/consumos_insumo?select=orden_id,numero_orden,tipo_prenda,nombre_insumo,color_insumo,cantidad_estimada,unidad,estado_compra&order=numero_orden.asc', { headers: H });
+      var rC = await fetch(SB + '/rest/v1/consumos_insumo?select=*&order=numero_orden.asc&limit=500', { headers: H });
       if (!rC.ok) throw new Error('HTTP ' + rC.status);
       var consumos = await rC.json();
       if (!Array.isArray(consumos)) consumos = [];
-      var rO = await fetch(SB + '/rest/v1/ordenes?estado=in.(EN_ANALISIS,EN_PRODUCCION)&select=id,numero_orden,productos,estado&order=numero_orden.asc', { headers: H });
+      var rO = await fetch(SB + '/rest/v1/ordenes?estado=in.(EN_ANALISIS,EN_PRODUCCION)&select=id,numero_orden,estado&order=numero_orden.asc', { headers: H });
       if (!rO.ok) throw new Error('HTTP ' + rO.status);
       var ordenes = await rO.json();
       if (!Array.isArray(ordenes)) ordenes = [];
@@ -1511,9 +1511,7 @@
     var sinTela = [];
     ordenes.forEach(function(o) {
       if (!ordenesConTela.has(String(o.numero_orden))) {
-        (o.productos||[]).forEach(function(pr) {
-          sinTela.push({numero_orden:o.numero_orden,tipo_prenda:pr.tipo||'Prenda',estado_orden:o.estado});
-        });
+        sinTela.push({numero_orden:o.numero_orden, tipo_prenda:'Ver orden', estado_orden:o.estado});
       }
     });
     var html = '<div style="display:flex;gap:8px;margin-bottom:16px">'
