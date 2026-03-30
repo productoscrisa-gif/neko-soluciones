@@ -1312,7 +1312,7 @@
     const orden  = ordenesAnalisis.find(o => String(o.id) === String(oid));
     if (orden && orden.productos && orden.productos[idx]) {
       orden.productos[idx].insumo_id    = val;
-      orden.productos[idx].nombre_insumo = insumo ? (insumo.nombre_base || insumo.nombre) : '';
+      orden.productos[idx].nombre_insumo = insumo ? (insumo.nombre_base || insumo.nombre) + (insumo.color ? ' — ' + insumo.color : '') : '';
       orden.productos[idx].color_insumo  = insumo ? (insumo.color || '') : '';
       orden.productos[idx].unidad_insumo = insumo ? insumo.unidad : 'metros';
     }
