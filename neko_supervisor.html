@@ -1357,21 +1357,22 @@
       const cantNeeded = parseFloat(p.cantidad_insumo) || 0;
       const hayStock = stockDisp >= cantNeeded;
 
-      rows.push({
+      var row = {
         orden_id:          parseInt(oid),
         numero_orden:      orden ? orden.numero_orden : '',
         prenda_idx:        idx,
         tipo_prenda:       p.tipo || '',
         insumo_id:         parseInt(p.insumo_id),
         nombre_insumo:     p.nombre_insumo || '',
-        color_insumo:      p.color_insumo  || '',
         cantidad_estimada: cantNeeded,
         unidad:            p.unidad_insumo || 'metros',
         estado_compra:     hayStock ? 'RECIBIDO' : 'PENDIENTE',
-        asignado_por:      sesion ? sesion.nombre : '',
-        recibido_por:      hayStock ? 'Stock disponible' : null,
-        fecha_recepcion:   hayStock ? new Date().toISOString() : null
-      });
+        asignado_por:      sesion ? sesion.nombre : ''
+      };
+      // Agregar campos opcionales si existen
+      if (p.color_insumo) row.color_insumo = p.color_insumo;
+      if (hayStock) { row.recibido_por = 'Stock disponible'; row.fecha_recepcion = new Date().toISOString(); }
+      rows.push(row);
 
       if (hayStock) {
         descuentos.push({ id: p.insumo_id, cantidad: cantNeeded, stockActual: stockDisp, orden: orden?.numero_orden || '' });
@@ -1389,22 +1390,10 @@
       });
       if (!rIns.ok) {
         const errTxt = await rIns.text();
-        // Si falla por color_insumo, reintentar sin ese campo
-        if (errTxt.includes('color_insumo') || errTxt.includes('column')) {
-          const rowsSinColor = rows.map(function(r) {
-            const r2 = Object.assign({}, r);
-            delete r2.color_insumo;
-            return r2;
-          });
-          await fetch(SB_URL + '/rest/v1/consumos_insumo', {
-            method: 'POST',
-            headers: { ...HDR, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-            body: JSON.stringify(rowsSinColor)
-          }).catch(e => console.error('consumos_insumo reintento:', e));
-        } else {
-          console.error('consumos_insumo error:', errTxt);
-          showToast('⚠️ Error guardando insumos: ' + errTxt.substring(0,80));
-        }
+        console.error('consumos_insumo INSERT error:', errTxt);
+        showToast('Insumos: ' + errTxt.substring(0, 100));
+      } else {
+        console.log('consumos_insumo INSERT OK:', rows.length, 'registros');
       }
     }
 
