@@ -1394,15 +1394,16 @@ function confirmarError() {
 
   // ── CONSULTA DE ÓRDENES CON/SIN TELA ─────────────────────
   async function cargarConsultaTelas_alm(elId) {
-    var HDR_KEY = H; var SB = SB;
     var el = document.getElementById(elId);
     if (!el) return;
     el.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:20px">Cargando...</div>';
     try {
-      var rC = await fetch(SB + '/rest/v1/consumos_insumo?select=orden_id,numero_orden,tipo_prenda,nombre_insumo,color_insumo,cantidad_estimada,unidad,estado_compra&order=numero_orden.asc', { headers: HDR_KEY });
+      var rC = await fetch(SB + '/rest/v1/consumos_insumo?select=orden_id,numero_orden,tipo_prenda,nombre_insumo,color_insumo,cantidad_estimada,unidad,estado_compra&order=numero_orden.asc', { headers: H });
+      if (!rC.ok) throw new Error('Error consumos: HTTP ' + rC.status);
       var consumos = await rC.json();
       if (!Array.isArray(consumos)) consumos = [];
-      var rO = await fetch(SB + '/rest/v1/ordenes?estado=in.(EN_ANALISIS,EN_PRODUCCION)&select=id,numero_orden,productos,estado&order=numero_orden.asc', { headers: HDR_KEY });
+      var rO = await fetch(SB + '/rest/v1/ordenes?estado=in.(EN_ANALISIS,EN_PRODUCCION)&select=id,numero_orden,productos,estado&order=numero_orden.asc', { headers: H });
+      if (!rO.ok) throw new Error('Error ordenes: HTTP ' + rO.status);
       var ordenes = await rO.json();
       if (!Array.isArray(ordenes)) ordenes = [];
       var ordenesConTela = new Set(consumos.map(function(c){ return String(c.numero_orden); }));
@@ -1445,6 +1446,13 @@ function confirmarError() {
     } catch(e) {
       el.innerHTML = '<div style="color:#dc2626;font-size:13px">Error: ' + e.message + '</div>';
     }
+  }
+
+
+  function _filtrarTelas(btn) {
+    var p = btn.getAttribute('data-p');
+    var f = btn.getAttribute('data-f');
+    filtrarTablasTelas(p, f);
   }
 
   function showToast(msg) {
