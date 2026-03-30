@@ -1396,7 +1396,7 @@ function confirmarError() {
   async function cargarConsultaTelas_alm(elId) {
     var el = document.getElementById(elId);
     if (!el) return;
-    el.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:20px">Cargando...</div>';
+    el.innerHTML = '<p style="color:#94a3b8;font-size:13px;padding:12px">Cargando...</p>';
     try {
       var rC = await fetch(SB + '/rest/v1/consumos_insumo?select=*&order=numero_orden.asc&limit=500', { headers: H });
       if (!rC.ok) throw new Error('Error consumos: HTTP ' + rC.status);
@@ -1406,46 +1406,138 @@ function confirmarError() {
       if (!rO.ok) throw new Error('Error ordenes: HTTP ' + rO.status);
       var ordenes = await rO.json();
       if (!Array.isArray(ordenes)) ordenes = [];
+
       var ordenesConTela = new Set(consumos.map(function(c){ return String(c.numero_orden); }));
       var sinTela = [];
       ordenes.forEach(function(o) {
         if (!ordenesConTela.has(String(o.numero_orden))) {
-          sinTela.push({ numero_orden: o.numero_orden, tipo_prenda: 'Ver orden', estado_orden: o.estado });
+          var eO = o.estado === 'EN_ANALISIS' ? 'En Análisis' : 'En Producción';
+          sinTela.push({ numero_orden: o.numero_orden, estado_orden: eO });
         }
       });
-      var html = '';
-      html += '<div style="font-size:12px;font-weight:800;text-transform:uppercase;color:#16a34a;letter-spacing:.07em;margin-bottom:10px">Con Tela Asignada (' + consumos.length + ' prendas)</div>';
+
+      var html = '<div style="display:flex;gap:8px;margin-bottom:14px">'
+        + '<button id="btn-con-tela-alm" data-p="alm" data-f="con" onclick="_filtrarTelas(this)" style="padding:8px 18px;background:#16a34a;color:#fff;border:1.5px solid #16a34a;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Con Tela (' + consumos.length + ')</button>'
+        + '<button id="btn-sin-tela-alm" data-p="alm" data-f="sin" onclick="_filtrarTelas(this)" style="padding:8px 18px;background:#fff;color:#374151;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Sin Tela (' + sinTela.length + ')</button>'
+      + '</div>';
+
+      // ── Tabla CON tela ──────────────────────────────────
+      html += '<div id="tabla-con-tela-alm">';
       if (consumos.length) {
-        html += '<div style="overflow-x:auto;margin-bottom:24px"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#f0fdf4"><th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#166534;border-bottom:2px solid #86efac">Orden</th><th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#166534;border-bottom:2px solid #86efac">Prenda</th><th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#166534;border-bottom:2px solid #86efac">Tela</th><th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#166534;border-bottom:2px solid #86efac">Color</th><th style="padding:9px 12px;text-align:right;font-size:11px;font-weight:700;color:#166534;border-bottom:2px solid #86efac">Metros</th><th style="padding:9px 12px;text-align:center;font-size:11px;font-weight:700;color:#166534;border-bottom:2px solid #86efac">Estado</th></tr></thead><tbody>';
+        html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">'
+          + '<thead><tr style="background:#f0fdf4">'
+            + '<th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#166534;border-bottom:2px solid #86efac">Orden</th>'
+            + '<th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#166534;border-bottom:2px solid #86efac">Prenda</th>'
+            + '<th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#166534;border-bottom:2px solid #86efac">Tela</th>'
+            + '<th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#166534;border-bottom:2px solid #86efac">Color</th>'
+            + '<th style="padding:9px 12px;text-align:right;font-size:11px;font-weight:700;color:#166534;border-bottom:2px solid #86efac">Metros</th>'
+            + '<th style="padding:9px 12px;text-align:center;font-size:11px;font-weight:700;color:#166534;border-bottom:2px solid #86efac">Estado</th>'
+            + '<th style="padding:9px 12px;text-align:center;font-size:11px;font-weight:700;color:#166534;border-bottom:2px solid #86efac">Acción</th>'
+          + '</tr></thead><tbody>';
         consumos.forEach(function(c, i) {
           var est = c.estado_compra || 'PENDIENTE';
           var eC = est==='RECIBIDO'?'#16a34a':est==='COMPRANDO'?'#f97316':'#2563eb';
           var eB = est==='RECIBIDO'?'#f0fdf4':est==='COMPRANDO'?'#fff7ed':'#eff6ff';
-          var eL = est==='RECIBIDO'?'En stock':est==='COMPRANDO'?'Comprando':'Pendiente';
-          var m = parseFloat(c.cantidad_estimada)||0;
-          html += '<tr style="background:'+(i%2===0?'#fff':'#f8fafc')+';border-bottom:1px solid #f1f5f9"><td style="padding:9px 12px;font-family:JetBrains Mono,monospace;font-weight:700;color:#2563eb">'+(c.numero_orden||'-')+'</td><td style="padding:9px 12px;font-weight:600">'+(c.tipo_prenda||'-')+'</td><td style="padding:9px 12px">'+(c.nombre_insumo||'-')+'</td><td style="padding:9px 12px;color:#64748b">'+(c.color_insumo||'-')+'</td><td style="padding:9px 12px;text-align:right;font-family:JetBrains Mono,monospace;font-weight:700">'+(m%1===0?m:m.toFixed(2))+'</td><td style="padding:9px 12px;text-align:center"><span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:'+eB+';color:'+eC+'">'+eL+'</span></td></tr>';
+          var eL = est==='RECIBIDO'?'Asignada':est==='COMPRANDO'?'Comprando':'Pendiente';
+          var m  = parseFloat(c.cantidad_estimada)||0;
+          var mFmt = m%1===0 ? m.toString() : m.toFixed(2);
+          // Botón asignar — solo si está COMPRANDO (llegó) o PENDIENTE (hay stock)
+          var btnAsignar = (est !== 'RECIBIDO')
+            ? '<button data-id="' + c.id + '" data-insumo="' + (c.insumo_id||'') + '" data-metros="' + m + '" onclick="_clickAsignarTela(this)" style="padding:6px 14px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">✅ Asignar</button>'
+            : '<span style="font-size:11px;color:#16a34a;font-weight:700">Asignada</span>';
+          html += '<tr style="background:'+(i%2===0?'#fff':'#f8fafc')+';border-bottom:1px solid #f1f5f9">'
+            + '<td style="padding:9px 12px;font-family:JetBrains Mono,monospace;font-weight:700;color:#2563eb">'+(c.numero_orden||'-')+'</td>'
+            + '<td style="padding:9px 12px;font-weight:600">'+(c.tipo_prenda||'-')+'</td>'
+            + '<td style="padding:9px 12px">'+(c.nombre_insumo||'-')+'</td>'
+            + '<td style="padding:9px 12px;color:#64748b">'+(c.color_insumo||'-')+'</td>'
+            + '<td style="padding:9px 12px;text-align:right;font-family:JetBrains Mono,monospace;font-weight:700">'+mFmt+'</td>'
+            + '<td style="padding:9px 12px;text-align:center"><span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:'+eB+';color:'+eC+'">'+eL+'</span></td>'
+            + '<td style="padding:9px 12px;text-align:center">'+btnAsignar+'</td>'
+          + '</tr>';
         });
         html += '</tbody></table></div>';
       } else {
-        html += '<div style="color:#94a3b8;font-size:13px;padding:8px 0 20px">No hay telas asignadas.</div>';
+        html += '<p style="color:#94a3b8;font-size:13px;padding:8px 0">No hay telas asignadas.</p>';
       }
-      html += '<div style="font-size:12px;font-weight:800;text-transform:uppercase;color:#dc2626;letter-spacing:.07em;margin-bottom:10px">Sin Tela Asignada (' + sinTela.length + ' prendas)</div>';
+      html += '</div>';
+
+      // ── Tabla SIN tela ──────────────────────────────────
+      html += '<div id="tabla-sin-tela-alm" style="display:none">';
       if (sinTela.length) {
-        html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#fff1f2"><th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#991b1b;border-bottom:2px solid #fca5a5">Orden</th><th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#991b1b;border-bottom:2px solid #fca5a5">Prenda</th><th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#991b1b;border-bottom:2px solid #fca5a5">Estado Orden</th></tr></thead><tbody>';
+        html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">'
+          + '<thead><tr style="background:#fff1f2">'
+            + '<th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#991b1b;border-bottom:2px solid #fca5a5">Orden</th>'
+            + '<th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#991b1b;border-bottom:2px solid #fca5a5">Estado</th>'
+            + '<th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#991b1b;border-bottom:2px solid #fca5a5">Acción</th>'
+          + '</tr></thead><tbody>';
         sinTela.forEach(function(s, i) {
-          var eO = s.estado_orden==='EN_ANALISIS'?'En Analisis':'En Produccion';
-          html += '<tr style="background:'+(i%2===0?'#fff':'#fff8f8')+';border-bottom:1px solid #fee2e2"><td style="padding:9px 12px;font-family:JetBrains Mono,monospace;font-weight:700;color:#dc2626">'+s.numero_orden+'</td><td style="padding:9px 12px;font-weight:600">'+s.tipo_prenda+'</td><td style="padding:9px 12px;font-size:12px;font-weight:600;color:#374151">'+eO+'</td></tr>';
+          html += '<tr style="background:'+(i%2===0?'#fff':'#fff8f8')+';border-bottom:1px solid #fee2e2">'
+            + '<td style="padding:9px 12px;font-family:JetBrains Mono,monospace;font-weight:700;color:#dc2626">'+s.numero_orden+'</td>'
+            + '<td style="padding:9px 12px;font-size:12px;font-weight:700;color:#374151">'+s.estado_orden+'</td>'
+            + '<td style="padding:9px 12px;font-size:11px;color:#94a3b8">Asignar tela en Análisis/Supervisor</td>'
+          + '</tr>';
         });
         html += '</tbody></table></div>';
       } else {
-        html += '<div style="color:#16a34a;font-size:13px;font-weight:700;padding:8px 0">Todas las prendas tienen tela asignada.</div>';
+        html += '<p style="color:#16a34a;font-size:13px;font-weight:700;padding:8px 0">Todas las prendas tienen tela asignada.</p>';
       }
+      html += '</div>';
+
       el.innerHTML = html;
     } catch(e) {
-      el.innerHTML = '<div style="color:#dc2626;font-size:13px">Error: ' + e.message + '</div>';
+      el.innerHTML = '<p style="color:#dc2626;font-size:13px">Error: ' + e.message + '</p>';
     }
   }
 
+  function _clickAsignarTela(btn) {
+    var id      = btn.getAttribute('data-id');
+    var insumo  = btn.getAttribute('data-insumo');
+    var metros  = parseFloat(btn.getAttribute('data-metros')) || 0;
+    asignarTela(id, insumo, metros, btn);
+  }
+
+  async function asignarTela(consumoId, insumoId, metros, btn) {
+    if (!confirm('Confirmar asignacion de ' + metros + ' metros. Se descontara del stock disponible.')) return;
+    if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
+    try {
+      // 1. Marcar consumo como RECIBIDO
+      var r1 = await fetch(SB + '/rest/v1/consumos_insumo?id=eq.' + consumoId, {
+        method: 'PATCH',
+        headers: Object.assign({}, H, {'Content-Type':'application/json','Prefer':'return=minimal'}),
+        body: JSON.stringify({ estado_compra: 'RECIBIDO', recibido_por: sesion.nombre, fecha_recepcion: new Date().toISOString() })
+      });
+      if (!r1.ok) throw new Error('Error marcando recibido: HTTP ' + r1.status);
+
+      // 2. Descontar del stock si tiene insumo_id
+      if (insumoId) {
+        var rS = await fetch(SB + '/rest/v1/insumos_stock?id=eq.' + insumoId + '&select=stock_actual,nombre', { headers: H });
+        var telas = await rS.json();
+        if (Array.isArray(telas) && telas.length) {
+          var stockNuevo = Math.max(0, (parseFloat(telas[0].stock_actual)||0) - metros);
+          await fetch(SB + '/rest/v1/insumos_stock?id=eq.' + insumoId, {
+            method: 'PATCH',
+            headers: Object.assign({}, H, {'Content-Type':'application/json','Prefer':'return=minimal'}),
+            body: JSON.stringify({ stock_actual: stockNuevo })
+          });
+          // 3. Registrar movimiento de salida
+          await fetch(SB + '/rest/v1/insumos_movimientos', {
+            method: 'POST',
+            headers: Object.assign({}, H, {'Content-Type':'application/json','Prefer':'return=minimal'}),
+            body: JSON.stringify({ insumo_id: parseInt(insumoId), tipo: 'SALIDA', cantidad: metros, registrado_por: sesion.nombre, notas: 'Asignado manualmente por Almacén' })
+          });
+          showToast('Tela asignada — ' + metros + ' metros descontados. Stock: ' + stockNuevo.toFixed(2) + ' m');
+        }
+      } else {
+        showToast('Tela asignada correctamente');
+      }
+      // Recargar la tabla
+      cargarConsultaTelas_alm('consulta-telas-alm');
+      cargarStockTelas();
+    } catch(e) {
+      alert('Error: ' + e.message);
+      if (btn) { btn.disabled = false; btn.textContent = 'Asignar'; }
+    }
+  }
 
   function _filtrarTelas(btn) {
     var p = btn.getAttribute('data-p');

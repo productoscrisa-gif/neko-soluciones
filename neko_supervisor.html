@@ -1381,11 +1381,32 @@
     }
 
     // Insertar consumos
-    await fetch(SB_URL + '/rest/v1/consumos_insumo', {
-      method: 'POST',
-      headers: { ...HDR, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-      body: JSON.stringify(rows)
-    }).catch(() => {});
+    if (rows.length) {
+      const rIns = await fetch(SB_URL + '/rest/v1/consumos_insumo', {
+        method: 'POST',
+        headers: { ...HDR, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify(rows)
+      });
+      if (!rIns.ok) {
+        const errTxt = await rIns.text();
+        // Si falla por color_insumo, reintentar sin ese campo
+        if (errTxt.includes('color_insumo') || errTxt.includes('column')) {
+          const rowsSinColor = rows.map(function(r) {
+            const r2 = Object.assign({}, r);
+            delete r2.color_insumo;
+            return r2;
+          });
+          await fetch(SB_URL + '/rest/v1/consumos_insumo', {
+            method: 'POST',
+            headers: { ...HDR, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+            body: JSON.stringify(rowsSinColor)
+          }).catch(e => console.error('consumos_insumo reintento:', e));
+        } else {
+          console.error('consumos_insumo error:', errTxt);
+          showToast('⚠️ Error guardando insumos: ' + errTxt.substring(0,80));
+        }
+      }
+    }
 
     // Descontar del stock y registrar movimientos
     for (const d of descuentos) {
