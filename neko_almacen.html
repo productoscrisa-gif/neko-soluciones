@@ -720,7 +720,52 @@ function buildCard(o, isDespachado, esHija, hijasData, saldoGrupo, esContraentre
 }
 
 // ── FUNCIONES GLOBALES ────────────────────────────────────────
-function _clickMarcarObs(btn) {
+  function _clickRecibirGrupo(btn) {
+    var gKey     = btn.getAttribute('data-gkey');
+    var insumoId = btn.getAttribute('data-insumo-id');
+    var nombre   = btn.getAttribute('data-nombre');
+    var ids      = btn.getAttribute('data-ids').split(',').filter(function(x){ return x; });
+    var metros   = parseFloat(document.getElementById('metros-rec-' + gKey).value) || 0;
+    if (!metros || metros <= 0) { alert('Ingresa los metros recibidos de ' + nombre); return; }
+    recibirGrupoTela(insumoId, nombre, metros, ids, btn);
+  }
+
+  async function recibirGrupoTela(insumoId, nombre, metros, consumoIds, btn) {
+    btn.disabled = true; btn.textContent = '...';
+    try {
+      if (insumoId) {
+        var rS = await fetch(SB + '/rest/v1/insumos_stock?id=eq.' + insumoId + '&select=stock_actual', { headers: H });
+        var telas = await rS.json();
+        var stockActual = Array.isArray(telas) && telas.length ? (parseFloat(telas[0].stock_actual)||0) : 0;
+        var stockNuevo  = stockActual + metros;
+        await fetch(SB + '/rest/v1/insumos_stock?id=eq.' + insumoId, {
+          method: 'PATCH',
+          headers: Object.assign({}, H, {'Content-Type':'application/json','Prefer':'return=minimal'}),
+          body: JSON.stringify({ stock_actual: stockNuevo })
+        });
+        await fetch(SB + '/rest/v1/insumos_movimientos', {
+          method: 'POST',
+          headers: Object.assign({}, H, {'Content-Type':'application/json','Prefer':'return=minimal'}),
+          body: JSON.stringify({ insumo_id: parseInt(insumoId), tipo: 'ENTRADA', cantidad: metros, registrado_por: sesion.nombre, notas: 'Recepcion: ' + nombre })
+        });
+      }
+      var filtro = consumoIds.length === 1 ? 'id=eq.' + consumoIds[0] : 'id=in.(' + consumoIds.join(',') + ')';
+      await fetch(SB + '/rest/v1/consumos_insumo?' + filtro, {
+        method: 'PATCH',
+        headers: Object.assign({}, H, {'Content-Type':'application/json','Prefer':'return=minimal'}),
+        body: JSON.stringify({ estado_compra: 'RECIBIDO', recibido_por: sesion.nombre, fecha_recepcion: new Date().toISOString() })
+      });
+      showToast(metros + ' metros de ' + nombre + ' recibidos y agregados al stock');
+      cargarInsumosAlmacen();
+      cargarStockTelas();
+      cargarConsultaTelas_alm('consulta-telas-alm');
+    } catch(e) {
+      alert('Error: ' + e.message);
+      btn.disabled = false; btn.textContent = 'Registrar Llegada y Asignar al Stock';
+    }
+  }
+
+  function _clickMarcarObs(btn) {
   var oid = btn.getAttribute('data-oid');
   marcarObsLeido(oid);
 }
@@ -1037,27 +1082,47 @@ function confirmarError() {
         html += '<div style="display:flex;flex-direction:column;gap:14px;margin-bottom:24px">';
         Object.values(grupos).forEach(function(g) {
           var totalFmt = g.total % 1 === 0 ? g.total : g.total.toFixed(2);
+          var gKey = g.nombre.replace(/[^a-zA-Z0-9]/g, '_');
+          var hayComprando = g.items.some(function(c){ return c.estado_compra === 'COMPRANDO'; });
+
           html += '<div style="background:var(--surface);border:1.5px solid #fed7aa;border-radius:var(--radius);box-shadow:var(--shadow-md);overflow:hidden">';
-          html += '<div style="padding:14px 18px;background:#ffedd5;border-bottom:1px solid #fed7aa;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">';
-          html += '<div><div style="font-size:15px;font-weight:800;color:#c2410c">🧵 ' + g.nombre + '</div>';
+
+          // Header del grupo
+          html += '<div style="padding:14px 18px;background:#ffedd5;border-bottom:1px solid #fed7aa">';
+          html += '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">';
+          html += '<div>';
+          html += '<div style="font-size:15px;font-weight:800;color:#c2410c">🧵 ' + g.nombre + '</div>';
           html += '<div style="margin-top:4px"><span style="font-family:JetBrains Mono,monospace;font-size:20px;font-weight:800;color:#c2410c">' + totalFmt + '</span>';
-          html += ' <span style="font-size:13px;font-weight:600;color:#92400e">' + g.unidad + ' en total</span>';
-          html += ' <span style="font-size:12px;color:#92400e">(' + g.items.length + ' ' + (g.items.length===1?"orden":"órdenes") + ')</span></div></div>';
-          html += '<span style="padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;background:var(--amber-light);color:var(--amber)">⏳ Por recibir</span>';
+          html += ' <span style="font-size:13px;font-weight:600;color:#92400e">' + g.unidad + ' necesarios</span>';
+          html += ' <span style="font-size:12px;color:#92400e">(' + g.items.length + ' ' + (g.items.length===1?"orden":"órdenes") + ')</span>';
+          html += '</div></div>';
+          html += '<span style="padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;background:var(--amber-light);color:var(--amber)">' + (hayComprando ? '🛍️ Comprando' : '⏳ Por recibir') + '</span>';
           html += '</div>';
+
+          // Campo para ingresar metros recibidos (solo si hay alguno en COMPRANDO)
+          if (hayComprando) {
+            html += '<div style="padding:14px 18px;background:#f0fdf4;border-bottom:1px solid #fed7aa;display:flex;align-items:center;gap:12px;flex-wrap:wrap">';
+            html += '<div style="font-size:13px;font-weight:700;color:#065f46">📦 Metros recibidos:</div>';
+            html += '<input type="number" id="metros-rec-' + gKey + '" placeholder="0" min="0.1" step="0.1" style="width:120px;padding:8px 12px;border:1.5px solid #86efac;border-radius:8px;font-size:14px;font-weight:700;font-family:JetBrains Mono,monospace;outline:none">';
+            html += '<button data-gkey="' + gKey + '" data-insumo-id="' + (g.items[0].insumo_id||'') + '" data-nombre="' + g.nombre + '" data-ids="' + g.items.map(function(c){return c.id;}).join(',') + '" onclick="_clickRecibirGrupo(this)" style="padding:9px 20px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 3px 10px rgba(16,185,129,.3)">✅ Registrar Llegada y Asignar al Stock</button>';
+            html += '</div>';
+          }
+
+          // Detalle de órdenes del grupo
           html += '<div style="padding:0 16px">';
           g.items.forEach(function(c, i) {
             var cantFmt = (parseFloat(c.cantidad_estimada)||0) % 1 === 0 ? parseFloat(c.cantidad_estimada)||0 : (parseFloat(c.cantidad_estimada)||0).toFixed(2);
-            var estadoBadge = c.estado_compra === "COMPRANDO"
+            var estadoBadge = c.estado_compra === 'COMPRANDO'
               ? '<span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:var(--amber-light);color:var(--amber)">🛍️ Comprando</span>'
               : '<span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:var(--blue-light);color:var(--blue)">⏳ Pendiente compra</span>';
-            html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;' + (i < g.items.length-1 ? "border-bottom:1px solid #fed7aa;" : "") + 'flex-wrap:wrap;gap:10px">';
-            html += '<div><span style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:700;color:var(--blue)">' + c.numero_orden + '</span>';
-            html += ' &nbsp;·&nbsp; <span style="font-size:13px;font-weight:700">' + (c.tipo_prenda||"Prenda") + '</span>';
-            html += '<div style="font-size:12px;color:#92400e;margin-top:3px"><strong style="font-family:JetBrains Mono,monospace">' + cantFmt + " " + g.unidad + '</strong> — ' + (c.asignado_por||"--") + '</div></div>';
-            html += '<div style="display:flex;align-items:center;gap:8px">' + estadoBadge;
-            html += '<button data-id="' + c.id + '" data-oid="' + c.orden_id + '" onclick="recibirInsumoAlm(this)" style="padding:8px 16px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">📦 Recibido</button>';
-            html += '</div></div>';
+            html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;' + (i < g.items.length-1 ? "border-bottom:1px solid #fed7aa;" : "") + 'flex-wrap:wrap;gap:8px">';
+            html += '<div>';
+            html += '<span style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:700;color:var(--blue)">' + c.numero_orden + '</span>';
+            html += ' &nbsp;·&nbsp; <span style="font-size:13px;font-weight:600">' + (c.tipo_prenda||"Prenda") + '</span>';
+            html += '<div style="font-size:12px;color:#92400e;margin-top:2px"><strong style="font-family:JetBrains Mono,monospace">' + cantFmt + ' ' + g.unidad + '</strong> — ' + (c.asignado_por||"--") + '</div>';
+            html += '</div>';
+            html += '<div style="display:flex;align-items:center;gap:8px">' + estadoBadge + '</div>';
+            html += '</div>';
           });
           html += '</div></div>';
         });
