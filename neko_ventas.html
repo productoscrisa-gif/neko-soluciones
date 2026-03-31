@@ -1344,15 +1344,14 @@
           'apikey':        SUPABASE_KEY,
           'Authorization': 'Bearer ' + SUPABASE_KEY,
           'Content-Type':  'application/json',
-          'Prefer':        'return=representation'
+          'Prefer':        'return=minimal'
         },
         body: JSON.stringify(body)
       });
 
-      const txt = await resp.text();
-
       if (!resp.ok) {
-        alert('❌ Supabase error ' + resp.status + ':\n' + txt + '\n\nOID: ' + oid);
+        const txt = await resp.text();
+        alert('❌ Error al aprobar: ' + resp.status + '\n' + txt);
         if (bloque) bloque.querySelectorAll('button').forEach(b => { b.disabled = false; });
         return;
       }
@@ -1400,7 +1399,7 @@
           'apikey':        SUPABASE_KEY,
           'Authorization': 'Bearer ' + SUPABASE_KEY,
           'Content-Type':  'application/json',
-          'Prefer':        'return=representation'
+          'Prefer':        'return=minimal'
         },
         body: JSON.stringify(body)
       });
