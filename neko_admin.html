@@ -118,6 +118,36 @@
 
   <!-- DASHBOARD -->
   <div class="tab-content active" id="tab-dashboard">
+
+    <!-- PUNTO DE EQUILIBRIO -->
+    <div style="background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;padding:20px 24px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
+        <div>
+          <div style="font-size:15px;font-weight:800;color:#0f172a">🎯 Punto de Equilibrio Mensual</div>
+          <div style="font-size:12px;color:#64748b;margin-top:2px" id="pe-mes-label">—</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div style="font-size:12px;color:#64748b">Meta:</div>
+          <input type="number" id="pe-meta-input" placeholder="0" min="0" step="100000"
+            style="width:160px;padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;font-family:JetBrains Mono,monospace;font-weight:700;outline:none">
+          <button onclick="guardarMeta()" style="padding:9px 18px;background:linear-gradient(135deg,#0d9488,#0f766e);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">💾 Guardar Meta</button>
+        </div>
+      </div>
+
+      <!-- Barra de progreso -->
+      <div style="position:relative;background:#f1f5f9;border-radius:999px;height:28px;overflow:hidden;margin-bottom:10px">
+        <div id="pe-barra" style="height:100%;border-radius:999px;transition:width .6s ease, background .6s ease;background:#dc2626;width:0%"></div>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.4)" id="pe-pct-label">0%</div>
+      </div>
+
+      <!-- Valores -->
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <div style="font-size:13px;color:#374151">Vendido este mes: <strong id="pe-vendido" style="font-family:JetBrains Mono,monospace">$0</strong></div>
+        <div style="font-size:13px;color:#374151">Meta: <strong id="pe-meta-display" style="font-family:JetBrains Mono,monospace">$0</strong></div>
+        <div style="font-size:13px;font-weight:700" id="pe-estado-txt">Sin meta configurada</div>
+      </div>
+    </div>
+
     <div class="stats-bar">
       <div class="stat-card"><div class="stat-label">Total Órdenes</div><div class="stat-value blue" id="d-total">—</div></div>
       <div class="stat-card"><div class="stat-label">En Producción</div><div class="stat-value amber" id="d-produccion">—</div></div>
@@ -371,6 +401,7 @@
     if(sesion.area!=='Admin'){window.location.href='neko_login.html';return;}
     document.getElementById('user-info').textContent='⚙️ '+sesion.nombre;
     cargarDashboard();
+    cargarMeta();
     cargarOrdenes();
     cargarComprasAdmin(); // Para badge inicial
     cargarInsumos();        // Para badge insumos
@@ -508,6 +539,8 @@
     const elVM = document.getElementById('d-ventas-mes');
     const elVT = document.getElementById('d-ventas-total');
     if (elVM) elVM.textContent = '$' + fmtCOP(ventasTotalMes);
+    _vendidoMes = ventasTotalMes;
+    actualizarBarraPE();
     if (elVT) elVT.textContent = '$' + fmtCOP(totalRecaudado);
     const elVend = document.getElementById('d-ventas-vendido');
     if (elVend) elVend.textContent = '$' + fmtCOP(totalVendido);
@@ -1551,6 +1584,96 @@
     var p = btn.getAttribute('data-p');
     var f = btn.getAttribute('data-f');
     filtrarTablasTelas(p, f);
+  }
+
+  // ── PUNTO DE EQUILIBRIO ─────────────────────────────────
+  var _metaActual = 0;
+  var _vendidoMes = 0;
+
+  async function cargarMeta() {
+    var ahora = new Date();
+    var mes   = ahora.getMonth() + 1;
+    var anio  = ahora.getFullYear();
+    var meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    var lblEl = document.getElementById('pe-mes-label');
+    if (lblEl) lblEl.textContent = meses[mes-1] + ' ' + anio;
+
+    try {
+      var r = await fetch(SB_URL + '/rest/v1/metas_ventas?mes=eq.' + mes + '&anio=eq.' + anio + '&select=meta&limit=1', { headers: HDR });
+      var data = await r.json();
+      _metaActual = (Array.isArray(data) && data.length) ? (parseFloat(data[0].meta) || 0) : 0;
+      var inp = document.getElementById('pe-meta-input');
+      if (inp && _metaActual) inp.value = _metaActual;
+      actualizarBarraPE();
+    } catch(e) { _metaActual = 0; }
+  }
+
+  function actualizarBarraPE() {
+    var meta    = _metaActual;
+    var vendido = _vendidoMes;
+    var pct     = meta > 0 ? Math.min(100, Math.round((vendido / meta) * 100)) : 0;
+    var cumple  = pct >= 100;
+
+    var barra   = document.getElementById('pe-barra');
+    var pctLbl  = document.getElementById('pe-pct-label');
+    var metaDisp= document.getElementById('pe-meta-display');
+    var vendEl  = document.getElementById('pe-vendido');
+    var estadoEl= document.getElementById('pe-estado-txt');
+
+    // Color degradado: rojo → amarillo → verde
+    var bg;
+    if (pct < 50)       bg = '#dc2626';
+    else if (pct < 80)  bg = '#f97316';
+    else if (pct < 100) bg = '#eab308';
+    else                bg = '#16a34a';
+
+    if (barra)    { barra.style.width = pct + '%'; barra.style.background = bg; }
+    if (pctLbl)   pctLbl.textContent = pct + '%' + (cumple ? ' ✅' : '');
+    if (metaDisp) metaDisp.textContent = '$' + fmtCOP(meta);
+    if (vendEl)   vendEl.textContent   = '$' + fmtCOP(vendido);
+    if (estadoEl) {
+      if (!meta) {
+        estadoEl.textContent = 'Sin meta configurada';
+        estadoEl.style.color = '#94a3b8';
+      } else if (cumple) {
+        estadoEl.textContent = '🎉 Meta cumplida!';
+        estadoEl.style.color = '#16a34a';
+      } else {
+        var falta = meta - vendido;
+        estadoEl.textContent = 'Faltan $' + fmtCOP(falta) + ' para la meta';
+        estadoEl.style.color = '#f97316';
+      }
+    }
+  }
+
+  async function guardarMeta() {
+    var inp  = document.getElementById('pe-meta-input');
+    var meta = parseFloat(inp ? inp.value : 0) || 0;
+    if (!meta || meta <= 0) { alert('Ingresa un valor de meta valido.'); return; }
+    var ahora = new Date();
+    var mes   = ahora.getMonth() + 1;
+    var anio  = ahora.getFullYear();
+    try {
+      // Intentar actualizar primero
+      var rCheck = await fetch(SB_URL + '/rest/v1/metas_ventas?mes=eq.' + mes + '&anio=eq.' + anio + '&select=id&limit=1', { headers: HDR });
+      var exist  = await rCheck.json();
+      if (Array.isArray(exist) && exist.length) {
+        await fetch(SB_URL + '/rest/v1/metas_ventas?mes=eq.' + mes + '&anio=eq.' + anio, {
+          method: 'PATCH',
+          headers: Object.assign({}, HDR, {'Content-Type':'application/json','Prefer':'return=minimal'}),
+          body: JSON.stringify({ meta })
+        });
+      } else {
+        await fetch(SB_URL + '/rest/v1/metas_ventas', {
+          method: 'POST',
+          headers: Object.assign({}, HDR, {'Content-Type':'application/json','Prefer':'return=minimal'}),
+          body: JSON.stringify({ mes, anio, meta })
+        });
+      }
+      _metaActual = meta;
+      actualizarBarraPE();
+      showToast('Meta guardada: $' + fmtCOP(meta));
+    } catch(e) { alert('Error: ' + e.message); }
   }
 
   function showToast(msg){

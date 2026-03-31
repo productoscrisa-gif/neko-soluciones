@@ -387,6 +387,22 @@
   </div>
 </div>
 
+<!-- BARRA PUNTO DE EQUILIBRIO -->
+<div id="pe-card-ventas" style="background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;padding:16px 20px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px">
+    <div style="font-size:14px;font-weight:800;color:#0f172a">🎯 Punto de Equilibrio — <span id="pe-mes-v" style="color:#0d9488">—</span></div>
+    <div style="font-size:13px;font-weight:700" id="pe-estado-v" style="color:#94a3b8">Cargando...</div>
+  </div>
+  <div style="position:relative;background:#f1f5f9;border-radius:999px;height:24px;overflow:hidden;margin-bottom:8px">
+    <div id="pe-barra-v" style="height:100%;border-radius:999px;transition:width .6s ease, background .6s ease;background:#dc2626;width:0%"></div>
+    <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.4)" id="pe-pct-v">0%</div>
+  </div>
+  <div style="display:flex;justify-content:space-between;font-size:12px;color:#64748b;flex-wrap:wrap;gap:4px">
+    <span>Vendido: <strong id="pe-vendido-v" style="font-family:JetBrains Mono,monospace;color:#0f172a">$0</strong></span>
+    <span>Meta: <strong id="pe-meta-v" style="font-family:JetBrains Mono,monospace;color:#0f172a">$0</strong></span>
+  </div>
+</div>
+
 <!-- BLOQUE 1: CLIENTE -->
 <div class="card">
   <div class="card-header">
@@ -1782,9 +1798,48 @@
   var sesion_ventas = null;
   try { sesion_ventas = JSON.parse(sessionStorage.getItem('nk_user')); } catch(e) {}
 
+  // ── BARRA PUNTO DE EQUILIBRIO ───────────────────────────
+  async function cargarBarraPE() {
+    var ahora = new Date();
+    var mes   = ahora.getMonth() + 1;
+    var anio  = ahora.getFullYear();
+    var meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtbHphdXBudXZhcnJuYWtjYmRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTM4NTYsImV4cCI6MjA4OTg2OTg1Nn0.7Z5q3vvAIGDKFmjMjt6kra-3wHxNHyNjTfEj8GamdFA';
+    var SB  = 'https://umlzaupnuvarrnakcbdo.supabase.co';
+    var H   = { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY };
+    try {
+      var mesLbl = document.getElementById('pe-mes-v');
+      if (mesLbl) mesLbl.textContent = meses[mes-1] + ' ' + anio;
+      var rM = await fetch(SB + '/rest/v1/metas_ventas?mes=eq.' + mes + '&anio=eq.' + anio + '&select=meta&limit=1', { headers: H });
+      var metaData = await rM.json();
+      var meta = (Array.isArray(metaData) && metaData.length) ? (parseFloat(metaData[0].meta)||0) : 0;
+      var desde = new Date(anio, mes-1, 1).toISOString();
+      var hasta = new Date(anio, mes, 1).toISOString();
+      var rO = await fetch(SB + '/rest/v1/ordenes?fecha_creacion=gte.' + desde + '&fecha_creacion=lt.' + hasta + '&select=valor_total&numero_orden=not.like.SRV-*', { headers: H });
+      var ords = await rO.json();
+      var vendido = Array.isArray(ords) ? ords.reduce(function(s,o){ return s+(Number(o.valor_total)||0);},0) : 0;
+      var pct = meta > 0 ? Math.min(100, Math.round((vendido/meta)*100)) : 0;
+      var bg  = pct<50?'#dc2626':pct<80?'#f97316':pct<100?'#eab308':'#16a34a';
+      var barra = document.getElementById('pe-barra-v');
+      if (barra) { barra.style.width=pct+'%'; barra.style.background=bg; }
+      var pctEl = document.getElementById('pe-pct-v');
+      if (pctEl) pctEl.textContent = pct+'%'+(pct>=100?' ✅':'');
+      function fmt(n){ return Number(n).toLocaleString('es-CO',{minimumFractionDigits:0,maximumFractionDigits:0}); }
+      var vendEl = document.getElementById('pe-vendido-v'); if(vendEl) vendEl.textContent='$'+fmt(vendido);
+      var metaEl = document.getElementById('pe-meta-v');   if(metaEl) metaEl.textContent='$'+fmt(meta);
+      var est = document.getElementById('pe-estado-v');
+      if (est) {
+        if (!meta) { est.textContent='Sin meta configurada'; est.style.color='#94a3b8'; }
+        else if (pct>=100) { est.textContent='🎉 Meta cumplida!'; est.style.color='#16a34a'; }
+        else { est.textContent='Faltan $'+fmt(meta-vendido); est.style.color='#f97316'; }
+      }
+    } catch(e) {}
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     const hoy = new Date().toISOString().split('T')[0];
     document.getElementById('fecha_entrega').min = hoy;
+    cargarBarraPE();
   });
 </script>
 <!-- MODAL OBS ENVÍO -->
