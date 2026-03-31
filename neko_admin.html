@@ -124,6 +124,7 @@
       <div class="stat-card"><div class="stat-label">Despachados</div><div class="stat-value green" id="d-despachados">—</div></div>
       <div class="stat-card"><div class="stat-label">Saldo Pendiente</div><div class="stat-value red" id="d-saldo">—</div></div>
       <div class="stat-card"><div class="stat-label">💰 Ventas Mes (Órd+Srv)</div><div class="stat-value green" id="d-ventas-mes" style="font-size:15px">—</div></div>
+      <div class="stat-card"><div class="stat-label">💵 Total Vendido</div><div class="stat-value blue" id="d-ventas-vendido" style="font-size:15px">—</div></div>
       <div class="stat-card"><div class="stat-label">🏦 Total Recaudado</div><div class="stat-value teal" id="d-ventas-total" style="font-size:15px">—</div></div>
     </div>
     <div class="stats-bar" style="margin-bottom:24px">
@@ -489,13 +490,15 @@
     const ventasSrvMes  = srvs.reduce((s,v)=>s+(Number(v.valor)||0),0);
     const ventasTotalMes= ventasOrdMes + ventasSrvMes;
 
+    // Total histórico vendido (valor_total)
+    const totalVendido  = ords.reduce((s,o)=>s+(Number(o.valor_total)||0),0);
     // Total histórico recaudado (monto_pagado)
     const totalRecaudado= ords.reduce((s,o)=>s+(Number(o.monto_pagado)||0),0);
 
     document.getElementById('d-total').textContent     = total;
     document.getElementById('d-produccion').textContent= enProd;
     document.getElementById('d-despachados').textContent= desp;
-    document.getElementById('d-saldo').textContent     = fmtCOP(saldo);
+    document.getElementById('d-saldo').textContent     = '$' + fmtCOP(saldo);
     document.getElementById('d-mes').textContent       = ordsm.length;
     document.getElementById('d-priority').textContent  = priority;
     document.getElementById('d-contra').textContent    = contra;
@@ -506,6 +509,8 @@
     const elVT = document.getElementById('d-ventas-total');
     if (elVM) elVM.textContent = '$' + fmtCOP(ventasTotalMes);
     if (elVT) elVT.textContent = '$' + fmtCOP(totalRecaudado);
+    const elVend = document.getElementById('d-ventas-vendido');
+    if (elVend) elVend.textContent = '$' + fmtCOP(totalVendido);
 
     // Charts
     renderChart('chart-canal',    contarPor(ords,'canal'),    '#2563eb');
@@ -590,9 +595,9 @@
       const totalP=f.reduce((s,o)=>s+(o.monto_pagado||0),0);
       mEl.innerHTML=[
         ['📋 Órdenes filtradas', f.length, '#2563eb'],
-        ['💰 Total vendido', '$'+Math.round(totalV/1000)+'K', '#10b981'],
-        ['✅ Total cobrado', '$'+Math.round(totalP/1000)+'K', '#7c3aed'],
-        ['⚠️ Saldo pendiente', '$'+Math.round(totalS/1000)+'K', '#ef4444'],
+        ['💰 Total vendido', '$'+fmtCOP(totalV), '#10b981'],
+        ['✅ Total cobrado', '$'+fmtCOP(totalP), '#7c3aed'],
+        ['⚠️ Saldo pendiente', '$'+fmtCOP(totalS), '#ef4444'],
       ].map(([l,v,c])=>`<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px"><div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase">${l}</div><div style="font-size:20px;font-weight:800;color:${c};font-family:'JetBrains Mono',monospace;margin-top:3px">${v}</div></div>`).join('');
     }
     const el=document.getElementById('tabla-ordenes');
@@ -1350,16 +1355,7 @@
 
   function fmtCOP(n) {
     const num = Number(n) || 0;
-    if (num >= 1000000) {
-      // Millones: $2.5M
-      const m = (num / 1000000).toFixed(num % 1000000 === 0 ? 0 : 1);
-      return m.replace('.', ',') + 'M';
-    }
-    if (num >= 1000) {
-      // Miles: $150.000
-      return num.toLocaleString('es-CO');
-    }
-    return num.toLocaleString('es-CO');
+    return num.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   }
 
   function fmtCOPFull(n) {
