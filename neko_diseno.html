@@ -111,6 +111,10 @@
   .state-box p{font-size:15px;font-weight:600;color:var(--text-secondary);}
   #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 22px;border-radius:10px;font-size:14px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:9999;opacity:0;transition:opacity .3s;white-space:nowrap;pointer-events:none;}
   @media(max-width:600px){.stats-bar{grid-template-columns:1fr 1fr;}.prenda-actions{flex-direction:column;}}
+  @keyframes slideIn {
+    from { transform: translateX(120%); opacity: 0; }
+    to   { transform: translateX(0);    opacity: 1; }
+  }
 </style>
 </head>
 <body>
@@ -122,7 +126,7 @@
   </div>
   <div class="topbar-right">
     <span class="user-info" id="user-info"></span>
-    <button class="btn-sm blue" onclick="cargar()">🔄 Actualizar</button>
+    <span id="badge-aprobacion-diseno" style="display:none;background:#f97316;color:#fff;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;margin-right:8px"></span><button class="btn-sm blue" onclick="cargar()">🔄 Actualizar</button>
     <button class="btn-sm" onclick="cerrarSesion()">🚪 Salir</button>
   </div>
 </div>
@@ -238,6 +242,9 @@
       const r = await fetch(url, { headers: HDR });
       if (!r.ok) throw new Error('Error HTTP ' + r.status);
       const ordenes = await r.json();
+
+      // Verificar cambios en aprobaciones vs carga anterior
+      revisarCambiosAprobacion(ordenes);
 
       // Extraer prendas del área actual — procesamiento eficiente
       const pendientes = [], enProceso = [], listas = [];
@@ -1205,6 +1212,115 @@
     if (!reg) return null;
     if (reg.pausado || !reg.inicio) return reg.minutos_acumulados || 0;
     return (reg.minutos_acumulados || 0) + Math.round((new Date() - reg.inicio) / 60000);
+  }
+
+  // ── NOTIFICACIONES DE APROBACIÓN ────────────────────────
+  // Se activan al presionar 🔄 Actualizar — sin polling automático
+  var _estadosAprobacion = {};  // cache: {ordenId: estado}
+
+  function revisarCambiosAprobacion(ordenes) {
+    // Llamada desde cargar() después de traer los datos
+    if (areaActual !== 'Diseño' && areaActual !== 'Diseno') return;
+    if (!Array.isArray(ordenes)) return;
+
+    var pendientes = 0;
+    ordenes.forEach(function(o) {
+      if (!o.requiere_aprobacion) return;
+      var estadoAnterior = _estadosAprobacion[o.id];
+      var estadoActual   = o.aprobacion_estado;
+
+      // Contar pendientes para el badge
+      if (!estadoActual || estadoActual === 'PENDIENTE') pendientes++;
+
+      // Primera carga — solo registrar, no notificar
+      if (estadoAnterior === undefined) {
+        _estadosAprobacion[o.id] = estadoActual;
+        return;
+      }
+
+      // Detectar cambio a APROBADO
+      if (estadoAnterior !== 'APROBADO' && estadoActual === 'APROBADO') {
+        _estadosAprobacion[o.id] = estadoActual;
+        mostrarAlertaAprobacion(o.numero_orden, 'APROBADO', '');
+      }
+
+      // Detectar cambio a RECHAZADO
+      if (estadoAnterior !== 'RECHAZADO' && estadoActual === 'RECHAZADO') {
+        _estadosAprobacion[o.id] = estadoActual;
+        mostrarAlertaAprobacion(o.numero_orden, 'RECHAZADO', o.aprobacion_comentario || '');
+      }
+
+      // Actualizar cache
+      _estadosAprobacion[o.id] = estadoActual;
+    });
+
+    actualizarBadgeAprobacion(pendientes);
+  }
+
+  function _cerrarNotif(btn) {
+    var p = btn.parentElement;
+    while (p && p !== document.body) {
+      if (p.style && p.style.position === 'fixed') { p.remove(); return; }
+      p = p.parentElement;
+    }
+  }
+
+  function mostrarAlertaAprobacion(numeroOrden, estado, comentario) {
+    // Crear notificación flotante
+    var div = document.createElement('div');
+    var esAprobado = estado === 'APROBADO';
+    div.style.cssText = 'position:fixed;top:20px;right:20px;z-index:99999;max-width:340px;width:calc(100% - 40px);'
+      + 'background:' + (esAprobado ? '#ecfdf5' : '#fff1f2') + ';'
+      + 'border:2px solid ' + (esAprobado ? '#6ee7b7' : '#fca5a5') + ';'
+      + 'border-radius:12px;padding:16px 18px;box-shadow:0 8px 30px rgba(0,0,0,.18);'
+      + 'animation:slideIn .3s ease';
+    div.innerHTML = '<div style="display:flex;align-items:flex-start;gap:10px">'
+      + '<span style="font-size:24px">' + (esAprobado ? '✅' : '❌') + '</span>'
+      + '<div style="flex:1">'
+        + '<div style="font-size:14px;font-weight:800;color:' + (esAprobado ? '#065f46' : '#991b1b') + '">'
+          + (esAprobado ? 'Arte Aprobado' : 'Arte Rechazado') + ' — Orden ' + numeroOrden
+        + '</div>'
+        + (esAprobado
+            ? '<div style="font-size:12px;color:#047857;margin-top:3px">El cliente aprobó. Ya puedes imprimir.</div>'
+            : '<div style="font-size:12px;color:#b91c1c;margin-top:3px">'
+                + (comentario ? 'Motivo: ' + comentario : 'Revisa los detalles en la orden.')
+              + '</div>')
+        + '<div style="margin-top:10px">'
+          + '<button onclick="_cerrarNotif(this)" '
+            + 'style="padding:6px 14px;background:' + (esAprobado ? '#10b981' : '#dc2626') + ';color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">'
+            + 'Ver en lista'
+          + '</button>'
+          + '<button onclick="_cerrarNotif(this)" '
+            + 'style="padding:6px 12px;background:transparent;color:#64748b;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;cursor:pointer">'
+            + 'Cerrar'
+          + '</button>'
+        + '</div>'
+      + '</div>'
+    + '</div>';
+    document.body.appendChild(div);
+    // Auto-quitar después de 15 segundos
+    setTimeout(function(){ if(div.parentNode) div.remove(); }, 15000);
+    // Intentar reproducir sonido de notificación
+    try {
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = esAprobado ? 880 : 440;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.5);
+    } catch(e) {}
+  }
+
+  function actualizarBadgeAprobacion(pendientes) {
+    var badge = document.getElementById('badge-aprobacion-diseno');
+    if (badge) {
+      badge.textContent  = pendientes > 0 ? pendientes + ' esperando aprobación' : '';
+      badge.style.display= pendientes > 0 ? 'inline-block' : 'none';
+    }
   }
 
   function showToast(msg) {
