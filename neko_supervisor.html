@@ -198,6 +198,7 @@
     <button class="nav-tab" id="ntab-compras" onclick="cambiarNavTab('compras')">🛍️ Compras</button>
     <button class="nav-tab" id="ntab-materiales" onclick="cambiarNavTab('materiales')">🔩 Materiales <span id="badge-mat-sup" style="display:none;background:#7c3aed;color:#fff;border-radius:20px;padding:1px 6px;font-size:10px;margin-left:3px">0</span></button>
     <button class="nav-tab" id="ntab-telas" onclick="cambiarNavTab('telas')">🧵 Catálogo Telas</button>
+    <button class="nav-tab" id="ntab-buscador-sup" onclick="cambiarNavTab('buscador-sup')">🔍 Buscador</button>
   </div>
 
   <!-- ══ PESTAÑA 1: SEGUIMIENTO GENERAL ══ -->
@@ -487,7 +488,7 @@
   // ── NAV TABS ─────────────────────────────────────────────
   function cambiarNavTab(tab) {
     navActual = tab;
-    ['seguimiento','analisis','confeccion','compras','materiales','telas'].forEach(t => {
+    ['seguimiento','analisis','confeccion','compras','materiales','telas','buscador-sup'].forEach(t => {
       document.getElementById('ntab-' + t).classList.toggle('active', t === tab);
       document.getElementById('tab-' + t).classList.toggle('active', t === tab);
     });
@@ -497,6 +498,7 @@
       cargarCatalogoInsumos(); // Asegurar catálogo fresco al entrar a análisis
     }
     if (tab === 'telas') cargarCatalogoTelas();
+    if (tab === 'buscador-sup') iniciarBuscadorSup();
   }
 
   // ════════════════════════════════════════════════════════
@@ -1618,6 +1620,136 @@
     }
   }
 
+
+  // ── BUSCADOR SUPERVISOR ──────────────────────────────────
+  var _busSupOrdenes = [];
+
+  async function iniciarBuscadorSup() {
+    var tbody = document.getElementById('bus-sup-tbody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="padding:30px;text-align:center;color:var(--text-muted)">Cargando...</td></tr>';
+    try {
+      var r = await fetch(SB_URL + '/rest/v1/ordenes?select=numero_orden,estado,nombre_cliente,telefono,ciudad,marca,vendedora,canal,valor_total,saldo_pendiente,es_contraentrega,pago_confirmado,fecha_creacion,fecha_entrega,fecha_despacho,orden_padre,sub_estados&order=numero_orden.desc&limit=5000', { headers: HDR });
+      _busSupOrdenes = await r.json();
+      if (!Array.isArray(_busSupOrdenes)) _busSupOrdenes = [];
+      const llenarSel = (id, vals) => {
+        const sel = document.getElementById(id);
+        if (!sel) return;
+        const u = [...new Set(vals.filter(Boolean))].sort();
+        sel.innerHTML = '<option value="">Todos</option>' + u.map(v => '<option value="'+v+'">'+v+'</option>').join('');
+      };
+      llenarSel('bus-sup-vendedora', _busSupOrdenes.map(o => o.vendedora));
+      llenarSel('bus-sup-marca',     _busSupOrdenes.map(o => o.marca));
+      llenarSel('bus-sup-canal',     _busSupOrdenes.map(o => o.canal));
+      aplicarFiltrosSup();
+    } catch(e) {
+      if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="padding:30px;text-align:center;color:var(--red)">Error: '+e.message+'</td></tr>';
+    }
+  }
+
+  function calcAreaSup(o) {
+    if (o.estado !== 'EN_PRODUCCION') {
+      return {'EN_ANALISIS':'En Análisis','DESPACHADO':'Despachado'}[o.estado] || o.estado || '—';
+    }
+    var subs = Array.isArray(o.sub_estados) ? o.sub_estados : [];
+    if (!subs.length) return 'En Producción';
+    var areas = {};
+    subs.forEach(s => { var a=s.area_actual||''; if(a&&a!=='Almacen'&&a!=='Almacén') areas[a]=(areas[a]||0)+1; });
+    var top = Object.entries(areas).sort((a,b)=>b[1]-a[1])[0];
+    if (!top) return 'En Producción';
+    var m = {'Diseno':'Diseño','Diseño':'Diseño','Sublimacion':'Sublimación','Sublimación':'Sublimación','Estampado':'Estampado','Corte':'Corte','Bordado':'Bordado','Confeccion':'Confección','Confección':'Confección','Terminacion':'Terminación','Terminación':'Terminación'};
+    return 'En ' + (m[top[0]] || top[0]);
+  }
+  function colorAreaSup(o) {
+    var a = calcAreaSup(o);
+    var m = {'En Diseño':['#7c3aed','#f5f3ff'],'En Sublimación':['#0891b2','#ecfeff'],'En Estampado':['#b45309','#fffbeb'],'En Corte':['#dc2626','#fff1f2'],'En Bordado':['#be185d','#fdf2f8'],'En Confección':['#065f46','#f0fdf4'],'En Terminación':['#0d9488','#f0fdfa'],'En Producción':['#f97316','#fff7ed'],'En Análisis':['#2563eb','#eff6ff'],'Despachado':['#16a34a','#f0fdf4']};
+    return m[a] || ['#64748b','var(--surface2)'];
+  }
+
+  function aplicarFiltrosSup() {
+    if (!_busSupOrdenes.length) return;
+    var hoy = new Date(); hoy.setHours(0,0,0,0);
+    var semFin = new Date(hoy); semFin.setDate(hoy.getDate()+7);
+    var get = id => document.getElementById(id)?.value || '';
+    var texto = get('bus-sup-texto').toLowerCase().trim();
+    var estado = get('bus-sup-estado'), marca = get('bus-sup-marca');
+    var canal  = get('bus-sup-canal'), vendedora = get('bus-sup-vendedora');
+    var fDesde = get('bus-sup-fecha-desde'), fHasta = get('bus-sup-fecha-hasta');
+    var fTipo  = get('bus-sup-fecha-tipo') || 'creacion';
+
+    var filtradas = _busSupOrdenes.filter(o => {
+      if (texto) { var h = [o.numero_orden,o.nombre_cliente,o.telefono,o.ciudad,o.vendedora,o.canal].join(' ').toLowerCase(); if (!h.includes(texto)) return false; }
+      if (estado) {
+        var fe = o.fecha_entrega ? new Date(o.fecha_entrega+'T12:00:00') : null;
+        var fed = fe ? new Date(fe).setHours(0,0,0,0) : null;
+        if (estado==='ATRASADO' && (!fe || fed >= hoy.getTime() || o.estado==='DESPACHADO')) return false;
+        else if (estado==='HOY' && (!fe || fed !== hoy.getTime())) return false;
+        else if (estado==='ESTA_SEMANA' && (!fe || fed < hoy.getTime() || fed >= semFin.getTime())) return false;
+        else if (!['ATRASADO','HOY','ESTA_SEMANA'].includes(estado) && o.estado !== estado) return false;
+      }
+      if (marca && o.marca !== marca) return false;
+      if (canal && o.canal !== canal) return false;
+      if (vendedora && o.vendedora !== vendedora) return false;
+      if (fDesde || fHasta) {
+        var cf = fTipo==='entrega' ? o.fecha_entrega : fTipo==='despacho' ? o.fecha_despacho : o.fecha_creacion;
+        if (!cf) return false;
+        var fd = cf.split('T')[0];
+        if (fDesde && fd < fDesde) return false;
+        if (fHasta && fd > fHasta) return false;
+      }
+      return true;
+    });
+
+    var counter = document.getElementById('bus-sup-contador');
+    if (counter) counter.textContent = filtradas.length + ' orden' + (filtradas.length!==1?'es':'');
+
+    var totEl = document.getElementById('bus-sup-totales');
+    if (totEl) {
+      var tV=0, tS=0, atras=0;
+      filtradas.forEach(o => { tV+=Number(o.valor_total)||0; tS+=Number(o.saldo_pendiente)||0; });
+      atras = filtradas.filter(o => { var fe=o.fecha_entrega?new Date(o.fecha_entrega+'T12:00:00'):null; return fe && new Date(fe).setHours(0,0,0,0)<hoy.getTime() && o.estado!=='DESPACHADO'; }).length;
+      var fmt = n => Number(n).toLocaleString('es-CO',{minimumFractionDigits:0,maximumFractionDigits:0});
+      totEl.innerHTML = [
+        ['Órdenes',''+filtradas.length,'#2563eb','#bfdbfe'],
+        ['Total vendido','$'+fmt(tV),'#10b981','#86efac'],
+        ['Saldo pendiente','$'+fmt(tS),'#dc2626','#fca5a5'],
+        ['Atrasadas',''+atras,'#f97316','#fed7aa'],
+      ].map(d => '<div style="background:'+d[3]+'22;border:1.5px solid '+d[3]+';border-radius:10px;padding:14px 16px"><div style="font-size:11px;font-weight:700;color:'+d[2]+';text-transform:uppercase;margin-bottom:4px">'+d[0]+'</div><div style="font-size:20px;font-weight:800;font-family:JetBrains Mono,monospace;color:'+d[2]+'">'+d[1]+'</div></div>').join('');
+    }
+
+    var tbody = document.getElementById('bus-sup-tbody');
+    var empty = document.getElementById('bus-sup-empty');
+    if (!filtradas.length) { tbody.innerHTML=''; if(empty) empty.style.display='block'; return; }
+    if (empty) empty.style.display='none';
+    var estMap = {'EN_ANALISIS':['#2563eb','Análisis'],'EN_PRODUCCION':['#f97316','Producción'],'DESPACHADO':['#16a34a','Despachado']};
+    tbody.innerHTML = filtradas.map((o,i) => {
+      var fe=o.fecha_entrega?new Date(o.fecha_entrega+'T12:00:00'):null;
+      var fed=fe?new Date(fe).setHours(0,0,0,0):null;
+      var atras=fe&&fed<hoy.getTime()&&o.estado!=='DESPACHADO';
+      var esHoy=fe&&fed===hoy.getTime();
+      var est=estMap[o.estado]||['#64748b',o.estado||'—'];
+      var bg=atras?'#fff8f0':esHoy?'#f0fff4':i%2===0?'var(--surface)':'var(--surface2)';
+      var aB=atras?' <span style="font-size:10px;background:#fee2e2;color:#dc2626;padding:1px 5px;border-radius:4px;font-weight:700">ATRASADA</span>':'';
+      var hB=esHoy?' <span style="font-size:10px;background:#dcfce7;color:#16a34a;padding:1px 5px;border-radius:4px;font-weight:700">HOY</span>':'';
+      var fmt=n=>Number(n).toLocaleString('es-CO',{minimumFractionDigits:0,maximumFractionDigits:0});
+      return '<tr style="background:'+bg+';border-bottom:1px solid var(--border)">'
+        +'<td style="padding:10px 12px;font-family:JetBrains Mono,monospace;font-weight:700;color:var(--blue);white-space:nowrap">'+(o.numero_orden||'—')+'</td>'
+        +'<td style="padding:10px 12px;font-weight:600;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(o.nombre_cliente||'—')+'</td>'
+        +'<td style="padding:10px 12px">'+(o.marca||'—')+'</td>'
+        +'<td style="padding:10px 12px;color:var(--text-secondary)">'+(o.canal||'—')+'</td>'
+        +'<td style="padding:10px 12px"><span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:'+colorAreaSup(o)[1]+';color:'+colorAreaSup(o)[0]+'">'+calcAreaSup(o)+'</span></td>'
+        +'<td style="padding:10px 12px;white-space:nowrap;font-size:12px">'+(o.fecha_entrega||'—')+aB+hB+'</td>'
+        +'<td style="padding:10px 12px;color:var(--text-secondary)">'+(o.vendedora||'—')+'</td>'
+        +'<td style="padding:10px 12px;text-align:right;font-family:JetBrains Mono,monospace;font-weight:700">$'+fmt(o.valor_total)+'</td>'
+      +'</tr>';
+    }).join('');
+  }
+
+  function limpiarFiltrosSup() {
+    ['bus-sup-texto','bus-sup-estado','bus-sup-marca','bus-sup-canal','bus-sup-vendedora','bus-sup-fecha-desde','bus-sup-fecha-hasta'].forEach(id => { var el=document.getElementById(id); if(el) el.value=''; });
+    var ft=document.getElementById('bus-sup-fecha-tipo'); if(ft) ft.value='creacion';
+    aplicarFiltrosSup();
+  }
+
   function showToast(msg) {
     const t = document.getElementById('toast');
     t.textContent = msg; t.style.opacity = '1';
@@ -1625,5 +1757,94 @@
     t._tid = setTimeout(() => { t.style.opacity = '0'; }, 3000);
   }
 </script>
+
+  <!-- TAB BUSCADOR SUPERVISOR -->
+  <div class="tab-content" id="tab-buscador-sup">
+    <div class="conf-wrap" style="max-width:1100px">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;margin-bottom:16px;box-shadow:var(--shadow-md)">
+        <div style="font-size:15px;font-weight:800;color:var(--text-primary);margin-bottom:16px">🔍 Buscador de Órdenes</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin-bottom:16px">
+          <div style="grid-column:1/-1">
+            <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px;text-transform:uppercase">Buscar</label>
+            <input type="text" id="bus-sup-texto" placeholder="Número de orden, cliente..." oninput="aplicarFiltrosSup()" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box;outline:none;background:var(--surface)">
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px;text-transform:uppercase">Estado</label>
+            <select id="bus-sup-estado" onchange="aplicarFiltrosSup()" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:var(--surface)">
+              <option value="">Todos</option>
+              <option value="EN_ANALISIS">En Análisis</option>
+              <option value="EN_PRODUCCION">En Producción</option>
+              <option value="DESPACHADO">Despachado</option>
+              <option value="ATRASADO">Atrasados</option>
+              <option value="HOY">Entrega hoy</option>
+              <option value="ESTA_SEMANA">Esta semana</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px;text-transform:uppercase">Marca</label>
+            <select id="bus-sup-marca" onchange="aplicarFiltrosSup()" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:var(--surface)">
+              <option value="">Todas</option>
+              
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px;text-transform:uppercase">Canal</label>
+            <select id="bus-sup-canal" onchange="aplicarFiltrosSup()" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:var(--surface)">
+              <option value="">Todos</option>
+              
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px;text-transform:uppercase">Vendedora</label>
+            <select id="bus-sup-vendedora" onchange="aplicarFiltrosSup()" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:var(--surface)">
+              <option value="">Todas</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px;text-transform:uppercase">Fecha desde</label>
+            <input type="date" id="bus-sup-fecha-desde" onchange="aplicarFiltrosSup()" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:var(--surface)">
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px;text-transform:uppercase">Fecha hasta</label>
+            <input type="date" id="bus-sup-fecha-hasta" onchange="aplicarFiltrosSup()" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:var(--surface)">
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px;text-transform:uppercase">Filtrar por</label>
+            <select id="bus-sup-fecha-tipo" onchange="aplicarFiltrosSup()" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:var(--surface)">
+              <option value="creacion">Fecha creación</option>
+              <option value="entrega">Fecha entrega</option>
+              <option value="despacho">Fecha despacho</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <button onclick="limpiarFiltrosSup()" style="padding:9px 16px;background:var(--surface2);color:var(--text-secondary);border:1px solid var(--border);border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Limpiar</button>
+          <div style="margin-left:auto;font-size:13px;color:var(--text-muted)" id="bus-sup-contador">Cargando...</div>
+        </div>
+      </div>
+      <!-- Totales -->
+      <div id="bus-sup-totales" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px"></div>
+      <!-- Tabla -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-md)">
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead><tr style="background:var(--surface2)">
+              <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap">Orden</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;border-bottom:1px solid var(--border)">Cliente</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;border-bottom:1px solid var(--border)">Marca</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;border-bottom:1px solid var(--border)">Canal</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;border-bottom:1px solid var(--border)">Estado</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap">F. Entrega</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;border-bottom:1px solid var(--border)">Vendedora</th>
+              <th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;border-bottom:1px solid var(--border)">Total</th>
+            </tr></thead>
+            <tbody id="bus-sup-tbody"><tr><td colspan="8" style="padding:40px;text-align:center;color:var(--text-muted)">Cargando...</td></tr></tbody>
+          </table>
+        </div>
+        <div id="bus-sup-empty" style="display:none;padding:40px;text-align:center;color:var(--text-muted)">Sin resultados</div>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>

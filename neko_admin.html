@@ -114,6 +114,8 @@
     <button class="nav-tab" onclick="cambiarTab('insumos')" style="color:#c2410c">🧵 Insumos <span id="badge-insumos" style="display:none;background:#c2410c;color:#fff;border-radius:20px;padding:1px 6px;font-size:10px;margin-left:3px">0</span></button>
     <button class="nav-tab" onclick="cambiarTab('caja-admin')" style="color:#0d9488">💵 Caja</button>
     <button class="nav-tab" onclick="cambiarTab('retiros-admin')" style="color:#f97316">💸 Retiros <span id="badge-retiros" style="display:none;background:#f97316;color:#fff;border-radius:20px;padding:1px 7px;font-size:10px;margin-left:3px">0</span></button>
+    <button class="nav-tab" onclick="cambiarTab('respaldo')" style="color:#16a34a">💾 Respaldo</button>
+    <button class="nav-tab" onclick="cambiarTab('buscador')" style="color:#2563eb">🔍 Buscador</button>
   </div>
 
   <!-- DASHBOARD -->
@@ -388,6 +390,7 @@
 
 <div id="toast"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
   const SB_URL='https://umlzaupnuvarrnakcbdo.supabase.co';
   const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtbHphdXBudXZhcnJuYWtjYmRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTM4NTYsImV4cCI6MjA4OTg2OTg1Nn0.7Z5q3vvAIGDKFmjMjt6kra-3wHxNHyNjTfEj8GamdFA';
@@ -414,7 +417,7 @@
   function cambiarTab(tab){
     tabActiva=tab;
     document.querySelectorAll('.nav-tab').forEach((t,i)=>{
-      t.classList.toggle('active',['dashboard','ordenes','usuarios','errores','compras-admin','tiempos','insumos','caja-admin'][i]===tab);
+      t.classList.toggle('active',['dashboard','ordenes','usuarios','errores','compras-admin','tiempos','insumos','caja-admin','retiros-admin','respaldo','buscador'][i]===tab);
     });
     document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
     document.getElementById('tab-'+tab).classList.add('active');
@@ -427,6 +430,8 @@
     }
     if(tab==='caja-admin') cargarCajaAdmin();
     if(tab==='retiros-admin') cargarRetirosAdmin();
+    if(tab==='respaldo') iniciarRespaldo();
+    if(tab==='buscador') iniciarBuscador();
   }
 
   // ── ERRORES ADMIN ─────────────────────────────────────────
@@ -1676,6 +1681,587 @@
     } catch(e) { alert('Error: ' + e.message); }
   }
 
+  // ── SISTEMA DE RESPALDO ──────────────────────────────────
+  function iniciarRespaldo() {
+    cargarHistorialRespaldo();
+    var autoEl = document.getElementById('auto-respaldo');
+    var horaEl = document.getElementById('hora-respaldo');
+    var autoConf = localStorage.getItem('nk_auto_respaldo');
+    if (autoConf) {
+      var conf = JSON.parse(autoConf);
+      if (autoEl) autoEl.checked = conf.activo;
+      if (horaEl) horaEl.value   = conf.hora || '08:00';
+      if (conf.activo) actualizarEstadoAuto(conf.hora);
+    }
+  }
+
+  function cargarHistorialRespaldo() {
+    var el = document.getElementById('respaldo-historial');
+    if (!el) return;
+    var hist = JSON.parse(localStorage.getItem('nk_historial_respaldo') || '[]');
+    if (!hist.length) {
+      el.innerHTML = '<div style="font-size:13px;color:#94a3b8">Sin respaldos registrados aún</div>';
+      return;
+    }
+    el.innerHTML = hist.slice().reverse().slice(0, 10).map(function(r) {
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:13px">'
+        + '<div><span style="font-weight:600">📊 ' + r.nombre + '</span>'
+        + '<span style="color:#94a3b8;margin-left:8px">' + r.fecha + '</span></div>'
+        + '<span style="color:#16a34a;font-weight:700">' + r.hojas + ' hojas</span>'
+      + '</div>';
+    }).join('');
+  }
+
+  async function exportarExcel() {
+    var btn = document.getElementById('btn-exportar');
+    var est = document.getElementById('respaldo-estado');
+    btn.disabled = true; btn.textContent = '⏳ Generando...';
+    est.textContent = 'Consultando base de datos...';
+
+    try {
+      var tablas = [];
+
+      // Órdenes — trae productos JSONB para expandir prendas
+      if (document.getElementById('rb-ordenes').checked) {
+        est.textContent = 'Cargando órdenes y prendas...';
+        var r1 = await fetch(SB_URL + '/rest/v1/ordenes?select=numero_orden,estado,nombre_cliente,telefono,doc_cliente,direccion,barrio,ciudad,departamento,usuario_red,marca,vendedora,canal,valor_total,monto_pagado,saldo_pendiente,es_contraentrega,pago_confirmado,tipo_envio,transportadora,guia_numero,fecha_creacion,fecha_entrega,fecha_despacho,orden_padre,productos&order=numero_orden.desc&limit=5000', { headers: HDR });
+        var ords = await r1.json();
+        if (Array.isArray(ords)) {
+          // Hoja 1: resumen de órdenes (sin columna productos)
+          var resumenOrds = ords.map(function(o) {
+            return {
+              'Numero Orden':     o.numero_orden,
+              'Estado':           o.estado,
+              'Orden Padre':      o.orden_padre || '',
+              'Cliente':          o.nombre_cliente,
+              'Telefono':         o.telefono,
+              'Documento':        o.doc_cliente,
+              'Direccion':        o.direccion,
+              'Barrio':           o.barrio,
+              'Ciudad':           o.ciudad,
+              'Departamento':     o.departamento,
+              'Red Social':       o.usuario_red,
+              'Marca':            o.marca,
+              'Vendedora':        o.vendedora,
+              'Canal':            o.canal,
+              'Valor Total':      o.valor_total,
+              'Monto Pagado':     o.monto_pagado,
+              'Saldo Pendiente':  o.saldo_pendiente,
+              'Contraentrega':    o.es_contraentrega ? 'Si' : 'No',
+              'Pago Confirmado':  o.pago_confirmado ? 'Si' : 'No',
+              'Tipo Envio':       o.tipo_envio,
+              'Transportadora':   o.transportadora,
+              'Guia':             o.guia_numero,
+              'Fecha Creacion':   o.fecha_creacion ? o.fecha_creacion.split('T')[0] : '',
+              'Fecha Entrega':    o.fecha_entrega || '',
+              'Fecha Despacho':   o.fecha_despacho ? o.fecha_despacho.split('T')[0] : '',
+              'Total Prendas':    Array.isArray(o.productos) ? o.productos.length : 0
+            };
+          });
+          tablas.push({ nombre: 'Ordenes', datos: resumenOrds });
+
+          // Hoja 2: detalle de prendas (una fila por prenda)
+          var filasPrendas = [];
+          ords.forEach(function(o) {
+            var prods = Array.isArray(o.productos) ? o.productos : [];
+            if (!prods.length) {
+              // Orden sin prendas — igual se registra
+              filasPrendas.push({
+                'Numero Orden':   o.numero_orden,
+                'Estado Orden':   o.estado,
+                'Cliente':        o.nombre_cliente,
+                'Marca':          o.marca,
+                'Prenda Num':     '',
+                'Tipo Prenda':    '',
+                'Horma':          '',
+                'Talla':          '',
+                'Cantidad':       '',
+                'Notas':          '',
+                'Medidas':        '',
+                'Fecha Creacion': o.fecha_creacion ? o.fecha_creacion.split('T')[0] : ''
+              });
+            } else {
+              prods.forEach(function(p, idx) {
+                filasPrendas.push({
+                  'Numero Orden':   o.numero_orden,
+                  'Estado Orden':   o.estado,
+                  'Cliente':        o.nombre_cliente,
+                  'Marca':          o.marca,
+                  'Prenda Num':     idx + 1,
+                  'Tipo Prenda':    p.tipo || '',
+                  'Horma':          p.horma || '',
+                  'Talla':          p.talla || '',
+                  'Cantidad':       p.cantidad || 1,
+                  'Notas':          p.notas || '',
+                  'Medidas':        p.medidas || '',
+                  'Fecha Creacion': o.fecha_creacion ? o.fecha_creacion.split('T')[0] : ''
+                });
+              });
+            }
+          });
+          tablas.push({ nombre: 'Prendas por Orden', datos: filasPrendas });
+        }
+      }
+
+      // Consumos / Insumos
+      if (document.getElementById('rb-consumos').checked) {
+        est.textContent = 'Cargando insumos asignados...';
+        var r2 = await fetch(SB_URL + '/rest/v1/consumos_insumo?select=numero_orden,tipo_prenda,nombre_insumo,color_insumo,cantidad_estimada,unidad,estado_compra,asignado_por,recibido_por,fecha_recepcion&order=numero_orden.asc&limit=10000', { headers: HDR });
+        var cons = await r2.json();
+        if (Array.isArray(cons)) tablas.push({ nombre: 'Telas Asignadas', datos: cons });
+      }
+
+      // Stock telas
+      if (document.getElementById('rb-stock').checked) {
+        est.textContent = 'Cargando stock de telas...';
+        var r3 = await fetch(SB_URL + '/rest/v1/insumos_stock?select=nombre,color,stock_actual,stock_minimo,precio_metro&order=nombre.asc', { headers: HDR });
+        var stk = await r3.json();
+        if (Array.isArray(stk)) tablas.push({ nombre: 'Stock Telas', datos: stk });
+      }
+
+      // Caja y pagos
+      if (document.getElementById('rb-caja').checked) {
+        est.textContent = 'Cargando caja...';
+        var r4 = await fetch(SB_URL + '/rest/v1/caja_turnos?select=*&order=fecha_apertura.desc&limit=500', { headers: HDR });
+        var caja = await r4.json();
+        if (Array.isArray(caja)) tablas.push({ nombre: 'Turnos Caja', datos: caja });
+      }
+
+      // Usuarios
+      if (document.getElementById('rb-usuarios').checked) {
+        est.textContent = 'Cargando usuarios...';
+        var r5 = await fetch(SB_URL + '/rest/v1/usuarios?select=nombre,rol,activo&order=nombre.asc', { headers: HDR });
+        var usrs = await r5.json();
+        if (Array.isArray(usrs)) tablas.push({ nombre: 'Usuarios', datos: usrs });
+      }
+
+      // Metas
+      if (document.getElementById('rb-metas').checked) {
+        est.textContent = 'Cargando metas...';
+        var r6 = await fetch(SB_URL + '/rest/v1/metas_ventas?select=*&order=anio.desc,mes.desc', { headers: HDR });
+        var mts = await r6.json();
+        if (Array.isArray(mts)) tablas.push({ nombre: 'Metas Ventas', datos: mts });
+      }
+
+      if (!tablas.length) { alert('Selecciona al menos una tabla para exportar.'); return; }
+
+      est.textContent = 'Generando archivo Excel...';
+      generarExcelDesdeTablas(tablas);
+
+      // Guardar en historial
+      var ahora = new Date();
+      var fechaStr = ahora.toLocaleDateString('es-CO', {day:'2-digit',month:'short',year:'numeric'}) + ' ' + ahora.toLocaleTimeString('es-CO', {hour:'2-digit',minute:'2-digit'});
+      var nombreArchivo = 'Neko_Respaldo_' + ahora.toISOString().split('T')[0];
+      var hist = JSON.parse(localStorage.getItem('nk_historial_respaldo') || '[]');
+      hist.push({ nombre: nombreArchivo, fecha: fechaStr, hojas: tablas.length });
+      if (hist.length > 30) hist = hist.slice(-30);
+      localStorage.setItem('nk_historial_respaldo', JSON.stringify(hist));
+      cargarHistorialRespaldo();
+
+      est.textContent = '✅ Respaldo descargado correctamente — ' + tablas.length + ' hojas';
+    } catch(e) {
+      est.textContent = '❌ Error: ' + e.message;
+    }
+    btn.disabled = false; btn.textContent = '📥 Descargar Respaldo Excel';
+  }
+
+  function generarExcelDesdeTablas(tablas) {
+    // Generar CSV múltiple dentro de un blob descargable
+    // Usamos SheetJS via CDN para generar XLSX real
+    if (typeof XLSX !== 'undefined') {
+      var wb = XLSX.utils.book_new();
+      tablas.forEach(function(t) {
+        if (!t.datos.length) return;
+        var ws = XLSX.utils.json_to_sheet(t.datos);
+        // Anchos automáticos
+        var cols = Object.keys(t.datos[0]);
+        ws['!cols'] = cols.map(function(k) { return { wch: Math.min(40, Math.max(12, k.length + 4)) }; });
+        XLSX.utils.book_append_sheet(wb, ws, t.nombre.substring(0, 31));
+      });
+      var ahora = new Date();
+      var nombre = 'Neko_Respaldo_' + ahora.toISOString().split('T')[0] + '.xlsx';
+      XLSX.writeFile(wb, nombre);
+    } else {
+      // Fallback: descargar como CSV si XLSX no carga
+      tablas.forEach(function(t) {
+        if (!t.datos.length) return;
+        var cols = Object.keys(t.datos[0]);
+        var csv = cols.join(',') + '\n' + t.datos.map(function(row) {
+          return cols.map(function(c) {
+            var v = row[c] !== null && row[c] !== undefined ? String(row[c]) : '';
+            return '"' + v.replace(/"/g, '""') + '"';
+          }).join(',');
+        }).join('\n');
+        var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        var url  = URL.createObjectURL(blob);
+        var a    = document.createElement('a');
+        a.href   = url;
+        a.download = 'Neko_' + t.nombre + '_' + new Date().toISOString().split('T')[0] + '.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+    }
+  }
+
+  function toggleAutoRespaldo(activo) {
+    var hora = document.getElementById('hora-respaldo').value || '08:00';
+    localStorage.setItem('nk_auto_respaldo', JSON.stringify({ activo, hora }));
+    actualizarEstadoAuto(hora);
+  }
+
+  function actualizarEstadoAuto(hora) {
+    var el = document.getElementById('auto-estado');
+    var activo = document.getElementById('auto-respaldo').checked;
+    if (!el) return;
+    if (activo) {
+      el.textContent = 'Respaldo automático activo a las ' + hora + '. Al abrir el admin a esa hora, el archivo se descargará automáticamente.';
+      el.style.color = '#16a34a';
+      // Verificar si toca descargar ahora
+      verificarAutoRespaldo();
+    } else {
+      el.textContent = 'Respaldo automático desactivado.';
+      el.style.color = '#94a3b8';
+    }
+  }
+
+  function verificarAutoRespaldo() {
+    var conf = JSON.parse(localStorage.getItem('nk_auto_respaldo') || '{}');
+    if (!conf.activo) return;
+    var ultimo = localStorage.getItem('nk_ultimo_respaldo_auto');
+    var hoy    = new Date().toISOString().split('T')[0];
+    if (ultimo === hoy) return; // Ya se hizo hoy
+    var ahora  = new Date();
+    var horaConf = (conf.hora || '08:00').split(':');
+    var horaOk   = ahora.getHours() >= parseInt(horaConf[0]);
+    if (horaOk) {
+      localStorage.setItem('nk_ultimo_respaldo_auto', hoy);
+      setTimeout(function() { exportarExcel(); }, 2000); // Esperar que cargue la UI
+    }
+  }
+
+  // Verificar auto-respaldo al cargar el admin
+  window.addEventListener('load', function() {
+    setTimeout(verificarAutoRespaldo, 3000);
+  });
+
+
+  // ── BUSCADOR DE ÓRDENES ──────────────────────────────────
+  var _busOrdenes = [];
+  var _busFiltradas = [];
+
+  async function iniciarBuscador() {
+    var tbody = document.getElementById('bus-tbody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="11" style="padding:30px;text-align:center;color:#94a3b8">Cargando órdenes...</td></tr>';
+    try {
+      var r = await fetch(SB_URL + '/rest/v1/ordenes?select=numero_orden,estado,nombre_cliente,telefono,ciudad,marca,vendedora,canal,valor_total,monto_pagado,saldo_pendiente,es_contraentrega,pago_confirmado,fecha_creacion,fecha_entrega,fecha_despacho,orden_padre,sub_estados&order=numero_orden.desc&limit=5000', { headers: HDR });
+      _busOrdenes = await r.json();
+      if (!Array.isArray(_busOrdenes)) _busOrdenes = [];
+
+      // Llenar selects dinámicamente desde los datos reales
+      function llenarSelect(id, valores) {
+        var sel = document.getElementById(id);
+        if (!sel) return;
+        var unicos = [...new Set(valores.filter(Boolean))].sort();
+        sel.innerHTML = '<option value="">Todos</option>' + unicos.map(function(v){ return '<option value="'+v+'">'+v+'</option>'; }).join('');
+      }
+      llenarSelect('bus-vendedora', _busOrdenes.map(function(o){ return o.vendedora; }));
+      llenarSelect('bus-marca',     _busOrdenes.map(function(o){ return o.marca; }));
+      llenarSelect('bus-canal',     _busOrdenes.map(function(o){ return o.canal; }));
+
+      aplicarFiltrosBus();
+    } catch(e) {
+      if (tbody) tbody.innerHTML = '<tr><td colspan="11" style="padding:30px;text-align:center;color:#dc2626">Error: ' + e.message + '</td></tr>';
+    }
+  }
+
+  function aplicarFiltrosBus() {
+    if (!_busOrdenes.length) return;
+
+    var hoy       = new Date(); hoy.setHours(0,0,0,0);
+    var manana    = new Date(hoy); manana.setDate(hoy.getDate()+1);
+    var semanaFin = new Date(hoy); semanaFin.setDate(hoy.getDate()+7);
+
+    var texto     = (document.getElementById('bus-texto')?.value     || '').toLowerCase().trim();
+    var estado    = document.getElementById('bus-estado')?.value     || '';
+    var marca     = document.getElementById('bus-marca')?.value      || '';
+    var canal     = document.getElementById('bus-canal')?.value      || '';
+    var pago      = document.getElementById('bus-pago')?.value       || '';
+    var vendedora = document.getElementById('bus-vendedora')?.value  || '';
+    var fDesde    = document.getElementById('bus-fecha-desde')?.value|| '';
+    var fHasta    = document.getElementById('bus-fecha-hasta')?.value|| '';
+    var fTipo     = document.getElementById('bus-fecha-tipo')?.value || 'creacion';
+
+    _busFiltradas = _busOrdenes.filter(function(o) {
+      // Texto libre
+      if (texto) {
+        var haystack = [o.numero_orden, o.nombre_cliente, o.telefono, o.ciudad, o.vendedora, o.canal].join(' ').toLowerCase();
+        if (!haystack.includes(texto)) return false;
+      }
+
+      // Estado especiales
+      if (estado) {
+        if (estado === 'ATRASADO') {
+          var fe = o.fecha_entrega ? new Date(o.fecha_entrega+'T12:00:00') : null;
+          if (!fe || fe >= hoy || o.estado === 'DESPACHADO') return false;
+        } else if (estado === 'HOY') {
+          var fe = o.fecha_entrega ? new Date(o.fecha_entrega+'T12:00:00') : null;
+          if (!fe) return false;
+          var feD = new Date(fe); feD.setHours(0,0,0,0);
+          if (feD.getTime() !== hoy.getTime()) return false;
+        } else if (estado === 'ESTA_SEMANA') {
+          var fe = o.fecha_entrega ? new Date(o.fecha_entrega+'T12:00:00') : null;
+          if (!fe) return false;
+          var feD = new Date(fe); feD.setHours(0,0,0,0);
+          if (feD < hoy || feD >= semanaFin) return false;
+        } else {
+          if (o.estado !== estado) return false;
+        }
+      }
+
+      // Marca
+      if (marca && o.marca !== marca) return false;
+
+      // Canal
+      if (canal && o.canal !== canal) return false;
+
+      // Vendedora
+      if (vendedora && o.vendedora !== vendedora) return false;
+
+      // Pago
+      if (pago) {
+        if (pago === 'SALDO'          && !(Number(o.saldo_pendiente) > 0 && !o.es_contraentrega)) return false;
+        if (pago === 'PAGADO'         && !(Number(o.saldo_pendiente) === 0 && !o.es_contraentrega)) return false;
+        if (pago === 'CONTRAENTREGA'  && !o.es_contraentrega) return false;
+        if (pago === 'CONFIRMADO'     && !o.pago_confirmado) return false;
+      }
+
+      // Fechas
+      if (fDesde || fHasta) {
+        var campoFecha = fTipo === 'entrega' ? o.fecha_entrega : fTipo === 'despacho' ? o.fecha_despacho : o.fecha_creacion;
+        if (!campoFecha) return false;
+        var fd = campoFecha.split('T')[0];
+        if (fDesde && fd < fDesde) return false;
+        if (fHasta && fd > fHasta) return false;
+      }
+
+      return true;
+    });
+
+    renderTablaFiltrada();
+  }
+
+  function calcularAreaOrden(o) {
+    // Si no está EN_PRODUCCION, mostrar estado normal
+    if (o.estado !== 'EN_PRODUCCION') {
+      var etiq = {'EN_ANALISIS':'En Análisis','DESPACHADO':'Despachado'};
+      return etiq[o.estado] || o.estado || '—';
+    }
+    // Calcular área desde sub_estados
+    var subs = Array.isArray(o.sub_estados) ? o.sub_estados : [];
+    if (!subs.length) return 'En Producción';
+    // Contar prendas por área
+    var areas = {};
+    subs.forEach(function(s) {
+      var a = s.area_actual || '';
+      if (a && a !== 'Almacen' && a !== 'Almacén') {
+        areas[a] = (areas[a] || 0) + 1;
+      }
+    });
+    // Área más frecuente
+    var areaMax = Object.entries(areas).sort(function(a,b){ return b[1]-a[1]; })[0];
+    if (!areaMax) return 'En Producción';
+    var nombreArea = areaMax[0];
+    // Mapear nombres de área a texto amigable
+    var mapaAreas = {
+      'Diseno':'En Diseño','Diseño':'En Diseño',
+      'Sublimacion':'En Sublimación','Sublimación':'En Sublimación',
+      'Estampado':'En Estampado',
+      'Corte':'En Corte',
+      'Bordado':'En Bordado',
+      'Confeccion':'En Confección','Confección':'En Confección',
+      'Terminacion':'En Terminación','Terminación':'En Terminación',
+      'Compras':'En Compras',
+      'Almacen':'En Almacén','Almacén':'En Almacén'
+    };
+    return mapaAreas[nombreArea] || 'En ' + nombreArea;
+  }
+
+  function colorAreaOrden(o) {
+    var area = calcularAreaOrden(o);
+    var mapa = {
+      'En Diseño':['#7c3aed','#f5f3ff'],
+      'En Sublimación':['#0891b2','#ecfeff'],
+      'En Estampado':['#b45309','#fffbeb'],
+      'En Corte':['#dc2626','#fff1f2'],
+      'En Bordado':['#be185d','#fdf2f8'],
+      'En Confección':['#065f46','#f0fdf4'],
+      'En Terminación':['#0d9488','#f0fdfa'],
+      'En Compras':['#9333ea','#faf5ff'],
+      'En Producción':['#f97316','#fff7ed'],
+      'En Análisis':['#2563eb','#eff6ff'],
+      'Despachado':['#16a34a','#f0fdf4'],
+      'En Almacén':['#475569','#f8fafc'],
+    };
+    return mapa[area] || ['#64748b','#f8fafc'];
+  }
+
+  function renderTablaFiltrada() {
+    var tbody   = document.getElementById('bus-tbody');
+    var empty   = document.getElementById('bus-empty');
+    var tfoot   = document.getElementById('bus-tfoot');
+    var counter = document.getElementById('bus-contador');
+    var totEl   = document.getElementById('bus-totales');
+
+    if (!tbody) return;
+
+    if (!_busFiltradas.length) {
+      tbody.innerHTML = '';
+      if (empty)   empty.style.display   = 'block';
+      if (tfoot)   tfoot.style.display   = 'none';
+      if (counter) counter.textContent   = '0 órdenes';
+      if (totEl)   totEl.innerHTML       = '';
+      return;
+    }
+
+    if (empty)   empty.style.display = 'none';
+    if (tfoot)   tfoot.style.display = 'table-row-group';
+    if (counter) counter.textContent = _busFiltradas.length + ' orden' + (_busFiltradas.length !== 1 ? 'es' : '');
+
+    // Calcular totales
+    var totalVal = 0, totalSal = 0, totalPag = 0;
+    var hoy = new Date(); hoy.setHours(0,0,0,0);
+
+    _busFiltradas.forEach(function(o) {
+      totalVal += Number(o.valor_total) || 0;
+      totalSal += Number(o.saldo_pendiente) || 0;
+      totalPag += Number(o.monto_pagado) || 0;
+    });
+
+    var atrasadas = _busFiltradas.filter(function(o) {
+      var fe = o.fecha_entrega ? new Date(o.fecha_entrega+'T12:00:00') : null;
+      if (!fe) return false;
+      var fed = new Date(fe); fed.setHours(0,0,0,0);
+      return fed < hoy && o.estado !== 'DESPACHADO';
+    }).length;
+
+    // Cards de totales
+    if (totEl) {
+      totEl.innerHTML = [
+        ['Total vendido', '$'+fmtCOP(totalVal), '#10b981', '#f0fdf4', '#86efac'],
+        ['Total cobrado', '$'+fmtCOP(totalPag), '#2563eb', '#eff6ff', '#bfdbfe'],
+        ['Saldo pendiente', '$'+fmtCOP(totalSal), '#dc2626', '#fff1f2', '#fca5a5'],
+        ['Órdenes atrasadas', atrasadas, '#f97316', '#fff7ed', '#fed7aa'],
+      ].map(function(d) {
+        return '<div style="background:'+d[4]+'1a;border:1.5px solid '+d[4]+';border-radius:10px;padding:14px 16px">'
+          + '<div style="font-size:11px;font-weight:700;color:'+d[2]+';text-transform:uppercase;margin-bottom:4px">'+d[0]+'</div>'
+          + '<div style="font-size:20px;font-weight:800;font-family:JetBrains Mono,monospace;color:'+d[2]+'">'+d[1]+'</div>'
+        + '</div>';
+      }).join('');
+    }
+
+    // Totales en tfoot
+    document.getElementById('bus-total-val').textContent = '$' + fmtCOP(totalVal);
+    document.getElementById('bus-total-sal').textContent = '$' + fmtCOP(totalSal);
+
+    // Render filas
+    var estadoMap = {
+      'EN_ANALISIS': ['#2563eb','#eff6ff','Análisis'],
+      'EN_PRODUCCION': ['#f97316','#fff7ed','Producción'],
+      'DESPACHADO': ['#16a34a','#f0fdf4','Despachado'],
+    };
+
+    tbody.innerHTML = _busFiltradas.map(function(o, i) {
+      var hoyD = new Date(); hoyD.setHours(0,0,0,0);
+      var fe   = o.fecha_entrega ? new Date(o.fecha_entrega+'T12:00:00') : null;
+      var fed  = fe ? new Date(fe).setHours(0,0,0,0) : null;
+      var atras = fe && fed < hoyD.getTime() && o.estado !== 'DESPACHADO';
+      var esHoy = fe && fed === hoyD.getTime();
+
+      var areaTexto = calcularAreaOrden(o);
+      var areaColor = colorAreaOrden(o);
+      var bgRow = atras ? '#fff8f0' : esHoy ? '#f0fff4' : i%2===0 ? '#fff' : '#f8fafc';
+
+      var feStr = o.fecha_entrega ? o.fecha_entrega : '—';
+      var fdStr = o.fecha_despacho ? o.fecha_despacho.split('T')[0] : '—';
+
+      var pagoBadge = o.es_contraentrega
+        ? '<span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;background:#fef3c7;color:#92400e">Contraent.</span>'
+        : o.pago_confirmado
+          ? '<span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;background:#f0fdf4;color:#16a34a">Confirmado</span>'
+          : Number(o.saldo_pendiente) > 0
+            ? '<span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;background:#fff1f2;color:#dc2626">Saldo</span>'
+            : '<span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;background:#f0fdf4;color:#16a34a">Pagado</span>';
+
+      var atrasBadge = atras ? ' <span style="font-size:10px;background:#fee2e2;color:#dc2626;padding:1px 5px;border-radius:4px;font-weight:700">ATRASADA</span>' : '';
+      var hoyBadge   = esHoy ? ' <span style="font-size:10px;background:#dcfce7;color:#16a34a;padding:1px 5px;border-radius:4px;font-weight:700">HOY</span>' : '';
+
+      return '<tr style="background:'+bgRow+';border-bottom:1px solid #f1f5f9">'
+        + '<td style="padding:10px 12px;font-family:JetBrains Mono,monospace;font-weight:700;color:#2563eb;white-space:nowrap">'+(o.numero_orden||'—')+(o.orden_padre?' <span style="font-size:10px;color:#7c3aed">hija</span>':'')+'</td>'
+        + '<td style="padding:10px 12px;font-weight:600;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(o.nombre_cliente||'—')+'</td>'
+        + '<td style="padding:10px 12px;color:#374151">'+(o.marca||'—')+'</td>'
+        + '<td style="padding:10px 12px;color:#64748b">'+(o.canal||'—')+'</td>'
+        + '<td style="padding:10px 12px"><span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:'+areaColor[1]+';color:'+areaColor[0]+'">'+areaTexto+'</span></td>'
+        + '<td style="padding:10px 12px;white-space:nowrap;font-size:12px">'+feStr+atrasBadge+hoyBadge+'</td>'
+        + '<td style="padding:10px 12px;white-space:nowrap;font-size:12px;color:#64748b">'+fdStr+'</td>'
+        + '<td style="padding:10px 12px;text-align:right;font-family:JetBrains Mono,monospace;font-weight:700">$'+fmtCOP(o.valor_total)+'</td>'
+        + '<td style="padding:10px 12px;text-align:right;font-family:JetBrains Mono,monospace;font-weight:700;color:'+(Number(o.saldo_pendiente)>0?'#dc2626':'#16a34a')+'">$'+fmtCOP(o.saldo_pendiente)+'</td>'
+        + '<td style="padding:10px 12px;text-align:center">'+pagoBadge+'</td>'
+        + '<td style="padding:10px 12px;color:#374151;white-space:nowrap">'+(o.vendedora||'—')+'</td>'
+      + '</tr>';
+    }).join('');
+  }
+
+  function limpiarFiltrosBus() {
+    ['bus-texto','bus-estado','bus-marca','bus-canal','bus-pago','bus-vendedora','bus-fecha-desde','bus-fecha-hasta'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    var ft = document.getElementById('bus-fecha-tipo');
+    if (ft) ft.value = 'creacion';
+    aplicarFiltrosBus();
+  }
+
+  function exportarResultadosBus() {
+    if (!_busFiltradas.length) { alert('No hay resultados para exportar.'); return; }
+    var datos = _busFiltradas.map(function(o) {
+      return {
+        'Numero Orden':    o.numero_orden,
+        'Estado':          o.estado,
+        'Cliente':         o.nombre_cliente,
+        'Telefono':        o.telefono,
+        'Ciudad':          o.ciudad,
+        'Marca':           o.marca,
+        'Vendedora':       o.vendedora,
+        'Canal':           o.canal,
+        'Valor Total':     o.valor_total,
+        'Monto Pagado':    o.monto_pagado,
+        'Saldo Pendiente': o.saldo_pendiente,
+        'Contraentrega':   o.es_contraentrega ? 'Si' : 'No',
+        'Pago Confirmado': o.pago_confirmado  ? 'Si' : 'No',
+        'Fecha Creacion':  o.fecha_creacion ? o.fecha_creacion.split('T')[0] : '',
+        'Fecha Entrega':   o.fecha_entrega || '',
+        'Fecha Despacho':  o.fecha_despacho ? o.fecha_despacho.split('T')[0] : '',
+      };
+    });
+    if (typeof XLSX !== 'undefined') {
+      var wb = XLSX.utils.book_new();
+      var ws = XLSX.utils.json_to_sheet(datos);
+      ws['!cols'] = Object.keys(datos[0]).map(function(k){ return { wch: Math.min(30, Math.max(12, k.length+4)) }; });
+      XLSX.utils.book_append_sheet(wb, ws, 'Ordenes Filtradas');
+      XLSX.writeFile(wb, 'Neko_Busqueda_' + new Date().toISOString().split('T')[0] + '.xlsx');
+    } else {
+      var cols = Object.keys(datos[0]);
+      var csv = cols.join(',') + '\n' + datos.map(function(row) {
+        return cols.map(function(c){ var v = String(row[c]||''); return '"'+v.replace(/"/g,'""')+'"'; }).join(',');
+      }).join('\n');
+      var a = document.createElement('a');
+      a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+      a.download = 'Neko_Busqueda_' + new Date().toISOString().split('T')[0] + '.csv';
+      a.click();
+    }
+    showToast('Exportado: ' + _busFiltradas.length + ' órdenes');
+  }
+
   function showToast(msg){
     const t=document.getElementById('toast');
     t.textContent=msg;t.style.opacity='1';
@@ -1685,6 +2271,174 @@
 
 <!-- TAB RETIROS ADMIN -->
 <div class="tab-content" id="tab-retiros-admin"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px"><div style="font-size:15px;font-weight:800">💸 Solicitudes de Retiro</div><button onclick="cargarRetirosAdmin()" style="padding:8px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;font-weight:700;cursor:pointer">🔄 Actualizar</button></div><div id="retiros-admin-lista"></div></div>
+
+  <!-- TAB RESPALDO -->
+  <div class="tab-content" id="tab-respaldo">
+    <div style="max-width:680px;margin:0 auto">
+
+      <!-- Header -->
+      <div style="background:linear-gradient(135deg,#065f46,#0d9488);border-radius:14px;padding:24px 28px;margin-bottom:20px;color:#fff">
+        <div style="font-size:18px;font-weight:800;margin-bottom:6px">💾 Sistema de Respaldo</div>
+        <div style="font-size:13px;opacity:.85">Exporta todos los datos a Excel o genera un respaldo completo de la base de datos</div>
+      </div>
+
+      <!-- Descarga manual -->
+      <div style="background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;padding:22px;margin-bottom:16px">
+        <div style="font-size:15px;font-weight:800;color:#0f172a;margin-bottom:6px">📊 Exportar a Excel ahora</div>
+        <div style="font-size:13px;color:#64748b;margin-bottom:16px">Genera un archivo .xlsx con todas las tablas en hojas separadas</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="rb-ordenes" checked> Órdenes</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="rb-consumos" checked> Insumos / Telas asignadas</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="rb-stock" checked> Stock de Telas</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="rb-caja" checked> Caja y Pagos</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="rb-usuarios" checked> Usuarios</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="rb-metas" checked> Metas de Ventas</label>
+        </div>
+        <button onclick="exportarExcel()" id="btn-exportar" style="width:100%;padding:13px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(16,185,129,.3)">
+          📥 Descargar Respaldo Excel
+        </button>
+        <div id="respaldo-estado" style="margin-top:12px;font-size:13px;color:#64748b;text-align:center;min-height:20px"></div>
+      </div>
+
+      <!-- Respaldo automático info -->
+      <div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:12px;padding:20px;margin-bottom:16px">
+        <div style="font-size:14px;font-weight:800;color:#1d4ed8;margin-bottom:8px">⏰ Respaldo Automático Diario</div>
+        <div style="font-size:13px;color:#1e40af;margin-bottom:12px">Activa el respaldo automático para que se descargue sola cada día al abrir el admin</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <label style="font-size:13px;color:#374151">Hora del respaldo:</label>
+            <input type="time" id="hora-respaldo" value="08:00" style="padding:7px 10px;border:1.5px solid #bfdbfe;border-radius:8px;font-size:13px;font-family:inherit">
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <label style="font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px">
+              <input type="checkbox" id="auto-respaldo" onchange="toggleAutoRespaldo(this.checked)">
+              Activar respaldo automático
+            </label>
+          </div>
+        </div>
+        <div id="auto-estado" style="margin-top:10px;font-size:12px;color:#64748b"></div>
+      </div>
+
+      <!-- Historial -->
+      <div style="background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;padding:20px">
+        <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:12px">📋 Historial de Respaldos</div>
+        <div id="respaldo-historial"><div style="font-size:13px;color:#94a3b8">Sin respaldos registrados aún</div></div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- TAB BUSCADOR -->
+  <div class="tab-content" id="tab-buscador">
+    <div style="max-width:1100px;margin:0 auto">
+      <div style="background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;padding:20px 24px;margin-bottom:16px">
+        <div style="font-size:15px;font-weight:800;color:#0f172a;margin-bottom:16px">🔍 Buscador de Órdenes</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:12px;margin-bottom:16px">
+          <div style="grid-column:1/-1">
+            <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;text-transform:uppercase">Buscar</label>
+            <input type="text" id="bus-texto" placeholder="Número de orden, cliente, teléfono..." oninput="aplicarFiltrosBus()" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box;outline:none">
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;text-transform:uppercase">Estado</label>
+            <select id="bus-estado" onchange="aplicarFiltrosBus()" style="width:100%;padding:9px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
+              <option value="">Todos</option>
+              <option value="EN_ANALISIS">En Análisis</option>
+              <option value="EN_PRODUCCION">En Producción</option>
+              <option value="DESPACHADO">Despachado</option>
+              <option value="ATRASADO">Atrasados</option>
+              <option value="HOY">Entrega hoy</option>
+              <option value="ESTA_SEMANA">Esta semana</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;text-transform:uppercase">Marca</label>
+            <select id="bus-marca" onchange="aplicarFiltrosBus()" style="width:100%;padding:9px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
+              <option value="">Todas</option>
+              
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;text-transform:uppercase">Canal</label>
+            <select id="bus-canal" onchange="aplicarFiltrosBus()" style="width:100%;padding:9px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
+              <option value="">Todos</option>
+              
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;text-transform:uppercase">Pago</label>
+            <select id="bus-pago" onchange="aplicarFiltrosBus()" style="width:100%;padding:9px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
+              <option value="">Todos</option>
+              <option value="SALDO">Con saldo pendiente</option>
+              <option value="PAGADO">Pagado completo</option>
+              <option value="CONTRAENTREGA">Contraentrega</option>
+              <option value="CONFIRMADO">Pago confirmado</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;text-transform:uppercase">Vendedora</label>
+            <select id="bus-vendedora" onchange="aplicarFiltrosBus()" style="width:100%;padding:9px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
+              <option value="">Todas</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;text-transform:uppercase">Fecha desde</label>
+            <input type="date" id="bus-fecha-desde" onchange="aplicarFiltrosBus()" style="width:100%;padding:9px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;text-transform:uppercase">Fecha hasta</label>
+            <input type="date" id="bus-fecha-hasta" onchange="aplicarFiltrosBus()" style="width:100%;padding:9px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;text-transform:uppercase">Filtrar por</label>
+            <select id="bus-fecha-tipo" onchange="aplicarFiltrosBus()" style="width:100%;padding:9px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
+              <option value="creacion">Fecha creación</option>
+              <option value="entrega">Fecha entrega</option>
+              <option value="despacho">Fecha despacho</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <button onclick="limpiarFiltrosBus()" style="padding:9px 16px;background:#f1f5f9;color:#374151;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Limpiar</button>
+          <button onclick="exportarResultadosBus()" style="padding:9px 16px;background:#eff6ff;color:#2563eb;border:1.5px solid #bfdbfe;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Exportar Excel</button>
+          <div style="margin-left:auto;font-size:13px;color:#64748b" id="bus-contador">Cargando...</div>
+        </div>
+      </div>
+      <!-- Totales -->
+      <div id="bus-totales" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px"></div>
+      <!-- Tabla -->
+      <div style="background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;overflow:hidden">
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead><tr style="background:#f8fafc">
+              <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:2px solid #e2e8f0;white-space:nowrap">Orden</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:2px solid #e2e8f0">Cliente</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:2px solid #e2e8f0">Marca</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:2px solid #e2e8f0">Canal</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:2px solid #e2e8f0">Estado</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:2px solid #e2e8f0;white-space:nowrap">F. Entrega</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:2px solid #e2e8f0;white-space:nowrap">F. Despacho</th>
+              <th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:2px solid #e2e8f0">Total</th>
+              <th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:2px solid #e2e8f0">Saldo</th>
+              <th style="padding:10px 12px;text-align:center;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:2px solid #e2e8f0">Pago</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:2px solid #e2e8f0">Vendedora</th>
+            </tr></thead>
+            <tbody id="bus-tbody"><tr><td colspan="11" style="padding:40px;text-align:center;color:#94a3b8">Cargando...</td></tr></tbody>
+            <tfoot id="bus-tfoot" style="display:none">
+              <tr style="background:#f0fdf4">
+                <td colspan="7" style="padding:10px 12px;font-size:13px;font-weight:700;color:#374151">TOTALES FILTRADO</td>
+                <td style="padding:10px 12px;text-align:right;font-family:JetBrains Mono,monospace;font-weight:800;color:#0f172a" id="bus-total-val">$0</td>
+                <td style="padding:10px 12px;text-align:right;font-family:JetBrains Mono,monospace;font-weight:800;color:#dc2626" id="bus-total-sal">$0</td>
+                <td colspan="2"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <div id="bus-empty" style="display:none;padding:40px;text-align:center;color:#94a3b8">Sin resultados para los filtros seleccionados</div>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
 
