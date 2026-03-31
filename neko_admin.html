@@ -116,6 +116,7 @@
     <button class="nav-tab" onclick="cambiarTab('retiros-admin')" style="color:#f97316">💸 Retiros <span id="badge-retiros" style="display:none;background:#f97316;color:#fff;border-radius:20px;padding:1px 7px;font-size:10px;margin-left:3px">0</span></button>
     <button class="nav-tab" onclick="cambiarTab('respaldo')" style="color:#16a34a">💾 Respaldo</button>
     <button class="nav-tab" onclick="cambiarTab('buscador')" style="color:#2563eb">🔍 Buscador</button>
+    <button class="nav-tab" onclick="cambiarTab('config')" style="color:#7c3aed">⚙️ Config</button>
   </div>
 
   <!-- DASHBOARD -->
@@ -417,7 +418,7 @@
   function cambiarTab(tab){
     tabActiva=tab;
     document.querySelectorAll('.nav-tab').forEach((t,i)=>{
-      t.classList.toggle('active',['dashboard','ordenes','usuarios','errores','compras-admin','tiempos','insumos','caja-admin','retiros-admin','respaldo','buscador'][i]===tab);
+      t.classList.toggle('active',['dashboard','ordenes','usuarios','errores','compras-admin','tiempos','insumos','caja-admin','retiros-admin','respaldo','buscador','config'][i]===tab);
     });
     document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
     document.getElementById('tab-'+tab).classList.add('active');
@@ -432,6 +433,7 @@
     if(tab==='retiros-admin') cargarRetirosAdmin();
     if(tab==='respaldo') iniciarRespaldo();
     if(tab==='buscador') iniciarBuscador();
+    if(tab==='config') iniciarConfig();
   }
 
   // ── ERRORES ADMIN ─────────────────────────────────────────
@@ -2262,6 +2264,149 @@
     showToast('Exportado: ' + _busFiltradas.length + ' órdenes');
   }
 
+
+  // ── CONFIGURACIÓN: MARCAS Y TIPOS DE PRENDA ──────────────
+  var _cfgMarcas = [];
+  var _cfgTipos  = [];
+  var _cfgMarcaEditId  = null;
+  var _cfgTipoEditId   = null;
+
+  async function iniciarConfig() {
+    await Promise.all([ cargarMarcasCfg(), cargarTiposCfg() ]);
+  }
+
+  // ─── MARCAS ────────────────────────────────────────────────
+  async function cargarMarcasCfg() {
+    const el = document.getElementById('cfg-marcas-lista');
+    if (!el) return;
+    el.innerHTML = '<div style="color:var(--text-muted);font-size:13px">Cargando...</div>';
+    try {
+      const r = await fetch(SB_URL + '/rest/v1/marcas?order=nombre.asc&select=id,nombre,activo', { headers: HDR });
+      _cfgMarcas = await r.json();
+      if (!Array.isArray(_cfgMarcas) || !_cfgMarcas.length) {
+        el.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:8px 0">No hay marcas registradas.</div>';
+        return;
+      }
+      el.innerHTML = _cfgMarcas.map(function(m) {
+        return '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)">'
+          + '<div style="display:flex;align-items:center;gap:8px">'
+            + '<span style="font-size:13px;font-weight:600;color:var(--text-primary)">' + m.nombre + '</span>'
+            + (!m.activo ? '<span style="font-size:10px;background:#fee2e2;color:#dc2626;padding:1px 6px;border-radius:4px;font-weight:700">Inactiva</span>' : '')
+          + '</div>'
+          + '<div style="display:flex;gap:6px">'
+            + '<button data-id="'+m.id+'" onclick="abrirModalMarca(this)" style="padding:4px 10px;background:var(--blue-light);color:var(--blue);border:1px solid var(--blue-mid);border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">✏️</button>'
+            + '<button data-id="'+m.id+'" data-activo="'+(m.activo?'1':'0')+'" onclick="toggleMarca(this)" style="padding:4px 10px;background:'+(m.activo?'#fff1f2':'#f0fdf4')+';color:'+(m.activo?'#dc2626':'#16a34a')+';border:1px solid '+(m.activo?'#fca5a5':'#86efac')+';border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">'+(m.activo?'Desactivar':'Activar')+'</button>'
+          + '</div>'
+        + '</div>';
+      }).join('');
+    } catch(e) {
+      el.innerHTML = '<div style="color:var(--red);font-size:13px">Error: ' + e.message + '</div>';
+    }
+  }
+
+  function abrirModalMarca(btn) {
+    _cfgMarcaEditId = null;
+    document.getElementById('cfg-marca-nombre').value = '';
+    document.getElementById('cfg-marca-id').value = '';
+    document.getElementById('modal-marca-titulo').textContent = 'Nueva Marca';
+    if (btn) {
+      const id = btn.getAttribute('data-id');
+      const m  = _cfgMarcas.find(x => String(x.id) === String(id));
+      if (m) { _cfgMarcaEditId = id; document.getElementById('cfg-marca-nombre').value = m.nombre; document.getElementById('cfg-marca-id').value = id; document.getElementById('modal-marca-titulo').textContent = 'Editar Marca'; }
+    }
+    document.getElementById('modal-cfg-marca').style.display = 'flex';
+  }
+
+  async function guardarMarcaCfg() {
+    const nombre = document.getElementById('cfg-marca-nombre').value.trim();
+    if (!nombre) { alert('Ingresa el nombre de la marca.'); return; }
+    try {
+      if (_cfgMarcaEditId) {
+        await fetch(SB_URL + '/rest/v1/marcas?id=eq.' + _cfgMarcaEditId, { method:'PATCH', headers:Object.assign({},HDR,{'Content-Type':'application/json','Prefer':'return=minimal'}), body:JSON.stringify({nombre}) });
+        showToast('Marca actualizada');
+      } else {
+        await fetch(SB_URL + '/rest/v1/marcas', { method:'POST', headers:Object.assign({},HDR,{'Content-Type':'application/json','Prefer':'return=minimal'}), body:JSON.stringify({nombre, activo:true}) });
+        showToast('Marca creada: ' + nombre);
+      }
+      document.getElementById('modal-cfg-marca').style.display = 'none';
+      cargarMarcasCfg();
+    } catch(e) { alert('Error: ' + e.message); }
+  }
+
+  async function toggleMarca(btn) {
+    const id = btn.getAttribute('data-id');
+    const activo = btn.getAttribute('data-activo') === '1';
+    await fetch(SB_URL + '/rest/v1/marcas?id=eq.' + id, { method:'PATCH', headers:Object.assign({},HDR,{'Content-Type':'application/json','Prefer':'return=minimal'}), body:JSON.stringify({activo: !activo}) });
+    showToast(activo ? 'Marca desactivada' : 'Marca activada');
+    cargarMarcasCfg();
+  }
+
+  // ─── TIPOS DE PRENDA ───────────────────────────────────────
+  async function cargarTiposCfg() {
+    const el = document.getElementById('cfg-tipos-lista');
+    if (!el) return;
+    el.innerHTML = '<div style="color:var(--text-muted);font-size:13px">Cargando...</div>';
+    try {
+      const r = await fetch(SB_URL + '/rest/v1/tipos_prenda?order=nombre.asc&select=id,nombre,activo', { headers: HDR });
+      _cfgTipos = await r.json();
+      if (!Array.isArray(_cfgTipos) || !_cfgTipos.length) {
+        el.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:8px 0">No hay tipos de prenda registrados.</div>';
+        return;
+      }
+      el.innerHTML = _cfgTipos.map(function(t) {
+        return '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)">'
+          + '<div style="display:flex;align-items:center;gap:8px">'
+            + '<span style="font-size:13px;font-weight:600;color:var(--text-primary)">' + t.nombre + '</span>'
+            + (!t.activo ? '<span style="font-size:10px;background:#fee2e2;color:#dc2626;padding:1px 6px;border-radius:4px;font-weight:700">Inactivo</span>' : '')
+          + '</div>'
+          + '<div style="display:flex;gap:6px">'
+            + '<button data-id="'+t.id+'" onclick="abrirModalTipoPrenda(this)" style="padding:4px 10px;background:var(--blue-light);color:var(--blue);border:1px solid var(--blue-mid);border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">✏️</button>'
+            + '<button data-id="'+t.id+'" data-activo="'+(t.activo?'1':'0')+'" onclick="toggleTipoPrenda(this)" style="padding:4px 10px;background:'+(t.activo?'#fff1f2':'#f0fdf4')+';color:'+(t.activo?'#dc2626':'#16a34a')+';border:1px solid '+(t.activo?'#fca5a5':'#86efac')+';border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">'+(t.activo?'Desactivar':'Activar')+'</button>'
+          + '</div>'
+        + '</div>';
+      }).join('');
+    } catch(e) {
+      el.innerHTML = '<div style="color:var(--red);font-size:13px">Error: ' + e.message + '</div>';
+    }
+  }
+
+  function abrirModalTipoPrenda(btn) {
+    _cfgTipoEditId = null;
+    document.getElementById('cfg-tipo-nombre').value = '';
+    document.getElementById('cfg-tipo-id').value = '';
+    document.getElementById('modal-tipo-titulo').textContent = 'Nuevo Tipo de Prenda';
+    if (btn) {
+      const id = btn.getAttribute('data-id');
+      const t  = _cfgTipos.find(x => String(x.id) === String(id));
+      if (t) { _cfgTipoEditId = id; document.getElementById('cfg-tipo-nombre').value = t.nombre; document.getElementById('cfg-tipo-id').value = id; document.getElementById('modal-tipo-titulo').textContent = 'Editar Tipo'; }
+    }
+    document.getElementById('modal-cfg-tipo').style.display = 'flex';
+  }
+
+  async function guardarTipoCfg() {
+    const nombre = document.getElementById('cfg-tipo-nombre').value.trim();
+    if (!nombre) { alert('Ingresa el nombre del tipo de prenda.'); return; }
+    try {
+      if (_cfgTipoEditId) {
+        await fetch(SB_URL + '/rest/v1/tipos_prenda?id=eq.' + _cfgTipoEditId, { method:'PATCH', headers:Object.assign({},HDR,{'Content-Type':'application/json','Prefer':'return=minimal'}), body:JSON.stringify({nombre}) });
+        showToast('Tipo actualizado');
+      } else {
+        await fetch(SB_URL + '/rest/v1/tipos_prenda', { method:'POST', headers:Object.assign({},HDR,{'Content-Type':'application/json','Prefer':'return=minimal'}), body:JSON.stringify({nombre, activo:true}) });
+        showToast('Tipo creado: ' + nombre);
+      }
+      document.getElementById('modal-cfg-tipo').style.display = 'none';
+      cargarTiposCfg();
+    } catch(e) { alert('Error: ' + e.message); }
+  }
+
+  async function toggleTipoPrenda(btn) {
+    const id = btn.getAttribute('data-id');
+    const activo = btn.getAttribute('data-activo') === '1';
+    await fetch(SB_URL + '/rest/v1/tipos_prenda?id=eq.' + id, { method:'PATCH', headers:Object.assign({},HDR,{'Content-Type':'application/json','Prefer':'return=minimal'}), body:JSON.stringify({activo: !activo}) });
+    showToast(activo ? 'Tipo desactivado' : 'Tipo activado');
+    cargarTiposCfg();
+  }
+
   function showToast(msg){
     const t=document.getElementById('toast');
     t.textContent=msg;t.style.opacity='1';
@@ -2435,6 +2580,74 @@
           </table>
         </div>
         <div id="bus-empty" style="display:none;padding:40px;text-align:center;color:#94a3b8">Sin resultados para los filtros seleccionados</div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- TAB CONFIGURACIÓN -->
+  <div class="tab-content" id="tab-config">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:900px;margin:0 auto">
+
+      <!-- MARCAS -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-md);overflow:hidden">
+        <div style="padding:16px 20px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:14px;font-weight:800">🏷️ Marcas</span>
+          <button onclick="abrirModalMarca(null)" style="padding:6px 14px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">+ Nueva</button>
+        </div>
+        <div id="cfg-marcas-lista" style="padding:12px 16px;max-height:400px;overflow-y:auto">
+          <div style="color:var(--text-muted);font-size:13px">Cargando...</div>
+        </div>
+      </div>
+
+      <!-- TIPOS DE PRENDA -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-md);overflow:hidden">
+        <div style="padding:16px 20px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:14px;font-weight:800">👕 Tipos de Prenda</span>
+          <button onclick="abrirModalTipoPrenda(null)" style="padding:6px 14px;background:linear-gradient(135deg,#0d9488,#0f766e);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">+ Nuevo</button>
+        </div>
+        <div id="cfg-tipos-lista" style="padding:12px 16px;max-height:400px;overflow-y:auto">
+          <div style="color:var(--text-muted);font-size:13px">Cargando...</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL MARCA -->
+  <div id="modal-cfg-marca" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center;padding:20px">
+    <div style="background:var(--surface);border-radius:16px;padding:24px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div style="font-size:15px;font-weight:800" id="modal-marca-titulo">Nueva Marca</div>
+        <button onclick="document.getElementById('modal-cfg-marca').style.display='none'" style="background:var(--surface2);border:none;border-radius:8px;padding:6px 10px;cursor:pointer">✕</button>
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px;color:var(--text-secondary)">Nombre de la Marca *</label>
+        <input type="text" id="cfg-marca-nombre" placeholder="Ej: Neko Kid, Rosieglam..." style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box;outline:none;background:var(--surface)">
+      </div>
+      <input type="hidden" id="cfg-marca-id">
+      <div style="display:flex;gap:8px">
+        <button onclick="document.getElementById('modal-cfg-marca').style.display='none'" style="flex:1;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Cancelar</button>
+        <button onclick="guardarMarcaCfg()" style="flex:2;padding:10px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer">💾 Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL TIPO PRENDA -->
+  <div id="modal-cfg-tipo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center;padding:20px">
+    <div style="background:var(--surface);border-radius:16px;padding:24px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div style="font-size:15px;font-weight:800" id="modal-tipo-titulo">Nuevo Tipo de Prenda</div>
+        <button onclick="document.getElementById('modal-cfg-tipo').style.display='none'" style="background:var(--surface2);border:none;border-radius:8px;padding:6px 10px;cursor:pointer">✕</button>
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px;color:var(--text-secondary)">Nombre del Tipo *</label>
+        <input type="text" id="cfg-tipo-nombre" placeholder="Ej: Camiseta, Hoodie, Buzo..." style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box;outline:none;background:var(--surface)">
+      </div>
+      <input type="hidden" id="cfg-tipo-id">
+      <div style="display:flex;gap:8px">
+        <button onclick="document.getElementById('modal-cfg-tipo').style.display='none'" style="flex:1;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Cancelar</button>
+        <button onclick="guardarTipoCfg()" style="flex:2;padding:10px;background:linear-gradient(135deg,#0d9488,#0f766e);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer">💾 Guardar</button>
       </div>
     </div>
   </div>

@@ -498,28 +498,15 @@
     <div class="field">
       <label>Marca del Producto <span class="req">*</span></label>
       <select id="marca">
-        <option value="">— Seleccionar Marca —</option>
-        <option>River Caves</option>
-        <option>Productos Crisa</option>
-        <option>Neko Sublima</option>
-        <option>Fighting</option>
-        <option>Possession</option>
-        <option>Rosie Glam</option>
-        <option>Artemis</option>
-        <option>Akihabara</option>
+        <option value="">— Cargando marcas... —</option>
       </select>
     </div>
   </div>
 
   <div class="grid-2" style="margin-top:14px">
-    <div class="field">
-      <label>Nombre de la Vendedora <span class="req">*</span></label>
-      <select id="vendedora">
-        <option value="">— Seleccionar —</option>
-        <option>Jennifer</option>
-        <option>María Isabel</option>
-        <option>Cristhian</option>
-      </select>
+    <div class="field" style="display:none">
+      <label>Vendedora</label>
+      <input type="text" id="vendedora" readonly>
     </div>
     <div class="field">
       <label>Usuario en Red Social</label>
@@ -1798,6 +1785,44 @@
   var sesion_ventas = null;
   try { sesion_ventas = JSON.parse(sessionStorage.getItem('nk_user')); } catch(e) {}
 
+  // ── MARCAS Y TIPOS DINÁMICOS ────────────────────────────
+  async function cargarMarcasSelect() {
+    const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtbHphdXBudXZhcnJuYWtjYmRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTM4NTYsImV4cCI6MjA4OTg2OTg1Nn0.7Z5q3vvAIGDKFmjMjt6kra-3wHxNHyNjTfEj8GamdFA';
+    const SB  = 'https://umlzaupnuvarrnakcbdo.supabase.co';
+    const H   = { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY };
+    const sel = document.getElementById('marca');
+    if (!sel) return;
+    try {
+      const r = await fetch(SB + '/rest/v1/marcas?activo=eq.true&order=nombre.asc&select=nombre', { headers: H });
+      const marcas = await r.json();
+      if (Array.isArray(marcas) && marcas.length) {
+        sel.innerHTML = '<option value="">— Seleccionar Marca —</option>'
+          + marcas.map(m => '<option value="'+m.nombre+'">'+m.nombre+'</option>').join('');
+      } else {
+        // Fallback si la tabla no existe aún
+        sel.innerHTML = '<option value="">— Seleccionar Marca —</option>'
+          + ['River Caves','Productos Crisa','Neko Sublima','Fighting','Possession','Rosie Glam','Artemis','Akihabara']
+            .map(m => '<option value="'+m+'">'+m+'</option>').join('');
+      }
+    } catch(e) {
+      sel.innerHTML = '<option value="">— Error cargando marcas —</option>';
+    }
+  }
+
+  async function cargarTiposPrendaSelect() {
+    const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtbHphdXBudXZhcnJuYWtjYmRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTM4NTYsImV4cCI6MjA4OTg2OTg1Nn0.7Z5q3vvAIGDKFmjMjt6kra-3wHxNHyNjTfEj8GamdFA';
+    const SB  = 'https://umlzaupnuvarrnakcbdo.supabase.co';
+    const H   = { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY };
+    try {
+      const r = await fetch(SB + '/rest/v1/tipos_prenda?activo=eq.true&order=nombre.asc&select=nombre', { headers: H });
+      const tipos = await r.json();
+      if (Array.isArray(tipos) && tipos.length) {
+        // Guardar globalmente para usarlos al agregar prendas
+        window._tiposPrendaDisp = tipos.map(t => t.nombre);
+      }
+    } catch(e) {}
+  }
+
   // ── BARRA PUNTO DE EQUILIBRIO ───────────────────────────
   async function cargarBarraPE() {
     var ahora = new Date();
@@ -1840,6 +1865,15 @@
     const hoy = new Date().toISOString().split('T')[0];
     document.getElementById('fecha_entrega').min = hoy;
     cargarBarraPE();
+    // Asignar vendedora desde la sesión automáticamente
+    const vEl = document.getElementById('vendedora');
+    if (vEl && sesionVentas && sesionVentas.nombre) {
+      vEl.value = sesionVentas.nombre;
+    }
+    // Cargar marcas dinámicamente desde Supabase
+    cargarMarcasSelect();
+    // Cargar tipos de prenda dinámicamente
+    cargarTiposPrendaSelect();
   });
 </script>
 <!-- MODAL OBS ENVÍO -->
