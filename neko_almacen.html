@@ -1455,28 +1455,33 @@ function confirmarError() {
       if (!rC.ok) throw new Error('Error consumos: HTTP ' + rC.status);
       var consumos = await rC.json();
       if (!Array.isArray(consumos)) consumos = [];
+
       var rO = await fetch(SB + '/rest/v1/ordenes?estado=in.(EN_ANALISIS,EN_PRODUCCION)&select=id,numero_orden,estado&order=numero_orden.asc', { headers: H });
       if (!rO.ok) throw new Error('Error ordenes: HTTP ' + rO.status);
       var ordenes = await rO.json();
       if (!Array.isArray(ordenes)) ordenes = [];
 
-      var ordenesConTela = new Set(consumos.map(function(c){ return String(c.numero_orden); }));
-      var sinTela = [];
-      ordenes.forEach(function(o) {
-        if (!ordenesConTela.has(String(o.numero_orden))) {
-          var eO = o.estado === 'EN_ANALISIS' ? 'En Análisis' : 'En Producción';
-          sinTela.push({ numero_orden: o.numero_orden, estado_orden: eO });
-        }
-      });
+      // TABLA CON TELA = consumos RECIBIDO (ya asignados)
+      var conTela = consumos.filter(function(c){ return c.estado_compra === 'RECIBIDO'; });
 
+      // TABLA SIN TELA (pendientes de asignar) = consumos PENDIENTE o COMPRANDO
+      var porAsignar = consumos.filter(function(c){ return c.estado_compra !== 'RECIBIDO'; });
+
+      // Órdenes sin ningún consumo registrado
+      var ordenesConConsumo = new Set(consumos.map(function(c){ return String(c.numero_orden); }));
+      var sinConsumo = ordenes.filter(function(o){ return !ordenesConConsumo.has(String(o.numero_orden)); });
+
+      var totalSinTela = porAsignar.length + sinConsumo.length;
+
+      // ── Botones de filtro ──
       var html = '<div style="display:flex;gap:8px;margin-bottom:14px">'
-        + '<button id="btn-con-tela-alm" data-p="alm" data-f="con" onclick="_filtrarTelas(this)" style="padding:8px 18px;background:#16a34a;color:#fff;border:1.5px solid #16a34a;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Con Tela (' + consumos.length + ')</button>'
-        + '<button id="btn-sin-tela-alm" data-p="alm" data-f="sin" onclick="_filtrarTelas(this)" style="padding:8px 18px;background:#fff;color:#374151;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Sin Tela (' + sinTela.length + ')</button>'
+        + '<button id="btn-con-tela-alm" data-p="alm" data-f="con" onclick="_filtrarTelas(this)" style="padding:8px 18px;background:#16a34a;color:#fff;border:1.5px solid #16a34a;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Con Tela Asignada (' + conTela.length + ')</button>'
+        + '<button id="btn-sin-tela-alm" data-p="alm" data-f="sin" onclick="_filtrarTelas(this)" style="padding:8px 18px;background:#fff;color:#374151;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Pendiente Asignar (' + totalSinTela + ')</button>'
       + '</div>';
 
-      // ── Tabla CON tela ──────────────────────────────────
+      // ── TABLA CON TELA (RECIBIDO) ──────────────────────
       html += '<div id="tabla-con-tela-alm">';
-      if (consumos.length) {
+      if (conTela.length) {
         html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">'
           + '<thead><tr style="background:#f0fdf4">'
             + '<th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#166534;border-bottom:2px solid #86efac">Orden</th>'
@@ -1485,51 +1490,68 @@ function confirmarError() {
             + '<th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#166534;border-bottom:2px solid #86efac">Color</th>'
             + '<th style="padding:9px 12px;text-align:right;font-size:11px;font-weight:700;color:#166534;border-bottom:2px solid #86efac">Metros</th>'
             + '<th style="padding:9px 12px;text-align:center;font-size:11px;font-weight:700;color:#166534;border-bottom:2px solid #86efac">Estado</th>'
-            + '<th style="padding:9px 12px;text-align:center;font-size:11px;font-weight:700;color:#166534;border-bottom:2px solid #86efac">Acción</th>'
           + '</tr></thead><tbody>';
-        consumos.forEach(function(c, i) {
-          var est = c.estado_compra || 'PENDIENTE';
-          var eC = est==='RECIBIDO'?'#16a34a':est==='COMPRANDO'?'#f97316':'#2563eb';
-          var eB = est==='RECIBIDO'?'#f0fdf4':est==='COMPRANDO'?'#fff7ed':'#eff6ff';
-          var eL = est==='RECIBIDO'?'Asignada':est==='COMPRANDO'?'Comprando':'Pendiente';
-          var m  = parseFloat(c.cantidad_estimada)||0;
-          var mFmt = m%1===0 ? m.toString() : m.toFixed(2);
-          // Botón asignar — solo si está COMPRANDO (llegó) o PENDIENTE (hay stock)
-          var btnAsignar = (est !== 'RECIBIDO')
-            ? '<button data-id="' + c.id + '" data-insumo="' + (c.insumo_id||'') + '" data-metros="' + m + '" onclick="_clickAsignarTela(this)" style="padding:6px 14px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">✅ Asignar</button>'
-            : '<span style="font-size:11px;color:#16a34a;font-weight:700">Asignada</span>';
+        conTela.forEach(function(c, i) {
+          var m = parseFloat(c.cantidad_estimada)||0;
           html += '<tr style="background:'+(i%2===0?'#fff':'#f8fafc')+';border-bottom:1px solid #f1f5f9">'
             + '<td style="padding:9px 12px;font-family:JetBrains Mono,monospace;font-weight:700;color:#2563eb">'+(c.numero_orden||'-')+'</td>'
             + '<td style="padding:9px 12px;font-weight:600">'+(c.tipo_prenda||'-')+'</td>'
             + '<td style="padding:9px 12px">'+(c.nombre_insumo||'-')+'</td>'
             + '<td style="padding:9px 12px;color:#64748b">'+(c.color_insumo||'-')+'</td>'
-            + '<td style="padding:9px 12px;text-align:right;font-family:JetBrains Mono,monospace;font-weight:700">'+mFmt+'</td>'
-            + '<td style="padding:9px 12px;text-align:center"><span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:'+eB+';color:'+eC+'">'+eL+'</span></td>'
-            + '<td style="padding:9px 12px;text-align:center">'+btnAsignar+'</td>'
+            + '<td style="padding:9px 12px;text-align:right;font-family:JetBrains Mono,monospace;font-weight:700">'+(m%1===0?m:m.toFixed(2))+'</td>'
+            + '<td style="padding:9px 12px;text-align:center"><span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:#f0fdf4;color:#16a34a">Asignada</span></td>'
           + '</tr>';
         });
         html += '</tbody></table></div>';
       } else {
-        html += '<p style="color:#94a3b8;font-size:13px;padding:8px 0">No hay telas asignadas.</p>';
+        html += '<p style="color:#94a3b8;font-size:13px;padding:8px 0">No hay telas asignadas aun.</p>';
       }
       html += '</div>';
 
-      // ── Tabla SIN tela ──────────────────────────────────
+      // ── TABLA PENDIENTE ASIGNAR (oculta por defecto) ───
       html += '<div id="tabla-sin-tela-alm" style="display:none">';
-      if (sinTela.length) {
+      if (totalSinTela > 0) {
         html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">'
-          + '<thead><tr style="background:#fff1f2">'
-            + '<th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#991b1b;border-bottom:2px solid #fca5a5">Orden</th>'
-            + '<th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#991b1b;border-bottom:2px solid #fca5a5">Estado</th>'
-            + '<th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#991b1b;border-bottom:2px solid #fca5a5">Acción</th>'
+          + '<thead><tr style="background:#fff7ed">'
+            + '<th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#92400e;border-bottom:2px solid #fed7aa">Orden</th>'
+            + '<th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#92400e;border-bottom:2px solid #fed7aa">Prenda</th>'
+            + '<th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#92400e;border-bottom:2px solid #fed7aa">Tela</th>'
+            + '<th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#92400e;border-bottom:2px solid #fed7aa">Color</th>'
+            + '<th style="padding:9px 12px;text-align:right;font-size:11px;font-weight:700;color:#92400e;border-bottom:2px solid #fed7aa">Metros</th>'
+            + '<th style="padding:9px 12px;text-align:center;font-size:11px;font-weight:700;color:#92400e;border-bottom:2px solid #fed7aa">Estado</th>'
+            + '<th style="padding:9px 12px;text-align:center;font-size:11px;font-weight:700;color:#92400e;border-bottom:2px solid #fed7aa">Accion</th>'
           + '</tr></thead><tbody>';
-        sinTela.forEach(function(s, i) {
-          html += '<tr style="background:'+(i%2===0?'#fff':'#fff8f8')+';border-bottom:1px solid #fee2e2">'
-            + '<td style="padding:9px 12px;font-family:JetBrains Mono,monospace;font-weight:700;color:#dc2626">'+s.numero_orden+'</td>'
-            + '<td style="padding:9px 12px;font-size:12px;font-weight:700;color:#374151">'+s.estado_orden+'</td>'
-            + '<td style="padding:9px 12px;font-size:11px;color:#94a3b8">Asignar tela en Análisis/Supervisor</td>'
+
+        // Filas con tela asignada pero no recibida (PENDIENTE/COMPRANDO)
+        porAsignar.forEach(function(c, i) {
+          var est = c.estado_compra || 'PENDIENTE';
+          var eC = est==='COMPRANDO'?'#f97316':'#2563eb';
+          var eB = est==='COMPRANDO'?'#fff7ed':'#eff6ff';
+          var eL = est==='COMPRANDO'?'Comprando':'Pendiente compra';
+          var m = parseFloat(c.cantidad_estimada)||0;
+          var btnAsignar = '<button data-id="' + c.id + '" data-insumo="' + (c.insumo_id||'') + '" data-metros="' + m + '" onclick="_clickAsignarTela(this)" style="padding:6px 14px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">Asignar</button>';
+          html += '<tr style="background:'+(i%2===0?'#fff':'#fffbeb')+';border-bottom:1px solid #fef3c7">'
+            + '<td style="padding:9px 12px;font-family:JetBrains Mono,monospace;font-weight:700;color:#2563eb">'+(c.numero_orden||'-')+'</td>'
+            + '<td style="padding:9px 12px;font-weight:600">'+(c.tipo_prenda||'-')+'</td>'
+            + '<td style="padding:9px 12px">'+(c.nombre_insumo||'-')+'</td>'
+            + '<td style="padding:9px 12px;color:#64748b">'+(c.color_insumo||'-')+'</td>'
+            + '<td style="padding:9px 12px;text-align:right;font-family:JetBrains Mono,monospace;font-weight:700">'+(m%1===0?m:m.toFixed(2))+'</td>'
+            + '<td style="padding:9px 12px;text-align:center"><span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:'+eB+';color:'+eC+'">'+eL+'</span></td>'
+            + '<td style="padding:9px 12px;text-align:center">'+btnAsignar+'</td>'
           + '</tr>';
         });
+
+        // Filas sin ningún consumo (sin tela en análisis)
+        sinConsumo.forEach(function(o, i) {
+          var eO = o.estado==='EN_ANALISIS'?'En Analisis':'En Produccion';
+          var bg = (porAsignar.length + i) % 2 === 0 ? '#fff' : '#fffbeb';
+          html += '<tr style="background:'+bg+';border-bottom:1px solid #fef3c7">'
+            + '<td style="padding:9px 12px;font-family:JetBrains Mono,monospace;font-weight:700;color:#dc2626">'+o.numero_orden+'</td>'
+            + '<td style="padding:9px 12px;color:#64748b" colspan="5">Sin tela asignada en Analisis — '+eO+'</td>'
+            + '<td style="padding:9px 12px;text-align:center;font-size:11px;color:#94a3b8">Asignar en Supervisor</td>'
+          + '</tr>';
+        });
+
         html += '</tbody></table></div>';
       } else {
         html += '<p style="color:#16a34a;font-size:13px;font-weight:700;padding:8px 0">Todas las prendas tienen tela asignada.</p>';
@@ -1542,6 +1564,7 @@ function confirmarError() {
     }
   }
 
+
   function _clickAsignarTela(btn) {
     var id      = btn.getAttribute('data-id');
     var insumo  = btn.getAttribute('data-insumo');
@@ -1550,18 +1573,9 @@ function confirmarError() {
   }
 
   async function asignarTela(consumoId, insumoId, metros, btn) {
-    if (!confirm('Confirmar asignacion de ' + metros + ' metros. Se descontara del stock disponible.')) return;
     if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
     try {
-      // 1. Marcar consumo como RECIBIDO
-      var r1 = await fetch(SB + '/rest/v1/consumos_insumo?id=eq.' + consumoId, {
-        method: 'PATCH',
-        headers: Object.assign({}, H, {'Content-Type':'application/json','Prefer':'return=minimal'}),
-        body: JSON.stringify({ estado_compra: 'RECIBIDO', recibido_por: sesion.nombre, fecha_recepcion: new Date().toISOString() })
-      });
-      if (!r1.ok) throw new Error('Error marcando recibido: HTTP ' + r1.status);
-
-      // 2. Descontar del stock — buscar por insumo_id o por nombre
+      // 0. Verificar stock suficiente ANTES de asignar
       var telaId   = insumoId;
       var telaData = null;
 
@@ -1598,7 +1612,18 @@ function confirmarError() {
       }
 
       if (telaData) {
-        var stockNuevo = Math.max(0, (parseFloat(telaData.stock_actual)||0) - metros);
+        var stockDisp = parseFloat(telaData.stock_actual) || 0;
+        // Validar stock suficiente
+        if (stockDisp < metros) {
+          alert('Stock insuficiente para asignar esta tela.\n\nNecesario: ' + metros + ' metros\nDisponible: ' + stockDisp.toFixed(2) + ' metros\n\nPrimero registra la llegada de mas metros en la pestana Insumos.');
+          if (btn) { btn.disabled = false; btn.textContent = 'Asignar'; }
+          return;
+        }
+        if (!confirm('Asignar ' + metros + ' metros de ' + telaData.nombre + '.\nStock disponible: ' + stockDisp.toFixed(2) + ' m\nQuedan: ' + (stockDisp - metros).toFixed(2) + ' m')) {
+          if (btn) { btn.disabled = false; btn.textContent = 'Asignar'; }
+          return;
+        }
+        var stockNuevo = stockDisp - metros;
         await fetch(SB + '/rest/v1/insumos_stock?id=eq.' + telaData.id, {
           method: 'PATCH',
           headers: Object.assign({}, H, {'Content-Type':'application/json','Prefer':'return=minimal'}),
@@ -1609,9 +1634,26 @@ function confirmarError() {
           headers: Object.assign({}, H, {'Content-Type':'application/json','Prefer':'return=minimal'}),
           body: JSON.stringify({ insumo_id: parseInt(telaData.id), tipo: 'SALIDA', cantidad: metros, registrado_por: sesion.nombre, notas: 'Asignado por Almacen' })
         });
+        // Marcar consumo como RECIBIDO después de validar y descontar
+        await fetch(SB + '/rest/v1/consumos_insumo?id=eq.' + consumoId, {
+          method: 'PATCH',
+          headers: Object.assign({}, H, {'Content-Type':'application/json','Prefer':'return=minimal'}),
+          body: JSON.stringify({ estado_compra: 'RECIBIDO', recibido_por: sesion.nombre, fecha_recepcion: new Date().toISOString() })
+        });
         showToast('Asignado — ' + metros + ' m descontados. Stock: ' + stockNuevo.toFixed(2) + ' m');
       } else {
-        showToast('Tela asignada (sin stock vinculado)');
+        // Sin stock vinculado — no se puede verificar disponibilidad
+        if (!confirm('No se encontro stock vinculado para esta tela.\n¿Marcar como asignada de todas formas?')) {
+          if (btn) { btn.disabled = false; btn.textContent = 'Asignar'; }
+          return;
+        }
+        // Solo marcar RECIBIDO sin descontar stock
+        var r1b = await fetch(SB + '/rest/v1/consumos_insumo?id=eq.' + consumoId, {
+          method: 'PATCH',
+          headers: Object.assign({}, H, {'Content-Type':'application/json','Prefer':'return=minimal'}),
+          body: JSON.stringify({ estado_compra: 'RECIBIDO', recibido_por: sesion.nombre, fecha_recepcion: new Date().toISOString() })
+        });
+        showToast('Tela asignada (sin descuento de stock — tela no vinculada)');
       }
       // Recargar la tabla
       cargarConsultaTelas_alm('consulta-telas-alm');
