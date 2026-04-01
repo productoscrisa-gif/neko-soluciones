@@ -1967,8 +1967,21 @@
         sel.innerHTML = '<option value="">Todos</option>' + unicos.map(function(v){ return '<option value="'+v+'">'+v+'</option>'; }).join('');
       }
       llenarSelect('bus-vendedora', _busOrdenes.map(function(o){ return o.vendedora; }));
-      llenarSelect('bus-marca',     _busOrdenes.map(function(o){ return o.marca; }));
       llenarSelect('bus-canal',     _busOrdenes.map(function(o){ return o.canal; }));
+      // Marcas desde la tabla marcas (no desde órdenes)
+      try {
+        var rM = await fetch(SB_URL + '/rest/v1/marcas?activo=eq.true&order=nombre.asc&select=nombre', { headers: HDR });
+        var marcasData = await rM.json();
+        var selMarca = document.getElementById('bus-marca');
+        if (selMarca && Array.isArray(marcasData) && marcasData.length) {
+          selMarca.innerHTML = '<option value="">Todas</option>'
+            + marcasData.map(function(m){ return '<option value="'+m.nombre+'">'+m.nombre+'</option>'; }).join('');
+        } else {
+          llenarSelect('bus-marca', _busOrdenes.map(function(o){ return o.marca; }));
+        }
+      } catch(e) {
+        llenarSelect('bus-marca', _busOrdenes.map(function(o){ return o.marca; }));
+      }
 
       aplicarFiltrosBus();
     } catch(e) {
@@ -2501,7 +2514,14 @@
             <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;text-transform:uppercase">Marca</label>
             <select id="bus-marca" style="width:100%;padding:9px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
               <option value="">Todas</option>
-              
+              <option>River Caves</option>
+              <option>Productos Crisa</option>
+              <option>Neko Sublima</option>
+              <option>Fighting</option>
+              <option>Possession</option>
+              <option>Rosie Glam</option>
+              <option>Artemis</option>
+              <option>Akihabara</option>
             </select>
           </div>
           <div>

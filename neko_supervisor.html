@@ -1638,8 +1638,20 @@
         sel.innerHTML = '<option value="">Todos</option>' + u.map(v => '<option value="'+v+'">'+v+'</option>').join('');
       };
       llenarSel('bus-sup-vendedora', _busSupOrdenes.map(o => o.vendedora));
-      llenarSel('bus-sup-marca',     _busSupOrdenes.map(o => o.marca));
       llenarSel('bus-sup-canal',     _busSupOrdenes.map(o => o.canal));
+      try {
+        const rM2 = await fetch(SB_URL + '/rest/v1/marcas?activo=eq.true&order=nombre.asc&select=nombre', { headers: HDR });
+        const marcasD = await rM2.json();
+        const selM = document.getElementById('bus-sup-marca');
+        if (selM && Array.isArray(marcasD) && marcasD.length) {
+          selM.innerHTML = '<option value="">Todas</option>'
+            + marcasD.map(m => '<option value="'+m.nombre+'">'+m.nombre+'</option>').join('');
+        } else {
+          llenarSel('bus-sup-marca', _busSupOrdenes.map(o => o.marca));
+        }
+      } catch(e) {
+        llenarSel('bus-sup-marca', _busSupOrdenes.map(o => o.marca));
+      }
       aplicarFiltrosSup();
     } catch(e) {
       if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="padding:30px;text-align:center;color:var(--red)">Error: '+e.message+'</td></tr>';
@@ -1784,7 +1796,14 @@
             <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px;text-transform:uppercase">Marca</label>
             <select id="bus-sup-marca" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:var(--surface)">
               <option value="">Todas</option>
-              
+              <option>River Caves</option>
+              <option>Productos Crisa</option>
+              <option>Neko Sublima</option>
+              <option>Fighting</option>
+              <option>Possession</option>
+              <option>Rosie Glam</option>
+              <option>Artemis</option>
+              <option>Akihabara</option>
             </select>
           </div>
           <div>
