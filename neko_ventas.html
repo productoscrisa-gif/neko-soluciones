@@ -1173,7 +1173,7 @@
 
       const orden = {
         numero_orden:    numeroOrden,
-        vendedora:       document.getElementById('vendedora').value,
+        vendedora:       (document.getElementById('vendedora').value || (sesionVentas && sesionVentas.nombre) || ''),
         marca:           document.getElementById('marca').value,
         tipo_envio:      document.getElementById('tipo_envio').value,
         es_contraentrega: document.getElementById('es_contraentrega').value === 'true',
