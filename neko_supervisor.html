@@ -1704,7 +1704,8 @@
       if (fDesde || fHasta) {
         var cf = fTipo==='entrega' ? o.fecha_entrega : fTipo==='despacho' ? o.fecha_despacho : o.fecha_creacion;
         if (!cf) return false;
-        var fd = cf.length > 10 ? cf.substring(0,10) : cf;
+        var fd = String(cf).replace('T',' ').substring(0,10).trim();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(fd)) return false;
         if (fDesde && fd < fDesde) return false;
         if (fHasta && fd > fHasta) return false;
       }

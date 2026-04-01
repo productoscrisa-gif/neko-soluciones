@@ -2050,12 +2050,16 @@
         if (pago === 'CONFIRMADO'     && !o.pago_confirmado) return false;
       }
 
-      // Fechas
+      // Fechas — normalizar todo a YYYY-MM-DD para comparar
       if (fDesde || fHasta) {
-        var campoFecha = fTipo === 'entrega' ? o.fecha_entrega : fTipo === 'despacho' ? o.fecha_despacho : o.fecha_creacion;
+        var campoFecha = fTipo === 'entrega'  ? o.fecha_entrega  :
+                         fTipo === 'despacho' ? o.fecha_despacho :
+                                               o.fecha_creacion;
         if (!campoFecha) return false;
-        // fecha_entrega viene como DATE (YYYY-MM-DD), las otras como TIMESTAMPTZ
-        var fd = campoFecha.length > 10 ? campoFecha.substring(0,10) : campoFecha;
+        // Extraer solo YYYY-MM-DD sin importar el formato que venga
+        var fd = String(campoFecha).replace('T', ' ').substring(0, 10).trim();
+        // Validar que sea una fecha válida
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(fd)) return false;
         if (fDesde && fd < fDesde) return false;
         if (fHasta && fd > fHasta) return false;
       }
