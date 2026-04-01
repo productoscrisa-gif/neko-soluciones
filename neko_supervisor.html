@@ -1628,7 +1628,7 @@
     var tbody = document.getElementById('bus-sup-tbody');
     if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="padding:30px;text-align:center;color:var(--text-muted)">Cargando...</td></tr>';
     try {
-      var r = await fetch(SB_URL + '/rest/v1/ordenes?select=numero_orden,estado,nombre_cliente,telefono,ciudad,marca,vendedora,canal,valor_total,saldo_pendiente,es_contraentrega,pago_confirmado,fecha_creacion,fecha_entrega,fecha_despacho,orden_padre,sub_estados&order=numero_orden.desc&limit=5000', { headers: HDR });
+      var r = await fetch(SB_URL + '/rest/v1/ordenes?select=numero_orden,estado,nombre_cliente,telefono,ciudad,marca,vendedora,canal,valor_total,saldo_pendiente,es_contraentrega,pago_confirmado,fecha_creacion,fecha_entrega,fecha_despacho,orden_padre,sub_estados&order=numero_orden.desc&limit=10000', { headers: HDR });
       _busSupOrdenes = await r.json();
       if (!Array.isArray(_busSupOrdenes)) _busSupOrdenes = [];
       const llenarSel = (id, vals) => {
@@ -1692,7 +1692,7 @@
       if (fDesde || fHasta) {
         var cf = fTipo==='entrega' ? o.fecha_entrega : fTipo==='despacho' ? o.fecha_despacho : o.fecha_creacion;
         if (!cf) return false;
-        var fd = cf.split('T')[0];
+        var fd = cf.length > 10 ? cf.substring(0,10) : cf;
         if (fDesde && fd < fDesde) return false;
         if (fHasta && fd > fHasta) return false;
       }
@@ -1766,11 +1766,11 @@
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin-bottom:16px">
           <div style="grid-column:1/-1">
             <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px;text-transform:uppercase">Buscar</label>
-            <input type="text" id="bus-sup-texto" placeholder="Número de orden, cliente..." oninput="aplicarFiltrosSup()" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box;outline:none;background:var(--surface)">
+            <input type="text" id="bus-sup-texto" placeholder="Número de orden, cliente..." style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box;outline:none;background:var(--surface)">
           </div>
           <div>
             <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px;text-transform:uppercase">Estado</label>
-            <select id="bus-sup-estado" onchange="aplicarFiltrosSup()" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:var(--surface)">
+            <select id="bus-sup-estado" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:var(--surface)">
               <option value="">Todos</option>
               <option value="EN_ANALISIS">En Análisis</option>
               <option value="EN_PRODUCCION">En Producción</option>
@@ -1782,35 +1782,35 @@
           </div>
           <div>
             <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px;text-transform:uppercase">Marca</label>
-            <select id="bus-sup-marca" onchange="aplicarFiltrosSup()" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:var(--surface)">
+            <select id="bus-sup-marca" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:var(--surface)">
               <option value="">Todas</option>
               
             </select>
           </div>
           <div>
             <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px;text-transform:uppercase">Canal</label>
-            <select id="bus-sup-canal" onchange="aplicarFiltrosSup()" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:var(--surface)">
+            <select id="bus-sup-canal" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:var(--surface)">
               <option value="">Todos</option>
               
             </select>
           </div>
           <div>
             <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px;text-transform:uppercase">Vendedora</label>
-            <select id="bus-sup-vendedora" onchange="aplicarFiltrosSup()" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:var(--surface)">
+            <select id="bus-sup-vendedora" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:var(--surface)">
               <option value="">Todas</option>
             </select>
           </div>
           <div>
             <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px;text-transform:uppercase">Fecha desde</label>
-            <input type="date" id="bus-sup-fecha-desde" onchange="aplicarFiltrosSup()" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:var(--surface)">
+            <input type="date" id="bus-sup-fecha-desde" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:var(--surface)">
           </div>
           <div>
             <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px;text-transform:uppercase">Fecha hasta</label>
-            <input type="date" id="bus-sup-fecha-hasta" onchange="aplicarFiltrosSup()" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:var(--surface)">
+            <input type="date" id="bus-sup-fecha-hasta" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:var(--surface)">
           </div>
           <div>
             <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px;text-transform:uppercase">Filtrar por</label>
-            <select id="bus-sup-fecha-tipo" onchange="aplicarFiltrosSup()" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:var(--surface)">
+            <select id="bus-sup-fecha-tipo" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:var(--surface)">
               <option value="creacion">Fecha creación</option>
               <option value="entrega">Fecha entrega</option>
               <option value="despacho">Fecha despacho</option>
@@ -1818,8 +1818,9 @@
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <button onclick="limpiarFiltrosSup()" style="padding:9px 16px;background:var(--surface2);color:var(--text-secondary);border:1px solid var(--border);border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Limpiar</button>
-          <div style="margin-left:auto;font-size:13px;color:var(--text-muted)" id="bus-sup-contador">Cargando...</div>
+          <button onclick="aplicarFiltrosSup()" style="padding:9px 22px;background:linear-gradient(135deg,var(--teal),#0f766e);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer">🔍 Buscar</button>
+          <button onclick="limpiarFiltrosSup()" style="padding:9px 16px;background:var(--surface2);color:var(--text-secondary);border:1px solid var(--border);border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">✕ Limpiar</button>
+          <div style="margin-left:auto;font-size:13px;color:var(--text-muted)" id="bus-sup-contador">— órdenes</div>
         </div>
       </div>
       <!-- Totales -->

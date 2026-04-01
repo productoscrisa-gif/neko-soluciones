@@ -1955,7 +1955,7 @@
     var tbody = document.getElementById('bus-tbody');
     if (tbody) tbody.innerHTML = '<tr><td colspan="11" style="padding:30px;text-align:center;color:#94a3b8">Cargando órdenes...</td></tr>';
     try {
-      var r = await fetch(SB_URL + '/rest/v1/ordenes?select=numero_orden,estado,nombre_cliente,telefono,ciudad,marca,vendedora,canal,valor_total,monto_pagado,saldo_pendiente,es_contraentrega,pago_confirmado,fecha_creacion,fecha_entrega,fecha_despacho,orden_padre,sub_estados&order=numero_orden.desc&limit=5000', { headers: HDR });
+      var r = await fetch(SB_URL + '/rest/v1/ordenes?select=numero_orden,estado,nombre_cliente,telefono,ciudad,marca,vendedora,canal,valor_total,monto_pagado,saldo_pendiente,es_contraentrega,pago_confirmado,fecha_creacion,fecha_entrega,fecha_despacho,orden_padre,sub_estados&order=numero_orden.desc&limit=10000', { headers: HDR });
       _busOrdenes = await r.json();
       if (!Array.isArray(_busOrdenes)) _busOrdenes = [];
 
@@ -2041,7 +2041,8 @@
       if (fDesde || fHasta) {
         var campoFecha = fTipo === 'entrega' ? o.fecha_entrega : fTipo === 'despacho' ? o.fecha_despacho : o.fecha_creacion;
         if (!campoFecha) return false;
-        var fd = campoFecha.split('T')[0];
+        // fecha_entrega viene como DATE (YYYY-MM-DD), las otras como TIMESTAMPTZ
+        var fd = campoFecha.length > 10 ? campoFecha.substring(0,10) : campoFecha;
         if (fDesde && fd < fDesde) return false;
         if (fHasta && fd > fHasta) return false;
       }
@@ -2482,11 +2483,11 @@
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:12px;margin-bottom:16px">
           <div style="grid-column:1/-1">
             <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;text-transform:uppercase">Buscar</label>
-            <input type="text" id="bus-texto" placeholder="Número de orden, cliente, teléfono..." oninput="aplicarFiltrosBus()" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box;outline:none">
+            <input type="text" id="bus-texto" placeholder="Número de orden, cliente, teléfono..." style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box;outline:none">
           </div>
           <div>
             <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;text-transform:uppercase">Estado</label>
-            <select id="bus-estado" onchange="aplicarFiltrosBus()" style="width:100%;padding:9px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
+            <select id="bus-estado" style="width:100%;padding:9px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
               <option value="">Todos</option>
               <option value="EN_ANALISIS">En Análisis</option>
               <option value="EN_PRODUCCION">En Producción</option>
@@ -2498,21 +2499,21 @@
           </div>
           <div>
             <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;text-transform:uppercase">Marca</label>
-            <select id="bus-marca" onchange="aplicarFiltrosBus()" style="width:100%;padding:9px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
+            <select id="bus-marca" style="width:100%;padding:9px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
               <option value="">Todas</option>
               
             </select>
           </div>
           <div>
             <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;text-transform:uppercase">Canal</label>
-            <select id="bus-canal" onchange="aplicarFiltrosBus()" style="width:100%;padding:9px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
+            <select id="bus-canal" style="width:100%;padding:9px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
               <option value="">Todos</option>
               
             </select>
           </div>
           <div>
             <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;text-transform:uppercase">Pago</label>
-            <select id="bus-pago" onchange="aplicarFiltrosBus()" style="width:100%;padding:9px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
+            <select id="bus-pago" style="width:100%;padding:9px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
               <option value="">Todos</option>
               <option value="SALDO">Con saldo pendiente</option>
               <option value="PAGADO">Pagado completo</option>
@@ -2522,21 +2523,21 @@
           </div>
           <div>
             <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;text-transform:uppercase">Vendedora</label>
-            <select id="bus-vendedora" onchange="aplicarFiltrosBus()" style="width:100%;padding:9px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
+            <select id="bus-vendedora" style="width:100%;padding:9px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
               <option value="">Todas</option>
             </select>
           </div>
           <div>
             <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;text-transform:uppercase">Fecha desde</label>
-            <input type="date" id="bus-fecha-desde" onchange="aplicarFiltrosBus()" style="width:100%;padding:9px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
+            <input type="date" id="bus-fecha-desde" style="width:100%;padding:9px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
           </div>
           <div>
             <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;text-transform:uppercase">Fecha hasta</label>
-            <input type="date" id="bus-fecha-hasta" onchange="aplicarFiltrosBus()" style="width:100%;padding:9px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
+            <input type="date" id="bus-fecha-hasta" style="width:100%;padding:9px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
           </div>
           <div>
             <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;text-transform:uppercase">Filtrar por</label>
-            <select id="bus-fecha-tipo" onchange="aplicarFiltrosBus()" style="width:100%;padding:9px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
+            <select id="bus-fecha-tipo" style="width:100%;padding:9px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
               <option value="creacion">Fecha creación</option>
               <option value="entrega">Fecha entrega</option>
               <option value="despacho">Fecha despacho</option>
@@ -2544,9 +2545,10 @@
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <button onclick="limpiarFiltrosBus()" style="padding:9px 16px;background:#f1f5f9;color:#374151;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Limpiar</button>
-          <button onclick="exportarResultadosBus()" style="padding:9px 16px;background:#eff6ff;color:#2563eb;border:1.5px solid #bfdbfe;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Exportar Excel</button>
-          <div style="margin-left:auto;font-size:13px;color:#64748b" id="bus-contador">Cargando...</div>
+          <button onclick="aplicarFiltrosBus()" style="padding:9px 22px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 3px 10px rgba(37,99,235,.3)">🔍 Buscar</button>
+          <button onclick="limpiarFiltrosBus()" style="padding:9px 16px;background:#f1f5f9;color:#374151;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">✕ Limpiar</button>
+          <button onclick="exportarResultadosBus()" style="padding:9px 16px;background:#eff6ff;color:#2563eb;border:1.5px solid #bfdbfe;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">📥 Exportar</button>
+          <div style="margin-left:auto;font-size:13px;color:#64748b" id="bus-contador">— órdenes</div>
         </div>
       </div>
       <!-- Totales -->
