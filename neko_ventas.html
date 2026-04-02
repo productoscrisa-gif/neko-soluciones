@@ -731,7 +731,14 @@
   // ── ESTADO ──────────────────────────────────────────────
   let productos = [];
   let productCounter = 0;
-  let sesionVentas = JSON.parse(sessionStorage.getItem('nk_user') || '{}');
+  // Leer sesión — si no existe redirigir al login
+  let sesionVentas = null;
+  try {
+    const _raw = sessionStorage.getItem('nk_user');
+    if (!_raw) { window.location.href = 'neko_login.html'; }
+    else { sesionVentas = JSON.parse(_raw); }
+  } catch(e) { window.location.href = 'neko_login.html'; }
+  if (!sesionVentas) sesionVentas = {};
   let isPriority    = false;
   let isUrgente      = false;
   let isAprobacion   = false;
@@ -1065,14 +1072,12 @@
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtbHphdXBudXZhcnJuYWtjYmRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTM4NTYsImV4cCI6MjA4OTg2OTg1Nn0.7Z5q3vvAIGDKFmjMjt6kra-3wHxNHyNjTfEj8GamdFA';
 
   async function obtenerSiguienteNumero() {
-    // Traer los últimos 100 para encontrar el máximo numérico real
-    // (evita conflictos con órdenes hijas -B, -C y números no secuenciales)
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/ordenes?select=numero_orden&numero_orden=not.like.SRV-*&order=numero_orden.desc&limit=100`, {
+    // Traer los últimos 200 para encontrar el máximo numérico real
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/ordenes?select=numero_orden&numero_orden=not.like.SRV-*&order=numero_orden.desc&limit=200`, {
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
     });
     const data = await res.json();
     if (!Array.isArray(data) || data.length === 0) return '00001';
-    // Encontrar el mayor número base ignorando sufijos (-B, -C, etc.)
     let maxNum = 0;
     data.forEach(o => {
       if (!o.numero_orden) return;
@@ -1101,9 +1106,11 @@
       // Si es conflicto de número duplicado, generar nuevo número y reintentar
       if (res.status === 409) {
         intentos++;
+        // Esperar un tiempo aleatorio para evitar que dos usuarias choquen de nuevo
+        await new Promise(r => setTimeout(r, 200 + Math.random() * 600));
         const nuevoNum = await obtenerSiguienteNumero();
         orden.numero_orden = nuevoNum;
-        console.warn('409 conflicto — reintentando con número:', nuevoNum);
+        console.warn('409 conflicto — reintentando con número:', nuevoNum, '(intento '+intentos+')');
         continue;
       }
       throw new Error(err.message || 'Error al guardar en Supabase');
@@ -1140,7 +1147,6 @@
       { id: 'ciudad',        label: 'Ciudad' },
       { id: 'departamento',  label: 'Departamento' },
       { id: 'canal',         label: 'Canal de Venta' },
-      { id: 'vendedora',     label: 'Vendedora' },
       { id: 'fecha_entrega', label: 'Fecha de Entrega' },
       { id: 'total',         label: 'Valor Total' },
       { id: 'tipo_pago',     label: 'Tipo de Pago' },
@@ -1173,7 +1179,7 @@
 
       const orden = {
         numero_orden:    numeroOrden,
-        vendedora:       (document.getElementById('vendedora').value || (sesionVentas && sesionVentas.nombre) || ''),
+        vendedora:       (sesionVentas && sesionVentas.nombre) ? sesionVentas.nombre : (sesion_ventas && sesion_ventas.nombre ? sesion_ventas.nombre : ''),
         marca:           document.getElementById('marca').value,
         tipo_envio:      document.getElementById('tipo_envio').value,
         es_contraentrega: document.getElementById('es_contraentrega').value === 'true',
