@@ -166,6 +166,13 @@
 <div id="toast"></div>
 
 <script>
+  // Función global — acepta cualquier variante de escritura del área Diseño
+  function esAreaDiseno(area) {
+    if (!area) return false;
+    var a = area.toLowerCase().trim();
+    return a === 'diseño' || a === 'diseno' || a === 'design';
+  }
+
   const SB_URL = 'https://umlzaupnuvarrnakcbdo.supabase.co';
   const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtbHphdXBudXZhcnJuYWtjYmRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTM4NTYsImV4cCI6MjA4OTg2OTg1Nn0.7Z5q3vvAIGDKFmjMjt6kra-3wHxNHyNjTfEj8GamdFA';
   const HDR = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY };
