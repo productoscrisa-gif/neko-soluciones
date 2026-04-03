@@ -293,6 +293,7 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
     document.getElementById('user-info').textContent = '👤 ' + sesion.nombre;
     cargar();
     cargarMarcasSelect();
+    cargarCanalesSelectLeads();
   });
 
   async function cargar() {
@@ -588,6 +589,23 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
   }
 
   // ── CARGAR MARCAS ─────────────────────────────────────────
+  async function cargarCanalesSelectLeads() {
+    const FALLBACK = ['WhatsApp','Instagram','Facebook','TikTok','Mercado Libre','Web','Presencial','Referido'];
+    const sel = document.getElementById('nl-canal');
+    if (!sel) return;
+    try {
+      const r = await fetch(SB_URL + '/rest/v1/canales_venta?activo=eq.true&order=nombre.asc&select=nombre', { headers: HDR });
+      const canales = await r.json();
+      if (Array.isArray(canales) && canales.length) {
+        sel.innerHTML = '<option value="">— Seleccionar —</option>'
+          + canales.map(c => '<option value="'+c.nombre+'">'+c.nombre+'</option>').join('');
+      } else {
+        sel.innerHTML = '<option value="">— Seleccionar —</option>'
+          + FALLBACK.map(c => '<option value="'+c+'">'+c+'</option>').join('');
+      }
+    } catch(e) {}
+  }
+
   async function cargarMarcasSelect() {
     try {
       var r = await fetch(SB_URL + '/rest/v1/marcas?activo=eq.true&order=nombre.asc&select=nombre', { headers: HDR });

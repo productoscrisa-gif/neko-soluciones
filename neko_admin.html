@@ -2290,7 +2290,7 @@
   var _cfgTipoEditId   = null;
 
   async function iniciarConfig() {
-    await Promise.all([ cargarMarcasCfg(), cargarTiposCfg() ]);
+    await Promise.all([ cargarMarcasCfg(), cargarTiposCfg(), cargarCanalesCfg() ]);
   }
 
   // ─── MARCAS ────────────────────────────────────────────────
@@ -2423,6 +2423,93 @@
     await fetch(SB_URL + '/rest/v1/tipos_prenda?id=eq.' + id, { method:'PATCH', headers:Object.assign({},HDR,{'Content-Type':'application/json','Prefer':'return=minimal'}), body:JSON.stringify({activo: !activo}) });
     showToast(activo ? 'Tipo desactivado' : 'Tipo activado');
     cargarTiposCfg();
+  }
+
+
+  // ─── CANALES DE VENTA ──────────────────────────────────────
+  var _cfgCanales = [];
+  var _cfgCanalEditId = null;
+
+  async function cargarCanalesCfg() {
+    const el = document.getElementById('cfg-canales-lista');
+    if (!el) return;
+    el.innerHTML = '<div style="color:var(--text-muted);font-size:13px">Cargando...</div>';
+    try {
+      const r = await fetch(SB_URL + '/rest/v1/canales_venta?order=nombre.asc&select=id,nombre,activo', { headers: HDR });
+      _cfgCanales = await r.json();
+      if (!Array.isArray(_cfgCanales) || !_cfgCanales.length) {
+        el.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:8px 0">No hay canales registrados.</div>';
+        return;
+      }
+      el.innerHTML = _cfgCanales.map(function(c) {
+        return '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)">'
+          + '<div style="display:flex;align-items:center;gap:8px">'
+            + '<span style="font-size:13px;font-weight:600;color:var(--text-primary)">' + c.nombre + '</span>'
+            + (!c.activo ? '<span style="font-size:10px;background:#fee2e2;color:#dc2626;padding:1px 6px;border-radius:4px;font-weight:700">Inactivo</span>' : '')
+          + '</div>'
+          + '<div style="display:flex;gap:6px">'
+            + '<button data-id="'+c.id+'" onclick="abrirModalCanal(this)" style="padding:4px 10px;background:var(--blue-light);color:var(--blue);border:1px solid var(--blue-mid);border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">✏️</button>'
+            + '<button data-id="'+c.id+'" data-activo="'+(c.activo?'1':'0')+'" onclick="toggleCanal(this)" style="padding:4px 10px;background:'+(c.activo?'#fff1f2':'#f0fdf4')+';color:'+(c.activo?'#dc2626':'#16a34a')+';border:1px solid '+(c.activo?'#fca5a5':'#86efac')+';border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">'+(c.activo?'Desactivar':'Activar')+'</button>'
+          + '</div>'
+        + '</div>';
+      }).join('');
+    } catch(e) {
+      el.innerHTML = '<div style="color:var(--red);font-size:13px">Error: ' + e.message + '</div>';
+    }
+  }
+
+  function abrirModalCanal(btn) {
+    _cfgCanalEditId = null;
+    document.getElementById('cfg-canal-nombre').value = '';
+    document.getElementById('cfg-canal-id').value = '';
+    document.getElementById('modal-canal-titulo').textContent = 'Nuevo Canal';
+    if (btn) {
+      const id = btn.getAttribute('data-id');
+      const c  = _cfgCanales.find(x => String(x.id) === String(id));
+      if (c) {
+        _cfgCanalEditId = id;
+        document.getElementById('cfg-canal-nombre').value = c.nombre;
+        document.getElementById('cfg-canal-id').value = id;
+        document.getElementById('modal-canal-titulo').textContent = 'Editar Canal';
+      }
+    }
+    document.getElementById('modal-cfg-canal').style.display = 'flex';
+  }
+
+  async function guardarCanalCfg() {
+    const nombre = document.getElementById('cfg-canal-nombre').value.trim();
+    if (!nombre) { alert('Ingresa el nombre del canal.'); return; }
+    try {
+      if (_cfgCanalEditId) {
+        await fetch(SB_URL + '/rest/v1/canales_venta?id=eq.' + _cfgCanalEditId, {
+          method:'PATCH',
+          headers:Object.assign({},HDR,{'Content-Type':'application/json','Prefer':'return=minimal'}),
+          body:JSON.stringify({nombre})
+        });
+        showToast('Canal actualizado');
+      } else {
+        await fetch(SB_URL + '/rest/v1/canales_venta', {
+          method:'POST',
+          headers:Object.assign({},HDR,{'Content-Type':'application/json','Prefer':'return=minimal'}),
+          body:JSON.stringify({nombre, activo:true})
+        });
+        showToast('Canal creado: ' + nombre);
+      }
+      document.getElementById('modal-cfg-canal').style.display = 'none';
+      cargarCanalesCfg();
+    } catch(e) { alert('Error: ' + e.message); }
+  }
+
+  async function toggleCanal(btn) {
+    const id = btn.getAttribute('data-id');
+    const activo = btn.getAttribute('data-activo') === '1';
+    await fetch(SB_URL + '/rest/v1/canales_venta?id=eq.' + id, {
+      method:'PATCH',
+      headers:Object.assign({},HDR,{'Content-Type':'application/json','Prefer':'return=minimal'}),
+      body:JSON.stringify({activo: !activo})
+    });
+    showToast(activo ? 'Canal desactivado' : 'Canal activado');
+    cargarCanalesCfg();
   }
 
   function showToast(msg){
@@ -2637,6 +2724,17 @@
         </div>
       </div>
 
+      <!-- CANALES DE VENTA -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-md);overflow:hidden">
+        <div style="padding:16px 20px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:14px;font-weight:800">📲 Canales de Venta</span>
+          <button onclick="abrirModalCanal(null)" style="padding:6px 14px;background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">+ Nuevo</button>
+        </div>
+        <div id="cfg-canales-lista" style="padding:12px 16px;max-height:400px;overflow-y:auto">
+          <div style="color:var(--text-muted);font-size:13px">Cargando...</div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -2655,6 +2753,25 @@
       <div style="display:flex;gap:8px">
         <button onclick="document.getElementById('modal-cfg-marca').style.display='none'" style="flex:1;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Cancelar</button>
         <button onclick="guardarMarcaCfg()" style="flex:2;padding:10px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer">💾 Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL CANAL -->
+  <div id="modal-cfg-canal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center;padding:20px">
+    <div style="background:var(--surface);border-radius:16px;padding:24px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div style="font-size:15px;font-weight:800" id="modal-canal-titulo">Nuevo Canal</div>
+        <button onclick="document.getElementById('modal-cfg-canal').style.display='none'" style="background:var(--surface2);border:none;border-radius:8px;padding:6px 10px;cursor:pointer">✕</button>
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px;color:var(--text-secondary)">Nombre del Canal *</label>
+        <input type="text" id="cfg-canal-nombre" placeholder="Ej: WhatsApp, TikTok Shop, Página Web..." style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box;outline:none;background:var(--surface)">
+      </div>
+      <input type="hidden" id="cfg-canal-id">
+      <div style="display:flex;gap:8px">
+        <button onclick="document.getElementById('modal-cfg-canal').style.display='none'" style="flex:1;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Cancelar</button>
+        <button onclick="guardarCanalCfg()" style="flex:2;padding:10px;background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer">💾 Guardar</button>
       </div>
     </div>
   </div>
