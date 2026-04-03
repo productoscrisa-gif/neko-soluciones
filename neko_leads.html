@@ -564,11 +564,11 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
         body: JSON.stringify({ estado: 'CERRADO' })
       });
 
+      var leadId = _leadActual.id; // guardar ANTES de cerrar modal
       cerrarModal('modal-convertir');
       showToast('✅ Redirigiendo a Ventas...');
-      // Pasar lead_id como parámetro en la URL como respaldo
       setTimeout(function(){
-        window.location.href = 'neko_ventas.html?lead=' + _leadActual.id;
+        window.location.href = 'neko_ventas.html?lead=' + leadId;
       }, 700);
     } catch(e) {
       alert('Error: ' + e.message);
