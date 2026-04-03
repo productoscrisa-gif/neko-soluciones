@@ -267,18 +267,18 @@
           const se = subs.find(s => s.prenda_idx === idx);
           if (!se) return; // Sin sub_estado = no inicializada, ignorar
 
-          // Comparar área normalizando tildes y mayúsculas
-          var _normArea = function(a){ return (a||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); };
-          if (_normArea(se.area_actual) !== _normArea(areaActual)) return; // No es de esta área
+          if (se.area_actual !== areaActual) return; // No es de esta área
           // Excluir prendas con error activo — solo aparecen en pestaña Errores
           if (se.estado === 'error') return;
 
-          // En Diseño: filtrar solo las prendas asignadas a este usuario
+          // En Diseño: mostrar prendas del usuario actual
+          // Compara contra usuario login Y nombre completo para mayor compatibilidad
           if (esAreaDiseno(areaActual)) {
-            const disenAsig = (se.diseñador_asignado || '').trim().toLowerCase();
-            const usuActual  = (sesion.usuario || sesion.nombre || '').trim().toLowerCase();
-            // Si tiene diseñador asignado y no es el usuario actual, ignorar
-            if (disenAsig && disenAsig !== usuActual) return;
+            const disenAsig  = (se.diseñador_asignado || '').trim().toLowerCase();
+            const usuLogin   = (sesion.usuario || '').trim().toLowerCase();
+            const usuNombre  = (sesion.nombre  || '').trim().toLowerCase();
+            // Si tiene diseñador asignado, verificar que coincida con este usuario
+            if (disenAsig && disenAsig !== usuLogin && disenAsig !== usuNombre) return;
           }
 
           const item = {
