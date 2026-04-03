@@ -130,7 +130,7 @@
   </div>
   <div class="topbar-right">
     <span class="user-info" id="user-info"></span>
-    <span id="badge-aprobacion-diseno" style="display:none;background:#f97316;color:#fff;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;margin-right:8px"></span><button class="btn-sm blue" onclick="cargar()">🔄 Actualizar</button>
+    <span id="badge-aprobacion-diseno" style="display:none;background:#f97316;color:#fff;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;margin-right:8px"></span><button class="btn-sm blue" onclick="_primerasCarga=true; _estadosAprobacion={}; cargar()">🔄 Actualizar</button>
     <button class="btn-sm" onclick="cerrarSesion()">🚪 Salir</button>
   </div>
 </div>
@@ -225,6 +225,11 @@
 
     cargar();
     cargarErrores();
+    // Polling liviano de aprobaciones cada 25 segundos
+    // Solo aplica al área Diseño — consulta únicamente el campo aprobacion_estado
+    if (areaActual === 'Diseño' || areaActual === 'Diseno') {
+      setInterval(pollingAprobaciones, 25000);
+    }
   });
 
   function cerrarSesion() {
@@ -1227,9 +1232,65 @@
     return (reg.minutos_acumulados || 0) + Math.round((new Date() - reg.inicio) / 60000);
   }
 
+  // ── POLLING LIVIANO DE APROBACIONES ─────────────────────
+  // Solo consulta aprobacion_estado — no recarga toda la lista
+  // Se ejecuta cada 25 segundos para TODOS los diseñadores automáticamente
+  async function pollingAprobaciones() {
+    if (areaActual !== 'Diseño' && areaActual !== 'Diseno') return;
+    try {
+      const r = await fetch(
+        SB_URL + '/rest/v1/ordenes?estado=eq.EN_PRODUCCION&requiere_aprobacion=eq.true'
+               + '&select=id,numero_orden,aprobacion_estado,aprobacion_comentario',
+        { headers: HDR }
+      );
+      if (!r.ok) return;
+      const ordenes = await r.json();
+      if (!Array.isArray(ordenes)) return;
+
+      var hayNuevos = false;
+      ordenes.forEach(function(o) {
+        var anterior = _estadosAprobacion[o.id];
+        var actual   = o.aprobacion_estado;
+
+        // Primera vez — solo registrar sin notificar
+        if (anterior === undefined) {
+          _estadosAprobacion[o.id] = actual;
+          return;
+        }
+
+        // Cambió a APROBADO
+        if (anterior !== 'APROBADO' && actual === 'APROBADO') {
+          _estadosAprobacion[o.id] = actual;
+          hayNuevos = true;
+          mostrarAlertaAprobacion(o.numero_orden, 'APROBADO', '');
+        }
+
+        // Cambió a RECHAZADO
+        if (anterior !== 'RECHAZADO' && actual === 'RECHAZADO') {
+          _estadosAprobacion[o.id] = actual;
+          hayNuevos = true;
+          mostrarAlertaAprobacion(o.numero_orden, 'RECHAZADO', o.aprobacion_comentario || '');
+        }
+
+        _estadosAprobacion[o.id] = actual;
+      });
+
+      // Si hubo cambios recargar la lista para mostrar banners actualizados
+      if (hayNuevos) cargar();
+
+      // Actualizar badge de pendientes
+      var pendientes = ordenes.filter(function(o){
+        return !o.aprobacion_estado || o.aprobacion_estado === 'PENDIENTE';
+      }).length;
+      actualizarBadgeAprobacion(pendientes);
+
+    } catch(e) { /* silencioso — no interrumpir al diseñador */ }
+  }
+
   // ── NOTIFICACIONES DE APROBACIÓN ────────────────────────
   // Se activan al presionar 🔄 Actualizar — sin polling automático
   var _estadosAprobacion = {};  // cache: {ordenId: estado}
+  var _primerasCarga = true;    // controla si es primera vez
 
   function revisarCambiosAprobacion(ordenes) {
     // Llamada desde cargar() después de traer los datos
@@ -1245,9 +1306,16 @@
       // Contar pendientes para el badge
       if (!estadoActual || estadoActual === 'PENDIENTE') pendientes++;
 
-      // Primera carga — solo registrar, no notificar
+      // Primera carga
       if (estadoAnterior === undefined) {
         _estadosAprobacion[o.id] = estadoActual;
+        // Si ya está APROBADO o RECHAZADO al entrar, notificar igual
+        // El diseñador necesita saber sin importar si es nueva sesión
+        if (estadoActual === 'APROBADO') {
+          mostrarAlertaAprobacion(o.numero_orden, 'APROBADO', '');
+        } else if (estadoActual === 'RECHAZADO') {
+          mostrarAlertaAprobacion(o.numero_orden, 'RECHAZADO', o.aprobacion_comentario || '');
+        }
         return;
       }
 
