@@ -571,6 +571,22 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
     }
   }
 
+  async function cargarMediosPagoPagos() {
+    var sel = document.getElementById('pago-medio');
+    if (!sel) return;
+    var FALLBACK = ['ADDI','PAYU','BANCOLOMBIA','NEQUI','DAVIPLATA','DAVIVIENDA','LLAVE','Efectivo'];
+    try {
+      var r = await fetch(SB_URL + '/rest/v1/medios_pago?activo=eq.true&order=nombre.asc&select=nombre', { headers: HDR });
+      var medios = await r.json();
+      var lista = (Array.isArray(medios) && medios.length) ? medios.map(function(m){ return m.nombre; }) : FALLBACK;
+      sel.innerHTML = '<option value="">- Seleccionar -</option>'
+        + lista.map(function(m){ return '<option value="'+m+'">'+m+'</option>'; }).join('');
+    } catch(e) {
+      sel.innerHTML = '<option value="">- Seleccionar -</option>'
+        + FALLBACK.map(function(m){ return '<option value="'+m+'">'+m+'</option>'; }).join('');
+    }
+  }
+
   function showToast(msg) {
     var t = document.getElementById("toast");
     t.textContent = msg; t.style.opacity = "1";
