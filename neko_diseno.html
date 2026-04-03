@@ -214,13 +214,7 @@
     if (!raw) { window.location.href = 'neko_login.html'; return; }
     sesion = JSON.parse(raw);
     areaActual = sesion.area;
-    // Normalizar área para evitar problemas de tilde/mayúsculas
-    // dvillera puede tener 'Diseno', 'diseño', 'DISEÑO', etc.
-    function esAreaDiseno(area) {
-      if (!area) return false;
-      var n = area.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-      return n === 'diseno' || n === 'diseño' || n === 'design';
-    }
+
 
     const cfg = AREA_CONFIG[areaActual] || { icon:'⚙️', color:'#2563eb', bg:'#eff6ff' };
     document.title = 'Neko Soluciones – ' + areaActual;
