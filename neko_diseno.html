@@ -214,6 +214,13 @@
     if (!raw) { window.location.href = 'neko_login.html'; return; }
     sesion = JSON.parse(raw);
     areaActual = sesion.area;
+    // Normalizar área para evitar problemas de tilde/mayúsculas
+    // dvillera puede tener 'Diseno', 'diseño', 'DISEÑO', etc.
+    function esAreaDiseno(area) {
+      if (!area) return false;
+      var n = area.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      return n === 'diseno' || n === 'diseño' || n === 'design';
+    }
 
     const cfg = AREA_CONFIG[areaActual] || { icon:'⚙️', color:'#2563eb', bg:'#eff6ff' };
     document.title = 'Neko Soluciones – ' + areaActual;
@@ -227,7 +234,7 @@
     cargarErrores();
     // Polling liviano de aprobaciones cada 25 segundos
     // Solo aplica al área Diseño — consulta únicamente el campo aprobacion_estado
-    if (areaActual === 'Diseño' || areaActual === 'Diseno') {
+    if (areaActual === 'Diseño' || esAreaDiseno(areaActual)) {
       setInterval(pollingAprobaciones, 25000);
     }
   });
@@ -271,7 +278,7 @@
           if (se.estado === 'error') return;
 
           // En Diseño: filtrar solo las prendas asignadas a este usuario
-          if (areaActual === 'Diseño') {
+          if (esAreaDiseno(areaActual)) {
             const disenAsig = (se.diseñador_asignado || '').trim().toLowerCase();
             const usuActual  = (sesion.usuario || sesion.nombre || '').trim().toLowerCase();
             // Si tiene diseñador asignado y no es el usuario actual, ignorar
@@ -440,7 +447,7 @@
     if (esPrioritario && item.nivelUrgencia !== 'urgente' && item.nivelUrgencia !== 'marketplace') tags += '<span class="ptag ptag-red">🔴 Prioritario</span>';
     tags += '<span class="ptag ptag-amber">🚚 ' + entregaF + '</span>';
     if (marca) tags += '<span class="ptag ptag-purple">🏷️ ' + marca + '</span>';
-    if (diseñadorAsignado && areaActual === 'Diseño') tags += '<span class="ptag" style="background:#ecfdf5;border:1px solid #6ee7b7;color:#059669;font-weight:700">👤 ' + diseñadorAsignado + '</span>';
+    if (diseñadorAsignado && esAreaDiseno(areaActual)) tags += '<span class="ptag" style="background:#ecfdf5;border:1px solid #6ee7b7;color:#059669;font-weight:700">👤 ' + diseñadorAsignado + '</span>';
 
     // Estado badge
     // Timer visible para prenda en proceso
@@ -471,7 +478,7 @@
     // Notas, medidas, url y error
     // Banner de aprobación — solo en Diseño
     var aprobBanner = '';
-    if (areaActual === 'Diseño' && requiereAprobacion) {
+    if (esAreaDiseno(areaActual) && requiereAprobacion) {
       if (aprobacionEstado === 'APROBADO') {
         aprobBanner = '<div style="background:#ecfdf5;border:2px solid #6ee7b7;border-radius:8px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:8px">'
           + '<span style="font-size:18px">✅</span>'
@@ -495,7 +502,7 @@
     var notasHTML = "";
 
     // Alerta de aprobación — solo en área Diseño
-    if (areaActual === 'Diseño' && item.reqAprobacion) {
+    if (esAreaDiseno(areaActual) && item.reqAprobacion) {
       var ap = item.aprobEstado;
       if (!ap || ap === 'RECHAZADO') {
         var alertColor = ap === 'RECHAZADO' ? '#fff1f2' : '#fff7ed';
@@ -534,7 +541,7 @@
       accionesHTML = '<button class="btn-action btn-iniciar" data-oid="' + oid + '" data-idx="' + pidx + '" data-est="en_proceso" onclick="pBtnCambiar(this)">⚙️ Iniciar Proceso</button>';
     }
     if (estado === 'en_proceso') {
-      if (areaActual === 'Diseño') {
+      if (esAreaDiseno(areaActual)) {
         const bD = 'diseno-btn' + (estadoDiseno === 'diseno'      ? ' active-diseno'      : '');
         const bI = 'diseno-btn' + (estadoDiseno === 'imprimiendo' ? ' active-imprimiendo' : '');
         const bP = 'diseno-btn' + (estadoDiseno === 'impreso'     ? ' active-impreso'     : '');
@@ -607,7 +614,7 @@
         + '</div>'
         + '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">'
           + estadoBadge
-          + (areaActual === 'Diseño' && requiereAprobacion
+          + (esAreaDiseno(areaActual) && requiereAprobacion
               ? (aprobacionEstado === 'APROBADO'
                   ? '<span style="background:#10b981;color:#fff;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:800">APROBADO</span>'
                   : aprobacionEstado === 'RECHAZADO'
@@ -1236,7 +1243,7 @@
   // Solo consulta aprobacion_estado — no recarga toda la lista
   // Se ejecuta cada 25 segundos para TODOS los diseñadores automáticamente
   async function pollingAprobaciones() {
-    if (areaActual !== 'Diseño' && areaActual !== 'Diseno') return;
+    if (!esAreaDiseno(areaActual)) return;
     try {
       const r = await fetch(
         SB_URL + '/rest/v1/ordenes?estado=eq.EN_PRODUCCION&requiere_aprobacion=eq.true'
@@ -1294,10 +1301,11 @@
 
   function revisarCambiosAprobacion(ordenes) {
     // Llamada desde cargar() después de traer los datos
-    if (areaActual !== 'Diseño' && areaActual !== 'Diseno') return;
+    if (!esAreaDiseno(areaActual)) return;
     if (!Array.isArray(ordenes)) return;
 
     var pendientes = 0;
+    var _hayNuevosRevisar = false;
     ordenes.forEach(function(o) {
       if (!o.requiere_aprobacion) return;
       var estadoAnterior = _estadosAprobacion[o.id];
@@ -1322,12 +1330,14 @@
       // Detectar cambio a APROBADO
       if (estadoAnterior !== 'APROBADO' && estadoActual === 'APROBADO') {
         _estadosAprobacion[o.id] = estadoActual;
+        _hayNuevosRevisar = true;
         mostrarAlertaAprobacion(o.numero_orden, 'APROBADO', '');
       }
 
       // Detectar cambio a RECHAZADO
       if (estadoAnterior !== 'RECHAZADO' && estadoActual === 'RECHAZADO') {
         _estadosAprobacion[o.id] = estadoActual;
+        _hayNuevosRevisar = true;
         mostrarAlertaAprobacion(o.numero_orden, 'RECHAZADO', o.aprobacion_comentario || '');
       }
 
@@ -1336,6 +1346,11 @@
     });
 
     actualizarBadgeAprobacion(pendientes);
+    // Recargar la lista para mostrar banners actualizados en los cards
+    if (_hayNuevosRevisar) {
+      _hayNuevosRevisar = false;
+      setTimeout(cargar, 300);
+    }
   }
 
   function _cerrarNotif(btn) {
@@ -1367,9 +1382,9 @@
                 + (comentario ? 'Motivo: ' + comentario : 'Revisa los detalles en la orden.')
               + '</div>')
         + '<div style="margin-top:10px">'
-          + '<button onclick="_cerrarNotif(this)" '
+          + '<button onclick="_cerrarNotif(this); cargar();" '
             + 'style="padding:6px 14px;background:' + (esAprobado ? '#10b981' : '#dc2626') + ';color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">'
-            + 'Ver en lista'
+            + 'Ver en lista ↗'
           + '</button>'
           + '<button onclick="_cerrarNotif(this)" '
             + 'style="padding:6px 12px;background:transparent;color:#64748b;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;cursor:pointer">'
