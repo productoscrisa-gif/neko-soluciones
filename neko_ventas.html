@@ -640,15 +640,7 @@
     <div class="field">
       <label>Medio de Pago <span class="req">*</span></label>
       <select id="medio_pago">
-        <option value="">— Seleccionar —</option>
-        <option>ADDI</option>
-        <option>PAYU</option>
-        <option>BANCOLOMBIA</option>
-        <option>NEQUI</option>
-        <option>DAVIPLATA</option>
-        <option>DAVIVIENDA</option>
-        <option>LLAVE</option>
-        <option>Efectivo</option>
+        <option value="">— Cargando... —</option>
       </select>
     </div>
     <div class="field">
@@ -1681,6 +1673,8 @@
     document.getElementById('hija-pagado').value  = '';
     document.getElementById('hija-tipo-pago').value  = '';
     document.getElementById('hija-medio-pago').value = '';
+    // Cargar medios de pago en select hija
+    cargarMediosPagoSelect('hija-medio-pago');
     document.getElementById('modal-hija').style.display = 'block';
     agregarProductoHija(); // agregar 1 prenda por defecto
   }
@@ -1824,6 +1818,25 @@
   try { sesion_ventas = JSON.parse(sessionStorage.getItem('nk_user')); } catch(e) {}
 
   // ── MARCAS Y TIPOS DINÁMICOS ────────────────────────────
+  async function cargarMediosPagoSelect(selectId) {
+    const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtbHphdXBudXZhcnJuYWtjYmRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTM4NTYsImV4cCI6MjA4OTg2OTg1Nn0.7Z5q3vvAIGDKFmjMjt6kra-3wHxNHyNjTfEj8GamdFA';
+    const SB  = 'https://umlzaupnuvarrnakcbdo.supabase.co';
+    const H   = { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY };
+    const FALLBACK = ['ADDI','PAYU','BANCOLOMBIA','NEQUI','DAVIPLATA','DAVIVIENDA','LLAVE','Efectivo'];
+    const sel = document.getElementById(selectId || 'medio_pago');
+    if (!sel) return;
+    try {
+      const r = await fetch(SB + '/rest/v1/medios_pago?activo=eq.true&order=nombre.asc&select=nombre', { headers: H });
+      const medios = await r.json();
+      const lista = (Array.isArray(medios) && medios.length) ? medios.map(m => m.nombre) : FALLBACK;
+      sel.innerHTML = '<option value="">— Seleccionar —</option>'
+        + lista.map(m => '<option value="'+m+'">'+m+'</option>').join('');
+    } catch(e) {
+      sel.innerHTML = '<option value="">— Seleccionar —</option>'
+        + FALLBACK.map(m => '<option value="'+m+'">'+m+'</option>').join('');
+    }
+  }
+
   async function cargarCanalesSelect() {
     const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtbHphdXBudXZhcnJuYWtjYmRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTM4NTYsImV4cCI6MjA4OTg2OTg1Nn0.7Z5q3vvAIGDKFmjMjt6kra-3wHxNHyNjTfEj8GamdFA';
     const SB  = 'https://umlzaupnuvarrnakcbdo.supabase.co';
@@ -1993,6 +2006,7 @@
     // Cargar marcas dinámicamente desde Supabase
     cargarMarcasSelect();
     cargarCanalesSelect();
+    cargarMediosPagoSelect();
     // Cargar tipos de prenda dinámicamente
     cargarTiposPrendaSelect();
   });
@@ -2058,8 +2072,6 @@
           <select id="hija-tipo-pago"><option value="">— Seleccionar —</option><option value="total">Pago Total</option><option value="parcial">Pago Parcial / Abono</option></select></div>
         <div class="field"><label>Medio de Pago</label>
           <select id="hija-medio-pago"><option value="">— Seleccionar —</option>
-            <option>ADDI</option><option>PAYU</option><option>BANCOLOMBIA</option><option>NEQUI</option>
-            <option>DAVIPLATA</option><option>DAVIVIENDA</option><option>LLAVE</option><option>Efectivo</option>
           </select></div>
       </div>
     </div>
