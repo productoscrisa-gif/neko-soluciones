@@ -438,8 +438,9 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
 
   // ── REGISTRAR CONTACTO ────────────────────────────────────
   function abrirModalContacto(id) {
-    _leadActual = _leads.find(function(l){ return String(l.id) === String(id); });
-    if (!_leadActual) return;
+    var encontrado = _leads.find(function(l){ return String(l.id) === String(id); });
+    if (!encontrado) { alert('No se encontró el lead. Presiona Actualizar e intenta de nuevo.'); return; }
+    _leadActual = encontrado;
 
     var contactos = Array.isArray(_leadActual.contactos_log) ? _leadActual.contactos_log : [];
     var numContacto = contactos.length + 1;
@@ -499,15 +500,23 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
         method: 'PATCH', headers: HDRF,
         body: JSON.stringify({ contactos_log: contactos, estado: nuevoEstado })
       });
+      // Actualizar _leads local para que siguientes acciones encuentren el estado nuevo
+      var idxLocal = _leads.findIndex(function(l){ return String(l.id) === String(_leadActual.id); });
+      if (idxLocal >= 0) {
+        _leads[idxLocal] = Object.assign({}, _leads[idxLocal], { contactos_log: contactos, estado: nuevoEstado });
+      }
+      var nombreLead = _leadActual.nombre;
       cerrarModal('modal-contacto');
+      _leadActual = null;
       if (nuevoEstado === 'ARCHIVADO') {
         showToast('📁 Lead archivado — 2 contactos sin cierre');
       } else if (nuevoEstado === 'CERRADO') {
-        showToast('🎉 ¡Venta cerrada! — ' + _leadActual.nombre);
+        showToast('🎉 ¡Venta cerrada! — ' + nombreLead);
       } else {
         showToast('✅ Contacto #' + contactos.length + ' registrado');
       }
-      cargar();
+      actualizarStats();
+      renderLista(_leads);
     } catch(e) {
       alert('Error: ' + e.message);
     }
@@ -516,8 +525,10 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
 
   // ── CONVERTIR EN ORDEN ────────────────────────────────────
   function abrirModalConvertir(id) {
-    _leadActual = _leads.find(function(l){ return String(l.id) === String(id); });
-    if (!_leadActual) return;
+    // Buscar siempre fresco desde _leads
+    var encontrado = _leads.find(function(l){ return String(l.id) === String(id); });
+    if (!encontrado) { alert('No se encontró el lead. Presiona Actualizar e intenta de nuevo.'); return; }
+    _leadActual = encontrado;
     var contactos = Array.isArray(_leadActual.contactos_log) ? _leadActual.contactos_log : [];
     var descuento = contactos.length ? contactos[contactos.length-1].descuento : 0;
     document.getElementById('conv-resumen').innerHTML =
@@ -578,7 +589,9 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
   // ── HELPERS ───────────────────────────────────────────────
   function cerrarModal(id) {
     document.getElementById(id).classList.remove('show');
-    _leadActual = null;
+    // Solo limpiar _leadActual si se cierra el modal de convertir
+    // Los otros modales pueden necesitar el lead para acciones seguidas
+    if (id === 'modal-convertir') _leadActual = null;
   }
 
   function cerrarSesion() {
