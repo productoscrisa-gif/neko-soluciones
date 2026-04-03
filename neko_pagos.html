@@ -311,6 +311,7 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
         + " data-saldo=\"" + saldoTotal + "\""
         + " onclick=\"_clickConfirmarGrupo(this)\">✅ Confirmar Pago y Notificar Almacen</button>"
         + "</div>";
+    setTimeout(cargarMediosPagoPagos, 80);
     }
 
     el.innerHTML = "<div class=\"orden-card\">"
@@ -483,6 +484,7 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
         + "<button class=\"btn-confirmar\" id=\"btn-confirmar\" onclick=\"confirmarPago('" + o.id + "','" + o.numero_orden + "'," + montoACobrar + ")\">"
         + "✅ Confirmar Pago y Notificar Almacen</button>"
         + "</div>";
+    setTimeout(cargarMediosPagoPagos, 80);
     }
 
     el.innerHTML = "<div class=\"orden-card\">"
