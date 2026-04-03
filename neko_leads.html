@@ -113,6 +113,7 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
   <div class="topbar-right">
     <span class="user-info" id="user-info"></span>
     <button class="btn-sm" onclick="cargar()">🔄 Actualizar</button>
+    <button class="btn-sm" onclick="window.location.href='neko_ventas.html'" style="color:#2563eb;border-color:#bfdbfe;background:#eff6ff">← Volver a Ventas</button>
     <button class="btn-sm" onclick="cerrarSesion()">🚪 Salir</button>
   </div>
 </div>
@@ -543,23 +544,36 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
 
   async function confirmarConvertir() {
     if (!_leadActual) return;
-    // Guardar datos del lead en localStorage para que Ventas los precargue
-    localStorage.setItem('nk_lead_precarga', JSON.stringify({
-      nombre:   _leadActual.nombre,
-      telefono: _leadActual.telefono,
-      canal:    _leadActual.canal,
-      marca:    _leadActual.marca,
-      notas:    _leadActual.producto_interes,
-      lead_id:  _leadActual.id
-    }));
-    // Marcar lead como cerrado
-    await fetch(SB_URL + '/rest/v1/leads?id=eq.' + _leadActual.id, {
-      method: 'PATCH', headers: HDRF,
-      body: JSON.stringify({ estado: 'CERRADO' })
-    });
-    cerrarModal('modal-convertir');
-    showToast('Redirigiendo a Ventas...');
-    setTimeout(function(){ window.location.href = 'neko_ventas.html'; }, 800);
+    var btn = document.querySelector('#modal-convertir .btn-guardar');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Preparando...'; }
+    try {
+      // Guardar datos en localStorage
+      var datos = {
+        nombre:   _leadActual.nombre   || '',
+        telefono: _leadActual.telefono || '',
+        canal:    _leadActual.canal    || '',
+        marca:    _leadActual.marca    || '',
+        producto: _leadActual.producto_interes || '',
+        lead_id:  _leadActual.id
+      };
+      localStorage.setItem('nk_lead_precarga', JSON.stringify(datos));
+
+      // Marcar lead como CERRADO en Supabase
+      await fetch(SB_URL + '/rest/v1/leads?id=eq.' + _leadActual.id, {
+        method: 'PATCH', headers: HDRF,
+        body: JSON.stringify({ estado: 'CERRADO' })
+      });
+
+      cerrarModal('modal-convertir');
+      showToast('✅ Redirigiendo a Ventas...');
+      // Pasar lead_id como parámetro en la URL como respaldo
+      setTimeout(function(){
+        window.location.href = 'neko_ventas.html?lead=' + _leadActual.id;
+      }, 700);
+    } catch(e) {
+      alert('Error: ' + e.message);
+      if (btn) { btn.disabled = false; btn.textContent = '🚀 Ir a Ventas'; }
+    }
   }
 
   // ── ARCHIVAR ──────────────────────────────────────────────

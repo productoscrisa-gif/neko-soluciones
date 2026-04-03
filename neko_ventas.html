@@ -1913,15 +1913,61 @@
     // Precargar datos si viene de un lead
     var _leadData = localStorage.getItem('nk_lead_precarga');
     if (_leadData) {
+      localStorage.removeItem('nk_lead_precarga');
       try {
         var ld = JSON.parse(_leadData);
-        if (ld.nombre)   { var el = document.getElementById('nombre');    if(el) el.value = ld.nombre; }
-        if (ld.telefono) { var el = document.getElementById('telefono');  if(el) el.value = ld.telefono; }
-        if (ld.canal)    { var el = document.getElementById('canal');     if(el) el.value = ld.canal; }
-        if (ld.notas)    { /* se usa como referencia */ }
-        localStorage.removeItem('nk_lead_precarga');
-        showToast('✅ Datos del lead precargados');
-      } catch(e) {}
+        // Función que aplica los datos — se llama después de que carguen los selects
+        window._aplicarPrecargaLead = function() {
+          var n = document.getElementById('nombre');
+          if (n && ld.nombre) n.value = ld.nombre;
+
+          var t = document.getElementById('telefono');
+          if (t && ld.telefono) t.value = ld.telefono;
+
+          // Canal — asignar directo al select
+          var c = document.getElementById('canal');
+          if (c && ld.canal) {
+            // Buscar si la opción existe, si no crearla
+            var optC = Array.from(c.options).find(function(o){ return o.value === ld.canal; });
+            if (optC) { c.value = ld.canal; }
+            else {
+              var newOpt = document.createElement('option');
+              newOpt.value = ld.canal; newOpt.text = ld.canal;
+              c.appendChild(newOpt);
+              c.value = ld.canal;
+            }
+          }
+
+          // Marca — esperar a que carguen las marcas
+          var m = document.getElementById('marca');
+          if (m && ld.marca) {
+            var optM = Array.from(m.options).find(function(o){ return o.value === ld.marca; });
+            if (optM) { m.value = ld.marca; }
+          }
+
+          // Notas del producto en el campo de observaciones del primer producto si existe
+          if (ld.producto) {
+            var obsEl = document.querySelector('[name^="notas_prod_"]') || document.querySelector('textarea[name*="notas"]');
+            if (!obsEl) {
+              // Si no hay productos todavía, guardar para cuando se agregue el primero
+              window._leadProductoNota = ld.producto;
+            } else {
+              obsEl.value = ld.producto;
+            }
+          }
+
+          // Mostrar banner informativo
+          var banner = document.createElement('div');
+          banner.style.cssText = 'background:#f5f3ff;border:2px solid #7c3aed;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:700;color:#6d28d9;display:flex;align-items:center;gap:8px';
+          banner.innerHTML = '🎯 Datos del lead precargados: <strong>' + (ld.nombre||'') + '</strong> · ' + (ld.producto||'') + ' <button onclick="this.parentElement.remove()" style="margin-left:auto;background:none;border:none;cursor:pointer;color:#7c3aed;font-size:16px">✕</button>';
+          var formStart = document.querySelector('.card') || document.body.firstElementChild;
+          if (formStart && formStart.parentNode) {
+            formStart.parentNode.insertBefore(banner, formStart);
+          }
+        };
+        // Esperar 800ms a que carguen marcas y canales dinámicos
+        setTimeout(window._aplicarPrecargaLead, 800);
+      } catch(e) { console.error('Error precarga lead:', e); }
     }
     // Asignar vendedora desde la sesión automáticamente
     const vEl = document.getElementById('vendedora');
