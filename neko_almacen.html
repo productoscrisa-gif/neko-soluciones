@@ -548,6 +548,9 @@ function buildCard(o, isDespachado, esHija, hijasData, saldoGrupo, esContraentre
   if (!isDespachado && !o.pago_confirmado) {
     if (o.es_contraentrega) {
       pagoHTML = "<div class='alert-contraentrega'><span class='ac-icon'>🚚</span><div><div class='ac-title'>CONTRAENTREGA - Cobrar al entregar</div><div class='ac-monto'>$"+Number(o.valor_total||0).toLocaleString("es-CO")+" COP</div></div></div>";
+    }
+    if (o.envio_contraentrega) {
+      pagoHTML += "<div style='background:#eff6ff;border:2px solid #2563eb;border-radius:8px;padding:10px 14px;margin-top:8px;display:flex;align-items:center;gap:10px'><span style='font-size:20px'>📬</span><div><div style='font-size:13px;font-weight:800;color:#1d4ed8'>ENVÍO CONTRAENTREGA</div><div style='font-size:12px;color:#1e40af'>El producto ya está pagado — el cliente paga solo el flete al recibir</div></div></div>";
     } else if (o.saldo_pendiente > 0) {
       pagoHTML = "<div class='alert-box warning'><span>💰</span><div><strong>Saldo Pendiente</strong> - Abono: $"+Number(o.monto_pagado||0).toLocaleString("es-CO")+" | Adeuda: $"+Number(o.saldo_pendiente||0).toLocaleString("es-CO")+" COP</div></div>";
     }

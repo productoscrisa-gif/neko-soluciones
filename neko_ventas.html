@@ -415,7 +415,7 @@
 
   <div class="grid-2">
     <div class="field">
-      <label>Documento de Identidad <span class="req">*</span></label>
+      <label>Documento de Identidad <span style="font-size:11px;color:#94a3b8;font-weight:400">(opcional)</span></label>
       <div class="search-wrap">
         <input type="text" id="doc_id" placeholder="Ej. 1234567890">
         <button class="btn-search" onclick="buscarCliente()">🔍 Buscar</button>
@@ -662,14 +662,26 @@
       <input type="text" id="obs_pago" placeholder="Ej. Abono inicial, segundo pago pendiente...">
     </div>
     <div class="field col-span-2">
-      <div id="contraentrega-wrap" style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:#fff7ed;border:2px solid #fed7aa;border-radius:8px;cursor:pointer;" onclick="toggleContraentrega()">
-        <div id="contraentrega-check" style="width:22px;height:22px;border:2px solid #f97316;border-radius:6px;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;font-size:14px;"></div>
-        <div>
-          <div style="font-size:14px;font-weight:700;color:#c2410c;">🚚 Contraentrega</div>
-          <div style="font-size:12px;color:#92400e;">El cliente pagará al recibir el paquete. Almacén verá esta alerta antes de despachar.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <!-- Contraentrega -->
+        <div id="contraentrega-wrap" style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:#fff7ed;border:2px solid #fed7aa;border-radius:8px;cursor:pointer;" onclick="toggleContraentrega()">
+          <div id="contraentrega-check" style="width:22px;height:22px;border:2px solid #f97316;border-radius:6px;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;font-size:14px;"></div>
+          <div>
+            <div style="font-size:14px;font-weight:700;color:#c2410c;">🚚 Contraentrega</div>
+            <div style="font-size:12px;color:#92400e;">El cliente paga producto al recibir.</div>
+          </div>
+        </div>
+        <!-- Envío contraentrega -->
+        <div id="envio-contra-wrap" style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:#eff6ff;border:2px solid #bfdbfe;border-radius:8px;cursor:pointer;" onclick="toggleEnvioContra()">
+          <div id="envio-contra-check" style="width:22px;height:22px;border:2px solid #2563eb;border-radius:6px;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;font-size:14px;"></div>
+          <div>
+            <div style="font-size:14px;font-weight:700;color:#1d4ed8;">📬 Envío contraentrega</div>
+            <div style="font-size:12px;color:#1e40af;">Producto pagado — cliente paga solo el flete al recibir.</div>
+          </div>
         </div>
       </div>
       <input type="hidden" id="es_contraentrega" value="false">
+      <input type="hidden" id="envio_contraentrega" value="false">
     </div>
   </div>
 </div>
@@ -846,6 +858,19 @@
     check.style.color = '#fff';
     wrap.style.background = activo ? '#fff7ed' : '#fed7aa';
     wrap.style.borderColor = activo ? '#fed7aa' : '#f97316';
+  }
+
+  function toggleEnvioContra() {
+    const input = document.getElementById('envio_contraentrega');
+    const check = document.getElementById('envio-contra-check');
+    const wrap  = document.getElementById('envio-contra-wrap');
+    const activo = input.value === 'true';
+    input.value = activo ? 'false' : 'true';
+    check.textContent = activo ? '' : '✓';
+    check.style.background = activo ? '#fff' : '#2563eb';
+    check.style.color = '#fff';
+    wrap.style.background = activo ? '#eff6ff' : '#bfdbfe';
+    wrap.style.borderColor = activo ? '#bfdbfe' : '#2563eb';
   }
 
   // ── TIPO DE PAGO ────────────────────────────────────────
@@ -1139,7 +1164,6 @@
   // ── GENERAR ORDEN ────────────────────────────────────────
   async function generarOrden() {
     const campos = [
-      { id: 'doc_id',        label: 'Documento de Identidad' },
       { id: 'nombre',        label: 'Nombre Completo' },
       { id: 'telefono',      label: 'Teléfono' },
       { id: 'direccion',     label: 'Dirección' },
@@ -1273,10 +1297,10 @@
     let url = '';
     const HEADERS = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY };
 
+    const CAMPOS_SEG = 'id,numero_orden,estado,nombre_cliente,telefono,fecha_creacion,fecha_entrega,marca,canal,vendedora,usuario_red,es_prioritario,es_contraentrega,nivel_urgencia,valor_total,monto_pagado,saldo_pendiente,tipo_pago,medio_pago,productos,sub_estados,guia_numero,guia_url,link_drive,requiere_aprobacion,aprobacion_estado,aprobacion_comentario,aprobacion_por,aprobacion_fecha,aprobacion_url,obs_envio,obs_envio_leido,tiene_hijas,orden_padre';
     if (/^[0-9]+$/.test(num) && num.length <= 6) {
-      // Número de orden — búsqueda parcial desde el inicio
-      const padded = num.padStart ? num : num;
-      url = `${SUPABASE_URL}/rest/v1/ordenes?numero_orden=ilike.*${encodeURIComponent(num)}*&order=fecha_creacion.desc&limit=10&select=id,numero_orden,estado,fecha_creacion,fecha_entrega,marca,canal,vendedora,usuario_red,es_prioritario,es_contraentrega,nivel_urgencia,valor_total,monto_pagado,saldo_pendiente,tipo_pago,medio_pago,productos,sub_estados,guia_numero,guia_url,link_drive,requiere_aprobacion,aprobacion_estado,aprobacion_comentario,aprobacion_por,aprobacion_fecha,aprobacion_url,obs_envio,obs_envio_leido,tiene_hijas,orden_padre`;
+      // Número de orden
+      url = `${SUPABASE_URL}/rest/v1/ordenes?numero_orden=ilike.*${encodeURIComponent(num)}*&order=fecha_creacion.desc&limit=10&select=${CAMPOS_SEG}`;
     } else if (/^[0-9+\s]{7,}$/.test(num.replace(/\s/g,''))) {
       // Teléfono
       url = `${SUPABASE_URL}/rest/v1/ordenes?telefono=ilike.*${encodeURIComponent(num.replace(/\s/g,''))}*&order=fecha_creacion.desc&limit=5&select=id,numero_orden,estado,fecha_creacion,fecha_entrega,marca,canal,vendedora,usuario_red,es_prioritario,es_contraentrega,nivel_urgencia,valor_total,monto_pagado,saldo_pendiente,tipo_pago,medio_pago,productos,sub_estados,guia_numero,guia_url,link_drive,requiere_aprobacion,aprobacion_estado,aprobacion_comentario,aprobacion_por,aprobacion_fecha,aprobacion_url`;
