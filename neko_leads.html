@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neko Soluciones - Clientes Potenciales</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f0f4f8;--surface:#fff;--surface2:#f8fafc;--border:#e2e8f0;--text-primary:#0f172a;--text-secondary:#64748b;--text-muted:#94a3b8;--blue:#2563eb;--blue-light:#eff6ff;--blue-mid:#bfdbfe;--red:#ef4444;--red-light:#fff1f2;--red-border:#fca5a5;--green:#10b981;--green-light:#ecfdf5;--green-border:#6ee7b7;--amber:#f59e0b;--amber-light:#fffbeb;--teal:#0d9488;--teal-light:#f0fdfa;--teal-mid:#99f6e4;--purple:#7c3aed;--purple-light:#f5f3ff;--purple-mid:#ede9fe;--shadow-sm:0 1px 3px rgba(0,0,0,.06);--shadow-md:0 4px 16px rgba(0,0,0,.08);--radius:14px;--radius-sm:8px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(--text-primary);min-height:100vh;}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-sm);}
+.topbar-left{display:flex;align-items:center;gap:12px;}
+.logo-icon{width:36px;height:36px;background:var(--purple);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 3px 10px rgba(124,58,237,.3);}
+.topbar h1{font-size:16px;font-weight:800;}.topbar h1 span{color:var(--purple);}
+.area-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--purple-light);color:var(--purple);text-transform:uppercase;letter-spacing:.05em;}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.user-info{font-size:13px;font-weight:600;color:var(--text-secondary);}
+.btn-sm{padding:6px 12px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--text-secondary);}
+.main{padding:24px;max-width:980px;margin:0 auto;}
+
+/* STATS */
+.stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow-sm);}
+.stat-label{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;}
+.stat-value{font-size:22px;font-weight:800;margin-top:4px;font-family:"JetBrains Mono",monospace;}
+.stat-value.purple{color:var(--purple);}.stat-value.amber{color:var(--amber);}.stat-value.green{color:var(--green);}.stat-value.red{color:var(--red);}
+
+/* CARD */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-md);overflow:hidden;margin-bottom:20px;}
+.card-header{padding:14px 20px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.card-title{font-size:14px;font-weight:800;}
+.card-body{padding:0;}
+
+/* FILTROS */
+.filtros-wrap{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.filtros-wrap select,.filtros-wrap input{padding:7px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;outline:none;background:var(--surface);color:var(--text-primary);}
+.btn-nuevo{padding:9px 20px;background:linear-gradient(135deg,var(--purple),#6d28d9);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 3px 10px rgba(124,58,237,.3);}
+
+/* TABLA LEADS */
+.lead-item{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;transition:background .15s;}
+.lead-item:last-child{border-bottom:none;}
+.lead-item:hover{background:var(--surface2);}
+.lead-avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0;}
+.lead-info{flex:1;min-width:0;}
+.lead-nombre{font-size:14px;font-weight:700;}
+.lead-meta{font-size:12px;color:var(--text-muted);margin-top:2px;display:flex;gap:10px;flex-wrap:wrap;}
+.lead-meta span{display:flex;align-items:center;gap:3px;}
+.lead-notas{font-size:12px;color:var(--text-secondary);margin-top:4px;font-style:italic;}
+.lead-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;}
+.badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;}
+.badge-nuevo{background:var(--blue-light);color:var(--blue);}
+.badge-c1{background:var(--amber-light);color:#92400e;}
+.badge-c2{background:#fff1f2;color:var(--red);}
+.badge-cerrado{background:var(--green-light);color:var(--green);}
+.badge-archivado{background:var(--surface2);color:var(--text-muted);border:1px solid var(--border);}
+.lead-vendedora{font-size:11px;color:var(--text-muted);}
+.lead-actions{display:flex;gap:6px;}
+.btn-accion{padding:5px 12px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid;transition:all .15s;}
+.btn-contactar{background:var(--purple-light);color:var(--purple);border-color:var(--purple-mid);}
+.btn-convertir{background:var(--green-light);color:var(--green);border-color:var(--green-border);}
+.btn-archivar{background:var(--surface2);color:var(--text-muted);border-color:var(--border);}
+
+/* FORMULARIO */
+.form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:12px;font-weight:700;color:var(--text-secondary);}
+.req{color:var(--red);}
+.field input,.field select,.field textarea{padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:"Plus Jakarta Sans",sans-serif;background:var(--surface2);color:var(--text-primary);outline:none;transition:border-color .2s;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--purple);box-shadow:0 0 0 3px rgba(124,58,237,.1);}
+.field textarea{resize:vertical;min-height:70px;}
+.btn-guardar{width:100%;padding:13px;background:linear-gradient(135deg,var(--purple),#6d28d9);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 3px 12px rgba(124,58,237,.3);margin-top:4px;}
+.btn-guardar:disabled{opacity:.6;cursor:not-allowed;}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.show{display:flex;}
+.modal{background:var(--surface);border-radius:var(--radius);padding:28px;max-width:540px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2);max-height:90vh;overflow-y:auto;}
+.modal-title{font-size:16px;font-weight:800;margin-bottom:4px;}
+.modal-sub{font-size:13px;color:var(--text-secondary);margin-bottom:20px;}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;}
+.btn-cancel{padding:9px 16px;background:var(--surface2);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;}
+
+/* CONTACTO HISTORIAL */
+.contacto-item{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;}
+.ci-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.ci-num{font-size:12px;font-weight:800;color:var(--purple);}
+.ci-fecha{font-size:11px;color:var(--text-muted);}
+.ci-resultado{font-size:13px;font-weight:600;}
+.ci-notas{font-size:12px;color:var(--text-secondary);margin-top:4px;}
+.ci-descuento{font-size:12px;color:var(--green);font-weight:700;margin-top:3px;}
+
+/* ALERTA LIMITE */
+.alerta-limite{background:#fff1f2;border:2px solid var(--red-border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:12px;font-size:13px;font-weight:700;color:var(--red);display:flex;align-items:center;gap:8px;}
+
+.empty-state{text-align:center;padding:40px;color:var(--text-muted);}
+.empty-state .icon{font-size:36px;margin-bottom:10px;}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 22px;border-radius:10px;font-size:14px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:9999;opacity:0;transition:opacity .3s;white-space:nowrap;pointer-events:none;}
+@media(max-width:600px){.stats-bar{grid-template-columns:1fr 1fr;}.form-grid-2{grid-template-columns:1fr;}.lead-item{flex-wrap:wrap;}.lead-right{flex-direction:row;align-items:center;}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo-icon">🎯</div>
+    <h1>Neko <span>Soluciones</span></h1>
+    <span class="area-badge">🎯 Leads</span>
+  </div>
+  <div class="topbar-right">
+    <span class="user-info" id="user-info"></span>
+    <button class="btn-sm" onclick="cargar()">🔄 Actualizar</button>
+    <button class="btn-sm" onclick="cerrarSesion()">🚪 Salir</button>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- STATS -->
+  <div class="stats-bar">
+    <div class="stat-card"><div class="stat-label">Nuevos</div><div class="stat-value purple" id="st-nuevos">—</div></div>
+    <div class="stat-card"><div class="stat-label">Pendiente contacto</div><div class="stat-value amber" id="st-pendientes">—</div></div>
+    <div class="stat-card"><div class="stat-label">Cerrados mes</div><div class="stat-value green" id="st-cerrados">—</div></div>
+    <div class="stat-card"><div class="stat-label">Archivados</div><div class="stat-value red" id="st-archivados">—</div></div>
+  </div>
+
+  <!-- LISTA DE LEADS -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">🎯 Clientes Potenciales</div>
+      <div class="filtros-wrap">
+        <select id="fil-estado" onchange="aplicarFiltros()">
+          <option value="">Todos los estados</option>
+          <option value="NUEVO">Nuevos</option>
+          <option value="CONTACTO_1">1er contacto hecho</option>
+          <option value="CONTACTO_2">2do contacto hecho</option>
+          <option value="CERRADO">Cerrados</option>
+          <option value="ARCHIVADO">Archivados</option>
+        </select>
+        <input type="text" id="fil-texto" placeholder="Buscar nombre o teléfono..." oninput="aplicarFiltros()" style="width:200px">
+        <button class="btn-nuevo" onclick="abrirModalNuevo()">+ Nuevo Lead</button>
+      </div>
+    </div>
+    <div class="card-body" id="lista-leads">
+      <div class="empty-state"><div class="icon">🎯</div><p>Cargando leads...</p></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL NUEVO LEAD -->
+<div class="modal-overlay" id="modal-nuevo">
+  <div class="modal">
+    <div class="modal-title">+ Nuevo Cliente Potencial</div>
+    <div class="modal-sub">Registra el cliente que mostró interés para hacerle seguimiento</div>
+    <div class="form-grid-2">
+      <div class="field">
+        <label>Nombre <span class="req">*</span></label>
+        <input type="text" id="nl-nombre" placeholder="Nombre completo">
+      </div>
+      <div class="field">
+        <label>Teléfono <span class="req">*</span></label>
+        <input type="tel" id="nl-telefono" placeholder="3001234567">
+      </div>
+    </div>
+    <div class="form-grid-2">
+      <div class="field">
+        <label>Canal</label>
+        <select id="nl-canal">
+          <option value="">— Seleccionar —</option>
+          <option>WhatsApp</option>
+          <option>Instagram</option>
+          <option>Facebook</option>
+          <option>TikTok</option>
+          <option>Referido</option>
+          <option>Web</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Marca de interés</label>
+        <select id="nl-marca">
+          <option value="">— Seleccionar —</option>
+        </select>
+      </div>
+    </div>
+    <div class="field" style="margin-bottom:12px">
+      <label>¿Qué producto le interesó? <span class="req">*</span></label>
+      <input type="text" id="nl-producto" placeholder="Ej: Hoodie talla M color negro, Camiseta sublimada...">
+    </div>
+    <div class="field" style="margin-bottom:12px">
+      <label>Valor aproximado ($)</label>
+      <input type="number" id="nl-valor" placeholder="0" min="0">
+    </div>
+    <div class="field" style="margin-bottom:4px">
+      <label>Notas iniciales</label>
+      <textarea id="nl-notas" placeholder="Qué dijo el cliente, qué necesita, cuándo necesita la entrega..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="cerrarModal('modal-nuevo')">Cancelar</button>
+      <button class="btn-guardar" onclick="guardarNuevoLead()" style="width:auto;padding:9px 24px;margin-top:0">💾 Guardar Lead</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL REGISTRAR CONTACTO -->
+<div class="modal-overlay" id="modal-contacto">
+  <div class="modal">
+    <div class="modal-title" id="mc-titulo">Registrar Contacto</div>
+    <div class="modal-sub" id="mc-sub">Registra el resultado de esta llamada o mensaje</div>
+
+    <div id="mc-alerta-limite" class="alerta-limite" style="display:none">
+      ⚠️ Este es el <strong>2do y último contacto</strong>. Si no cierra, el lead se archivará automáticamente.
+    </div>
+
+    <!-- Historial de contactos previos -->
+    <div id="mc-historial"></div>
+
+    <div class="field" style="margin-bottom:12px">
+      <label>Resultado del contacto <span class="req">*</span></label>
+      <select id="mc-resultado">
+        <option value="">— Seleccionar resultado —</option>
+        <option value="INTERESADO">Interesado — quiere pensar</option>
+        <option value="PIDE_DESCUENTO">Pidió descuento</option>
+        <option value="CERRADO">✅ Cerró la venta</option>
+        <option value="NO_CONTESTA">No contesta</option>
+        <option value="NO_INTERESA">No le interesa</option>
+        <option value="REAGENDAR">Quiere que le llamen después</option>
+      </select>
+    </div>
+
+    <div class="field" style="margin-bottom:12px" id="mc-descuento-wrap">
+      <label>Descuento ofrecido</label>
+      <select id="mc-descuento">
+        <option value="0">Sin descuento</option>
+        <option value="5">5%</option>
+        <option value="10">10%</option>
+        <option value="15">15%</option>
+        <option value="20">20%</option>
+      </select>
+    </div>
+
+    <div class="field" style="margin-bottom:4px">
+      <label>Notas del contacto</label>
+      <textarea id="mc-notas" placeholder="Qué dijo el cliente, qué objeciones puso, qué acordaron..."></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="cerrarModal('modal-contacto')">Cancelar</button>
+      <button class="btn-guardar" onclick="guardarContacto()" style="width:auto;padding:9px 24px;margin-top:0" id="btn-guardar-contacto">💾 Guardar Contacto</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONVERTIR EN ORDEN -->
+<div class="modal-overlay" id="modal-convertir">
+  <div class="modal">
+    <div class="modal-title">🚀 Convertir en Orden</div>
+    <div class="modal-sub">¿Llevar este lead al módulo de Ventas para crear la orden?</div>
+    <div id="conv-resumen" style="background:var(--purple-light);border:1px solid var(--purple-mid);border-radius:var(--radius-sm);padding:14px;margin-bottom:16px;font-size:13px;line-height:1.7;color:var(--purple);"></div>
+    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px">Al confirmar, el lead quedará marcado como <strong>Cerrado</strong> y serás redirigido a Ventas con los datos precargados en localStorage.</p>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="cerrarModal('modal-convertir')">Cancelar</button>
+      <button class="btn-guardar" onclick="confirmarConvertir()" style="width:auto;padding:9px 24px;margin-top:0;background:linear-gradient(135deg,#10b981,#059669);box-shadow:0 3px 10px rgba(16,185,129,.3)">🚀 Ir a Ventas</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const SB_URL = 'https://umlzaupnuvarrnakcbdo.supabase.co';
+  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtbHphdXBudXZhcnJuYWtjYmRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTM4NTYsImV4cCI6MjA4OTg2OTg1Nn0.7Z5q3vvAIGDKFmjMjt6kra-3wHxNHyNjTfEj8GamdFA';
+  const HDR = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY };
+  const HDRF = Object.assign({}, HDR, { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' });
+
+  var sesion = null;
+  var _leads = [];
+  var _leadActual = null;
+
+  document.addEventListener('DOMContentLoaded', function() {
+    var raw = sessionStorage.getItem('nk_user');
+    if (!raw) { window.location.href = 'neko_login.html'; return; }
+    sesion = JSON.parse(raw);
+    var areas = ['Ventas','Admin','Supervisor'];
+    if (!areas.includes(sesion.area)) {
+      alert('No tienes acceso a este módulo.');
+      window.location.href = 'neko_login.html'; return;
+    }
+    document.getElementById('user-info').textContent = '👤 ' + sesion.nombre;
+    cargar();
+    cargarMarcasSelect();
+  });
+
+  async function cargar() {
+    try {
+      var r = await fetch(SB_URL + '/rest/v1/leads?order=fecha_registro.desc&limit=500', { headers: HDR });
+      _leads = await r.json();
+      if (!Array.isArray(_leads)) _leads = [];
+      actualizarStats();
+      renderLista(_leads);
+    } catch(e) {
+      document.getElementById('lista-leads').innerHTML = '<div class="empty-state"><p>Error al cargar: ' + e.message + '</p></div>';
+    }
+  }
+
+  function actualizarStats() {
+    var hoy = new Date();
+    var mesActual = hoy.getMonth(); var anioActual = hoy.getFullYear();
+    document.getElementById('st-nuevos').textContent     = _leads.filter(l => l.estado === 'NUEVO').length;
+    document.getElementById('st-pendientes').textContent = _leads.filter(l => ['NUEVO','CONTACTO_1'].includes(l.estado)).length;
+    document.getElementById('st-cerrados').textContent   = _leads.filter(l => {
+      if (l.estado !== 'CERRADO') return false;
+      var f = new Date(l.fecha_registro);
+      return f.getMonth() === mesActual && f.getFullYear() === anioActual;
+    }).length;
+    document.getElementById('st-archivados').textContent = _leads.filter(l => l.estado === 'ARCHIVADO').length;
+  }
+
+  function aplicarFiltros() {
+    var estado = document.getElementById('fil-estado').value;
+    var texto  = (document.getElementById('fil-texto').value || '').toLowerCase().trim();
+    var filtrados = _leads.filter(function(l) {
+      if (estado && l.estado !== estado) return false;
+      if (texto) {
+        var h = [(l.nombre||''),(l.telefono||''),(l.producto_interes||''),(l.vendedora||'')].join(' ').toLowerCase();
+        if (!h.includes(texto)) return false;
+      }
+      return true;
+    });
+    renderLista(filtrados);
+  }
+
+  function renderLista(lista) {
+    var el = document.getElementById('lista-leads');
+    if (!lista.length) {
+      el.innerHTML = '<div class="empty-state"><div class="icon">🎯</div><p>No hay leads para mostrar</p></div>';
+      return;
+    }
+    el.innerHTML = lista.map(function(l) {
+      var iniciales = (l.nombre||'?').split(' ').map(function(w){return w[0]||'';}).slice(0,2).join('').toUpperCase();
+      var colores = {NUEVO:['#eff6ff','#2563eb'], CONTACTO_1:['#fffbeb','#92400e'], CONTACTO_2:['#fff1f2','#dc2626'], CERRADO:['#ecfdf5','#10b981'], ARCHIVADO:['#f8fafc','#94a3b8']};
+      var col = colores[l.estado] || colores['NUEVO'];
+      var badgeTxt = {NUEVO:'Nuevo', CONTACTO_1:'1er contacto hecho', CONTACTO_2:'2do contacto — última oport.', CERRADO:'Cerrado ✅', ARCHIVADO:'Archivado'}[l.estado] || l.estado;
+      var badgeCls = {NUEVO:'badge-nuevo', CONTACTO_1:'badge-c1', CONTACTO_2:'badge-c2', CERRADO:'badge-cerrado', ARCHIVADO:'badge-archivado'}[l.estado] || 'badge-nuevo';
+
+      var contactos = Array.isArray(l.contactos_log) ? l.contactos_log : [];
+      var ultimaNota = contactos.length ? contactos[contactos.length-1].notas : (l.notas_iniciales || '');
+
+      var puedeContactar = ['NUEVO','CONTACTO_1'].includes(l.estado);
+      var puedeConvertir = ['NUEVO','CONTACTO_1','CONTACTO_2'].includes(l.estado);
+      var puedeArchivar  = l.estado !== 'ARCHIVADO' && l.estado !== 'CERRADO';
+
+      var diasStr = '';
+      if (l.fecha_registro) {
+        var dias = Math.floor((new Date() - new Date(l.fecha_registro)) / 86400000);
+        diasStr = dias === 0 ? 'Hoy' : dias === 1 ? 'Ayer' : 'Hace ' + dias + ' días';
+      }
+
+      var valorStr = l.valor_aproximado ? '$' + Number(l.valor_aproximado).toLocaleString('es-CO') : '';
+
+      return '<div class="lead-item">'
+        + '<div class="lead-avatar" style="background:'+col[0]+';color:'+col[1]+'">'+iniciales+'</div>'
+        + '<div class="lead-info">'
+          + '<div class="lead-nombre">' + (l.nombre||'Sin nombre') + '</div>'
+          + '<div class="lead-meta">'
+            + (l.telefono ? '<span>📱 '+l.telefono+'</span>' : '')
+            + (l.producto_interes ? '<span>🛍️ '+l.producto_interes+'</span>' : '')
+            + (valorStr ? '<span>💰 '+valorStr+'</span>' : '')
+            + (l.canal ? '<span>📲 '+l.canal+'</span>' : '')
+            + '<span>🕐 '+diasStr+'</span>'
+          + '</div>'
+          + (ultimaNota ? '<div class="lead-notas">💬 '+ultimaNota+'</div>' : '')
+        + '</div>'
+        + '<div class="lead-right">'
+          + '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end">'
+            + '<span class="badge '+badgeCls+'">'+badgeTxt+'</span>'
+          + '</div>'
+          + '<div class="lead-vendedora">'+(l.vendedora||'')+'</div>'
+          + '<div class="lead-actions">'
+            + (puedeContactar ? '<button class="btn-accion btn-contactar" onclick="abrirModalContacto(\''+l.id+'\')">📞 Contactar</button>' : '')
+            + (puedeConvertir ? '<button class="btn-accion btn-convertir" onclick="abrirModalConvertir(\''+l.id+'\')">🚀 Orden</button>' : '')
+            + (puedeArchivar  ? '<button class="btn-accion btn-archivar"  onclick="archivarLead(\''+l.id+'\')">Archivar</button>' : '')
+          + '</div>'
+        + '</div>'
+      + '</div>';
+    }).join('');
+  }
+
+  // ── NUEVO LEAD ────────────────────────────────────────────
+  function abrirModalNuevo() {
+    ['nl-nombre','nl-telefono','nl-producto','nl-notas'].forEach(function(id){ document.getElementById(id).value=''; });
+    document.getElementById('nl-canal').value = '';
+    document.getElementById('nl-marca').value = '';
+    document.getElementById('nl-valor').value = '';
+    document.getElementById('modal-nuevo').classList.add('show');
+    setTimeout(function(){ document.getElementById('nl-nombre').focus(); }, 100);
+  }
+
+  async function guardarNuevoLead() {
+    var nombre   = document.getElementById('nl-nombre').value.trim();
+    var telefono = document.getElementById('nl-telefono').value.trim();
+    var producto = document.getElementById('nl-producto').value.trim();
+    if (!nombre)   { alert('Ingresa el nombre del cliente.'); return; }
+    if (!telefono) { alert('Ingresa el teléfono.'); return; }
+    if (!producto) { alert('¿Qué producto le interesó?'); return; }
+
+    var btn = document.querySelector('#modal-nuevo .btn-guardar');
+    btn.disabled = true; btn.textContent = '⏳ Guardando...';
+
+    try {
+      await fetch(SB_URL + '/rest/v1/leads', {
+        method: 'POST', headers: HDRF,
+        body: JSON.stringify({
+          nombre,
+          telefono,
+          canal:             document.getElementById('nl-canal').value,
+          marca:             document.getElementById('nl-marca').value,
+          producto_interes:  producto,
+          valor_aproximado:  parseFloat(document.getElementById('nl-valor').value) || 0,
+          notas_iniciales:   document.getElementById('nl-notas').value.trim(),
+          vendedora:         sesion.nombre,
+          estado:            'NUEVO',
+          contactos_log:     [],
+          fecha_registro:    new Date().toISOString()
+        })
+      });
+      cerrarModal('modal-nuevo');
+      showToast('✅ Lead registrado — ' + nombre);
+      cargar();
+    } catch(e) {
+      alert('Error: ' + e.message);
+    }
+    btn.disabled = false; btn.textContent = '💾 Guardar Lead';
+  }
+
+  // ── REGISTRAR CONTACTO ────────────────────────────────────
+  function abrirModalContacto(id) {
+    _leadActual = _leads.find(function(l){ return String(l.id) === String(id); });
+    if (!_leadActual) return;
+
+    var contactos = Array.isArray(_leadActual.contactos_log) ? _leadActual.contactos_log : [];
+    var numContacto = contactos.length + 1;
+
+    document.getElementById('mc-titulo').textContent = 'Contacto #' + numContacto + ' — ' + _leadActual.nombre;
+    document.getElementById('mc-sub').textContent    = numContacto === 1
+      ? 'Primer contacto — cuéntale sobre el producto y registra su respuesta'
+      : 'Segundo y último contacto — ofrece el descuento para cerrar la venta';
+
+    var alertaEl = document.getElementById('mc-alerta-limite');
+    alertaEl.style.display = numContacto >= 2 ? 'flex' : 'none';
+
+    // Mostrar historial
+    var histEl = document.getElementById('mc-historial');
+    histEl.innerHTML = contactos.length ? contactos.map(function(c, i) {
+      return '<div class="contacto-item">'
+        + '<div class="ci-header"><span class="ci-num">Contacto #'+(i+1)+'</span><span class="ci-fecha">'+(c.fecha?new Date(c.fecha).toLocaleDateString('es-CO',''):'')+'</span></div>'
+        + '<div class="ci-resultado">'+c.resultado+'</div>'
+        + (c.notas ? '<div class="ci-notas">'+c.notas+'</div>' : '')
+        + (c.descuento > 0 ? '<div class="ci-descuento">Descuento ofrecido: '+c.descuento+'%</div>' : '')
+      + '</div>';
+    }).join('') : '';
+
+    document.getElementById('mc-resultado').value = '';
+    document.getElementById('mc-descuento').value = '0';
+    document.getElementById('mc-notas').value     = '';
+    document.getElementById('modal-contacto').classList.add('show');
+  }
+
+  async function guardarContacto() {
+    if (!_leadActual) return;
+    var resultado = document.getElementById('mc-resultado').value;
+    var descuento = parseInt(document.getElementById('mc-descuento').value) || 0;
+    var notas     = document.getElementById('mc-notas').value.trim();
+    if (!resultado) { alert('Selecciona el resultado del contacto.'); return; }
+
+    var btn = document.getElementById('btn-guardar-contacto');
+    btn.disabled = true; btn.textContent = '⏳ Guardando...';
+
+    var contactos = Array.isArray(_leadActual.contactos_log) ? _leadActual.contactos_log.slice() : [];
+    contactos.push({ fecha: new Date().toISOString(), resultado, descuento, notas, vendedora: sesion.nombre });
+
+    // Determinar nuevo estado
+    var nuevoEstado = _leadActual.estado;
+    if (resultado === 'CERRADO') {
+      nuevoEstado = 'CERRADO';
+    } else if (contactos.length >= 2 && resultado !== 'CERRADO') {
+      nuevoEstado = 'ARCHIVADO'; // 2 contactos sin cerrar → archivar
+    } else if (contactos.length === 1) {
+      nuevoEstado = 'CONTACTO_1';
+    } else if (contactos.length === 2) {
+      nuevoEstado = 'CONTACTO_2';
+    }
+
+    try {
+      await fetch(SB_URL + '/rest/v1/leads?id=eq.' + _leadActual.id, {
+        method: 'PATCH', headers: HDRF,
+        body: JSON.stringify({ contactos_log: contactos, estado: nuevoEstado })
+      });
+      cerrarModal('modal-contacto');
+      if (nuevoEstado === 'ARCHIVADO') {
+        showToast('📁 Lead archivado — 2 contactos sin cierre');
+      } else if (nuevoEstado === 'CERRADO') {
+        showToast('🎉 ¡Venta cerrada! — ' + _leadActual.nombre);
+      } else {
+        showToast('✅ Contacto #' + contactos.length + ' registrado');
+      }
+      cargar();
+    } catch(e) {
+      alert('Error: ' + e.message);
+    }
+    btn.disabled = false; btn.textContent = '💾 Guardar Contacto';
+  }
+
+  // ── CONVERTIR EN ORDEN ────────────────────────────────────
+  function abrirModalConvertir(id) {
+    _leadActual = _leads.find(function(l){ return String(l.id) === String(id); });
+    if (!_leadActual) return;
+    var contactos = Array.isArray(_leadActual.contactos_log) ? _leadActual.contactos_log : [];
+    var descuento = contactos.length ? contactos[contactos.length-1].descuento : 0;
+    document.getElementById('conv-resumen').innerHTML =
+      '<strong>Cliente:</strong> ' + _leadActual.nombre + '<br>'
+      + '<strong>Teléfono:</strong> ' + (_leadActual.telefono||'—') + '<br>'
+      + '<strong>Producto:</strong> ' + (_leadActual.producto_interes||'—') + '<br>'
+      + '<strong>Canal:</strong> ' + (_leadActual.canal||'—') + '<br>'
+      + (descuento > 0 ? '<strong>Descuento acordado:</strong> ' + descuento + '%<br>' : '')
+      + '<strong>Valor aprox:</strong> $' + Number(_leadActual.valor_aproximado||0).toLocaleString('es-CO');
+    document.getElementById('modal-convertir').classList.add('show');
+  }
+
+  async function confirmarConvertir() {
+    if (!_leadActual) return;
+    // Guardar datos del lead en localStorage para que Ventas los precargue
+    localStorage.setItem('nk_lead_precarga', JSON.stringify({
+      nombre:   _leadActual.nombre,
+      telefono: _leadActual.telefono,
+      canal:    _leadActual.canal,
+      marca:    _leadActual.marca,
+      notas:    _leadActual.producto_interes,
+      lead_id:  _leadActual.id
+    }));
+    // Marcar lead como cerrado
+    await fetch(SB_URL + '/rest/v1/leads?id=eq.' + _leadActual.id, {
+      method: 'PATCH', headers: HDRF,
+      body: JSON.stringify({ estado: 'CERRADO' })
+    });
+    cerrarModal('modal-convertir');
+    showToast('Redirigiendo a Ventas...');
+    setTimeout(function(){ window.location.href = 'neko_ventas.html'; }, 800);
+  }
+
+  // ── ARCHIVAR ──────────────────────────────────────────────
+  async function archivarLead(id) {
+    if (!confirm('¿Archivar este lead? No aparecerá en la lista activa.')) return;
+    await fetch(SB_URL + '/rest/v1/leads?id=eq.' + id, {
+      method: 'PATCH', headers: HDRF,
+      body: JSON.stringify({ estado: 'ARCHIVADO' })
+    });
+    showToast('Lead archivado');
+    cargar();
+  }
+
+  // ── CARGAR MARCAS ─────────────────────────────────────────
+  async function cargarMarcasSelect() {
+    try {
+      var r = await fetch(SB_URL + '/rest/v1/marcas?activo=eq.true&order=nombre.asc&select=nombre', { headers: HDR });
+      var marcas = await r.json();
+      var sel = document.getElementById('nl-marca');
+      if (sel && Array.isArray(marcas) && marcas.length) {
+        sel.innerHTML = '<option value="">— Seleccionar —</option>'
+          + marcas.map(function(m){ return '<option value="'+m.nombre+'">'+m.nombre+'</option>'; }).join('');
+      }
+    } catch(e) {}
+  }
+
+  // ── HELPERS ───────────────────────────────────────────────
+  function cerrarModal(id) {
+    document.getElementById(id).classList.remove('show');
+    _leadActual = null;
+  }
+
+  function cerrarSesion() {
+    sessionStorage.removeItem('nk_user');
+    window.location.href = 'neko_login.html';
+  }
+
+  function showToast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.opacity = '1';
+    setTimeout(function(){ t.style.opacity = '0'; }, 3000);
+  }
+</script>
+</body>
+</html>
