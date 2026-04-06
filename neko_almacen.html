@@ -290,7 +290,7 @@ function mostrarTab(tab) {
 async function cargarPendientes() {
   document.getElementById("panel-pendientes").innerHTML = '<div class="state-box"><div class="icon">⏳</div><p>Cargando...</p></div>';
   try {
-    var r = await fetch(SB + "/rest/v1/ordenes?estado=eq.EN_PRODUCCION&select=id,numero_orden,nombre_cliente,telefono,doc_cliente,direccion,barrio,ciudad,departamento,usuario_red,marca,vendedora,productos,sub_estados,es_prioritario,fecha_entrega,fecha_creacion,valor_total,monto_pagado,saldo_pendiente,es_contraentrega,pago_confirmado,confirmado_por,guia_numero,guia_url,link_drive,tipo_envio,transportadora,tiene_hijas,orden_padre,obs_envio,obs_envio_leido&order=es_prioritario.desc,fecha_creacion.asc", { headers: H });
+    var r = await fetch(SB + "/rest/v1/ordenes?estado=eq.EN_PRODUCCION&select=id,numero_orden,nombre_cliente,telefono,doc_cliente,direccion,barrio,ciudad,departamento,usuario_red,marca,vendedora,productos,sub_estados,es_prioritario,fecha_entrega,fecha_creacion,valor_total,monto_pagado,saldo_pendiente,es_contraentrega,envio_contraentrega,pago_confirmado,confirmado_por,guia_numero,guia_url,link_drive,tipo_envio,transportadora,tiene_hijas,orden_padre,obs_envio,obs_envio_leido&order=es_prioritario.desc,fecha_creacion.asc", { headers: H });
     var all = await r.json();
     if (!Array.isArray(all)) all = [];
 
@@ -545,14 +545,16 @@ function buildCard(o, isDespachado, esHija, hijasData, saldoGrupo, esContraentre
   }
 
   var pagoHTML = "";
+  // Envío al cobro — siempre visible, independiente del estado de pago del producto
+  if (!isDespachado && o.envio_contraentrega) {
+    pagoHTML += "<div style='background:#eff6ff;border:2px solid #2563eb;border-radius:8px;padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px'><span style='font-size:20px'>📬</span><div><div style='font-size:13px;font-weight:800;color:#1d4ed8'>ENVÍO AL COBRO</div><div style='font-size:12px;color:#1e40af'>El producto ya está pagado — cobrar SOLO el flete al momento de la entrega</div></div></div>";
+  }
   if (!isDespachado && !o.pago_confirmado) {
     if (o.es_contraentrega) {
-      pagoHTML = "<div class='alert-contraentrega'><span class='ac-icon'>🚚</span><div><div class='ac-title'>CONTRAENTREGA - Cobrar al entregar</div><div class='ac-monto'>$"+Number(o.valor_total||0).toLocaleString("es-CO")+" COP</div></div></div>";
+      pagoHTML += "<div class='alert-contraentrega'><span class='ac-icon'>🚚</span><div><div class='ac-title'>CONTRAENTREGA - Cobrar al entregar</div><div class='ac-monto'>$"+Number(o.valor_total||0).toLocaleString("es-CO")+" COP</div></div></div>";
     }
-    if (o.envio_contraentrega) {
-      pagoHTML += "<div style='background:#eff6ff;border:2px solid #2563eb;border-radius:8px;padding:10px 14px;margin-top:8px;display:flex;align-items:center;gap:10px'><span style='font-size:20px'>📬</span><div><div style='font-size:13px;font-weight:800;color:#1d4ed8'>ENVÍO AL COBRO</div><div style='font-size:12px;color:#1e40af'>El producto ya está pagado — cobrar SOLO el flete al momento de la entrega</div></div></div>";
-    } else if (o.saldo_pendiente > 0) {
-      pagoHTML = "<div class='alert-box warning'><span>💰</span><div><strong>Saldo Pendiente</strong> - Abono: $"+Number(o.monto_pagado||0).toLocaleString("es-CO")+" | Adeuda: $"+Number(o.saldo_pendiente||0).toLocaleString("es-CO")+" COP</div></div>";
+    if (o.saldo_pendiente > 0) {
+      pagoHTML += "<div class='alert-box warning'><span>💰</span><div><strong>Saldo Pendiente</strong> - Abono: $"+Number(o.monto_pagado||0).toLocaleString("es-CO")+" | Adeuda: $"+Number(o.saldo_pendiente||0).toLocaleString("es-CO")+" COP</div></div>";
     }
   }
 
