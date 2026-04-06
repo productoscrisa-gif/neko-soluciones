@@ -1199,7 +1199,15 @@
         marca:           document.getElementById('marca').value,
         tipo_envio:      document.getElementById('tipo_envio').value,
         es_contraentrega:    document.getElementById('es_contraentrega').value === 'true',
-        envio_contraentrega: document.getElementById('envio_contraentrega') ? document.getElementById('envio_contraentrega').value === 'true' : false,
+        // Leer del input hidden Y también verificar visualmente el check como respaldo
+        envio_contraentrega: (function() {
+          var inputVal = document.getElementById('envio_contraentrega');
+          var checkEl  = document.getElementById('envio-contra-check');
+          var porInput = inputVal && inputVal.value === 'true';
+          var porCheck = checkEl  && checkEl.textContent.trim() === '✓';
+          console.log('[Ventas] envio_al_cobro — input:', inputVal?.value, '| check:', checkEl?.textContent, '| resultado:', porInput || porCheck);
+          return porInput || porCheck;
+        })(),
         usuario_red:     document.getElementById('usuario_red').value,
         canal:           document.getElementById('canal').value,
         doc_cliente:     document.getElementById('doc_id').value,
