@@ -233,11 +233,7 @@
 
     cargar();
     cargarErrores();
-    // Polling liviano de aprobaciones cada 25 segundos
-    // Solo aplica al área Diseño — consulta únicamente el campo aprobacion_estado
-    if (areaActual === 'Diseño' || esAreaDiseno(areaActual)) {
-      setInterval(pollingAprobaciones, 25000);
-    }
+
   });
 
   function cerrarSesion() {
@@ -259,9 +255,6 @@
       const r = await fetch(url, { headers: HDR });
       if (!r.ok) throw new Error('Error HTTP ' + r.status);
       const ordenes = await r.json();
-
-      // Verificar cambios en aprobaciones vs carga anterior
-      revisarCambiosAprobacion(ordenes);
 
       // Extraer prendas del área actual — procesamiento eficiente
       const pendientes = [], enProceso = [], listas = [];
@@ -1245,174 +1238,10 @@
   // ── POLLING LIVIANO DE APROBACIONES ─────────────────────
   // Solo consulta aprobacion_estado — no recarga toda la lista
   // Se ejecuta cada 25 segundos para TODOS los diseñadores automáticamente
-  async function pollingAprobaciones() {
-    if (!esAreaDiseno(areaActual)) return;
-    try {
-      const r = await fetch(
-        SB_URL + '/rest/v1/ordenes?estado=eq.EN_PRODUCCION&requiere_aprobacion=eq.true'
-               + '&select=id,numero_orden,aprobacion_estado,aprobacion_comentario',
-        { headers: HDR }
-      );
-      if (!r.ok) return;
-      const ordenes = await r.json();
-      if (!Array.isArray(ordenes)) return;
 
-      var hayNuevos = false;
-      ordenes.forEach(function(o) {
-        var anterior = _estadosAprobacion[o.id];
-        var actual   = o.aprobacion_estado;
-
-        // Primera vez — solo registrar sin notificar
-        if (anterior === undefined) {
-          _estadosAprobacion[o.id] = actual;
-          return;
-        }
-
-        // Cambió a APROBADO
-        if (anterior !== 'APROBADO' && actual === 'APROBADO') {
-          _estadosAprobacion[o.id] = actual;
-          hayNuevos = true;
-          mostrarAlertaAprobacion(o.numero_orden, 'APROBADO', '');
-        }
-
-        // Cambió a RECHAZADO
-        if (anterior !== 'RECHAZADO' && actual === 'RECHAZADO') {
-          _estadosAprobacion[o.id] = actual;
-          hayNuevos = true;
-          mostrarAlertaAprobacion(o.numero_orden, 'RECHAZADO', o.aprobacion_comentario || '');
-        }
-
-        _estadosAprobacion[o.id] = actual;
-      });
-
-      // Si hubo cambios recargar la lista para mostrar banners actualizados
-      if (hayNuevos) cargar();
-
-      // Actualizar badge de pendientes
-      var pendientes = ordenes.filter(function(o){
-        return !o.aprobacion_estado || o.aprobacion_estado === 'PENDIENTE';
-      }).length;
-      actualizarBadgeAprobacion(pendientes);
-
-    } catch(e) { /* silencioso — no interrumpir al diseñador */ }
-  }
 
   // ── NOTIFICACIONES DE APROBACIÓN ────────────────────────
-  // Se activan al presionar 🔄 Actualizar — sin polling automático
-  var _estadosAprobacion = {};  // cache: {ordenId: estado}
-  var _primerasCarga = true;    // controla si es primera vez
-
-  function revisarCambiosAprobacion(ordenes) {
-    // Llamada desde cargar() después de traer los datos
-    if (!esAreaDiseno(areaActual)) return;
-    if (!Array.isArray(ordenes)) return;
-
-    var pendientes = 0;
-    var _hayNuevosRevisar = false;
-    ordenes.forEach(function(o) {
-      if (!o.requiere_aprobacion) return;
-      var estadoAnterior = _estadosAprobacion[o.id];
-      var estadoActual   = o.aprobacion_estado;
-
-      // Contar pendientes para el badge
-      if (!estadoActual || estadoActual === 'PENDIENTE') pendientes++;
-
-      // Primera carga
-      if (estadoAnterior === undefined) {
-        _estadosAprobacion[o.id] = estadoActual;
-        // Si ya está APROBADO o RECHAZADO al entrar, notificar igual
-        // El diseñador necesita saber sin importar si es nueva sesión
-        if (estadoActual === 'APROBADO') {
-          mostrarAlertaAprobacion(o.numero_orden, 'APROBADO', '');
-        } else if (estadoActual === 'RECHAZADO') {
-          mostrarAlertaAprobacion(o.numero_orden, 'RECHAZADO', o.aprobacion_comentario || '');
-        }
-        return;
-      }
-
-      // Detectar cambio a APROBADO
-      if (estadoAnterior !== 'APROBADO' && estadoActual === 'APROBADO') {
-        _estadosAprobacion[o.id] = estadoActual;
-        _hayNuevosRevisar = true;
-        mostrarAlertaAprobacion(o.numero_orden, 'APROBADO', '');
-      }
-
-      // Detectar cambio a RECHAZADO
-      if (estadoAnterior !== 'RECHAZADO' && estadoActual === 'RECHAZADO') {
-        _estadosAprobacion[o.id] = estadoActual;
-        _hayNuevosRevisar = true;
-        mostrarAlertaAprobacion(o.numero_orden, 'RECHAZADO', o.aprobacion_comentario || '');
-      }
-
-      // Actualizar cache
-      _estadosAprobacion[o.id] = estadoActual;
-    });
-
-    actualizarBadgeAprobacion(pendientes);
-    // Recargar la lista para mostrar banners actualizados en los cards
-    if (_hayNuevosRevisar) {
-      _hayNuevosRevisar = false;
-      setTimeout(cargar, 300);
-    }
-  }
-
-  function _cerrarNotif(btn) {
-    var p = btn.parentElement;
-    while (p && p !== document.body) {
-      if (p.style && p.style.position === 'fixed') { p.remove(); return; }
-      p = p.parentElement;
-    }
-  }
-
-  function mostrarAlertaAprobacion(numeroOrden, estado, comentario) {
-    // Crear notificación flotante
-    var div = document.createElement('div');
-    var esAprobado = estado === 'APROBADO';
-    div.style.cssText = 'position:fixed;top:20px;right:20px;z-index:99999;max-width:340px;width:calc(100% - 40px);'
-      + 'background:' + (esAprobado ? '#ecfdf5' : '#fff1f2') + ';'
-      + 'border:2px solid ' + (esAprobado ? '#6ee7b7' : '#fca5a5') + ';'
-      + 'border-radius:12px;padding:16px 18px;box-shadow:0 8px 30px rgba(0,0,0,.18);'
-      + 'animation:slideIn .3s ease';
-    div.innerHTML = '<div style="display:flex;align-items:flex-start;gap:10px">'
-      + '<span style="font-size:24px">' + (esAprobado ? '✅' : '❌') + '</span>'
-      + '<div style="flex:1">'
-        + '<div style="font-size:14px;font-weight:800;color:' + (esAprobado ? '#065f46' : '#991b1b') + '">'
-          + (esAprobado ? 'Arte Aprobado' : 'Arte Rechazado') + ' — Orden ' + numeroOrden
-        + '</div>'
-        + (esAprobado
-            ? '<div style="font-size:12px;color:#047857;margin-top:3px">El cliente aprobó. Ya puedes imprimir.</div>'
-            : '<div style="font-size:12px;color:#b91c1c;margin-top:3px">'
-                + (comentario ? 'Motivo: ' + comentario : 'Revisa los detalles en la orden.')
-              + '</div>')
-        + '<div style="margin-top:10px">'
-          + '<button onclick="_cerrarNotif(this); cargar();" '
-            + 'style="padding:6px 14px;background:' + (esAprobado ? '#10b981' : '#dc2626') + ';color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">'
-            + 'Ver en lista ↗'
-          + '</button>'
-          + '<button onclick="_cerrarNotif(this)" '
-            + 'style="padding:6px 12px;background:transparent;color:#64748b;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;cursor:pointer">'
-            + 'Cerrar'
-          + '</button>'
-        + '</div>'
-      + '</div>'
-    + '</div>';
-    document.body.appendChild(div);
-    // Auto-quitar después de 15 segundos
-    setTimeout(function(){ if(div.parentNode) div.remove(); }, 15000);
-    // Intentar reproducir sonido de notificación
-    try {
-      var ctx = new (window.AudioContext || window.webkitAudioContext)();
-      var osc = ctx.createOscillator();
-      var gain = ctx.createGain();
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.frequency.value = esAprobado ? 880 : 440;
-      osc.type = 'sine';
-      gain.gain.setValueAtTime(0.3, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.5);
-    } catch(e) {}
-  }
+  var _yaNotificadas = {};
 
   function actualizarBadgeAprobacion(pendientes) {
     var badge = document.getElementById('badge-aprobacion-diseno');

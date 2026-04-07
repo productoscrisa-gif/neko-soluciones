@@ -937,16 +937,19 @@
       departamento:         orden.departamento,
       ultima_actualizacion: new Date().toISOString()
     };
-    await fetch(`${SUPABASE_URL}/rest/v1/clientes`, {
-      method: 'POST',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_KEY,
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates'
-      },
-      body: JSON.stringify(cliente)
-    });
+    try {
+      // Intentar con upsert — si falla silenciosamente no afecta la orden
+      await fetch(`${SUPABASE_URL}/rest/v1/clientes`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_KEY,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates,return=minimal'
+        },
+        body: JSON.stringify(cliente)
+      });
+    } catch(e) { /* silencioso — la orden ya fue guardada */ }
   }
 
   // ── TOAST NOTIFICATION ───────────────────────────────────
@@ -1199,14 +1202,10 @@
         marca:           document.getElementById('marca').value,
         tipo_envio:      document.getElementById('tipo_envio').value,
         es_contraentrega:    document.getElementById('es_contraentrega').value === 'true',
-        // Leer del input hidden Y también verificar visualmente el check como respaldo
         envio_contraentrega: (function() {
           var inputVal = document.getElementById('envio_contraentrega');
           var checkEl  = document.getElementById('envio-contra-check');
-          var porInput = inputVal && inputVal.value === 'true';
-          var porCheck = checkEl  && checkEl.textContent.trim() === '✓';
-          console.log('[Ventas] envio_al_cobro — input:', inputVal?.value, '| check:', checkEl?.textContent, '| resultado:', porInput || porCheck);
-          return porInput || porCheck;
+          return (inputVal && inputVal.value === 'true') || (checkEl && checkEl.textContent.trim() === '✓');
         })(),
         usuario_red:     document.getElementById('usuario_red').value,
         canal:           document.getElementById('canal').value,
