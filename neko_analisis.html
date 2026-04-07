@@ -185,6 +185,8 @@
     'Ruta 4':{ nombre:'Solo Diseño/Sublimación',pasos:['Análisis','Diseño','Sublimación','Almacén'] },
     'Ruta 5':{ nombre:'Bordado Tipo 1',         pasos:['Ventas','Análisis','Diseño','Confección','Bordado','Terminación','Almacén'] },
     'Ruta 6':{ nombre:'Bordado Tipo 2',         pasos:['Ventas','Análisis','Diseño','Bordado','Confección','Terminación','Almacén'] },
+    'Ruta 7':{ nombre:'Corte y Confección',      pasos:['Ventas','Análisis','Corte','Confección','Terminación','Almacén'] },
+    'Ruta 8':{ nombre:'DTF Unicolor',            pasos:['Ventas','Análisis','Corte','Confección','Diseño','Sublimación','Almacén'] },
   };
 
   let ordenes = [];
@@ -341,7 +343,7 @@
     document.getElementById(`rbadge-prenda-${oid}-${idx}`).innerHTML = '✅ '+ruta;
 
     // Mostrar/ocultar selector de diseñador según si la ruta tiene Diseño después de Análisis
-    const rutasConDiseno = ['Ruta 1','Ruta 3','Ruta 4','Ruta 5','Ruta 6'];
+    const rutasConDiseno = ['Ruta 1','Ruta 3','Ruta 4','Ruta 5','Ruta 6','Ruta 8'];
     const divDisenio = document.getElementById(`div-disenio-${oid}-${idx}`);
     if (divDisenio) {
       if (rutasConDiseno.includes(ruta)) {
@@ -388,7 +390,7 @@
     }
 
     // Validar diseñador en rutas que lo requieren
-    const rutasConDiseno = ['Ruta 1','Ruta 3','Ruta 4','Ruta 5','Ruta 6'];
+    const rutasConDiseno = ['Ruta 1','Ruta 3','Ruta 4','Ruta 5','Ruta 6','Ruta 8'];
     const sinDisenador = prods.filter(p => rutasConDiseno.includes(p.ruta) && !p.diseñador);
     if (sinDisenador.length) {
       alert(`⚠️ ${sinDisenador.length} prenda(s) requieren diseñador asignado.\n(${sinDisenador.map(p=>p.tipo||'Prenda').join(', ')})\nAsigna el diseñador antes de enviar.`);
@@ -396,7 +398,7 @@
     }
 
     // Validar tela — rutas que requieren tela bloquean si no está asignada
-    const rutasConTela = ['Ruta 1','Ruta 2','Ruta 5','Ruta 6'];
+    const rutasConTela = ['Ruta 1','Ruta 2','Ruta 5','Ruta 6','Ruta 7','Ruta 8'];
     const sinTela = prods.filter(p => rutasConTela.includes(p.ruta) && !p.insumo_id);
     if (sinTela.length) {
       alert(`⚠️ ${sinTela.length} prenda(s) requieren tela asignada antes de enviar a producción.\n(${sinTela.map(p=>p.tipo||'Prenda').join(', ')})\n\nVe a la prenda y asigna la tela correspondiente.`);

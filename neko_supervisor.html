@@ -452,6 +452,8 @@
     'Ruta 4': { nombre:'Solo Diseño/Sublimación', pasos:['Análisis','Diseño','Sublimación','Almacén'] },
     'Ruta 5': { nombre:'Bordado Tipo 1',          pasos:['Ventas','Análisis','Diseño','Confección','Bordado','Terminación','Almacén'] },
     'Ruta 6': { nombre:'Bordado Tipo 2',          pasos:['Ventas','Análisis','Diseño','Bordado','Confección','Terminación','Almacén'] },
+    'Ruta 7': { nombre:'Corte y Confección',       pasos:['Ventas','Análisis','Corte','Confección','Terminación','Almacén'] },
+    'Ruta 8': { nombre:'DTF Unicolor',             pasos:['Ventas','Análisis','Corte','Confección','Diseño','Sublimación','Almacén'] },
   };
 
   let sesion = null;
@@ -659,7 +661,7 @@
     const orden = ordenesAnalisis.find(o => String(o.id) === String(oid));
     if (!orden) return;
     const prods = orden.productos || [];
-    const rutasConDiseno = ['Ruta 1','Ruta 3','Ruta 4','Ruta 5','Ruta 6'];
+    const rutasConDiseno = ['Ruta 1','Ruta 3','Ruta 4','Ruta 5','Ruta 6','Ruta 8'];
     const errores = [];
 
     prods.forEach((p, i) => {
@@ -729,7 +731,7 @@
         + '<div class="ruta-grid-a">' + btns + '</div>'
         + '<div class="flujo-mini ' + (rutaActual ? 'show' : '') + '" id="fm-a-' + oid + '-' + idx + '">' + flujoHTML + '</div>'
         + '<div id="sup-div-disenio-' + oid + '-' + idx + '">'
-          + (rutaActual && ['Ruta 1','Ruta 3','Ruta 4','Ruta 5','Ruta 6'].includes(rutaActual)
+          + (rutaActual && ['Ruta 1','Ruta 3','Ruta 4','Ruta 5','Ruta 6','Ruta 8'].includes(rutaActual)
             ? buildSelectDiseniadorSup(oid, idx, p.diseñador || '')
             : '')
         + '</div>'
@@ -757,7 +759,7 @@
     document.getElementById('rb-a-' + oid + '-' + idx).innerHTML = '✅ ' + ruta;
 
     // Mostrar/ocultar selector de diseñador en supervisor
-    const rutasConDiseno = ['Ruta 1','Ruta 3','Ruta 4','Ruta 5','Ruta 6'];
+    const rutasConDiseno = ['Ruta 1','Ruta 3','Ruta 4','Ruta 5','Ruta 6','Ruta 8'];
     const supDivDisenio = document.getElementById('sup-div-disenio-' + oid + '-' + idx);
     if (supDivDisenio) {
       if (rutasConDiseno.includes(ruta)) {
@@ -807,7 +809,7 @@
     }
 
     // Validar diseñador en rutas que lo requieren (1, 3, 4, 5, 6)
-    const rutasConDiseno = ['Ruta 1','Ruta 3','Ruta 4','Ruta 5','Ruta 6'];
+    const rutasConDiseno = ['Ruta 1','Ruta 3','Ruta 4','Ruta 5','Ruta 6','Ruta 8'];
     const sinDisenador = prods.filter(p => rutasConDiseno.includes(p.ruta) && !p.diseñador);
     if (sinDisenador.length) {
       alert('⚠️ ' + sinDisenador.length + ' prenda(s) requieren diseñador asignado.\n('
