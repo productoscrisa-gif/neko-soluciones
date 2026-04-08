@@ -118,7 +118,7 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
   <div class="topbar-right">
     <span class="user-info" id="user-info"></span>
     <button class="btn-sm" onclick="cargar()">🔄 Actualizar</button>
-    <a href="neko_ventas.html" class="btn-sm" style="color:var(--blue);border-color:var(--blue-mid);background:var(--blue-light)">← Ventas</a>
+    <a id="btn-volver" href="neko_ventas.html" class="btn-sm" style="color:var(--blue);border-color:var(--blue-mid);background:var(--blue-light)">← Volver</a>
     <button class="btn-sm" onclick="cerrarSesion()">🚪 Salir</button>
   </div>
 </div>
@@ -337,6 +337,15 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
       window.location.href = 'neko_login.html'; return;
     }
     document.getElementById('user-info').textContent = '👤 ' + sesion.nombre;
+    // Botón volver según área
+    var btnVolver = document.getElementById('btn-volver');
+    if (sesion.area === 'Almacen' || sesion.area === 'Almacén') {
+      btnVolver.href = 'neko_almacen.html';
+      btnVolver.textContent = '← Almacén';
+    } else if (sesion.area === 'Admin') {
+      btnVolver.href = 'neko_admin.html';
+      btnVolver.textContent = '← Admin';
+    }
     // Solo Ventas y Admin pueden registrar nuevas devoluciones
     if (!['Ventas','Admin','Supervisor'].includes(sesion.area)) {
       document.getElementById('btn-nuevo-dev').style.display = 'none';
@@ -407,6 +416,7 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
             + '<span>🕐 '+diasStr+'</span>'
             + (d.aprobado_por ? '<span>✅ Aprobado por: '+d.aprobado_por+'</span>' : '')
             + (d.orden_nueva ? '<span>🔗 Orden nueva: <strong>'+d.orden_nueva+'</strong></span>' : '')
+            + (d.link_foto_guia ? '<span>📸 <a href="'+d.link_foto_guia+'" target="_blank" style="color:var(--blue);font-weight:700">Ver guía recibida</a></span>' : '')
           + '</div>'
           + (d.motivo ? '<div class="dev-notas">'+d.motivo.substring(0,100)+(d.motivo.length>100?'...':'')+'</div>' : '')
         + '</div>'
@@ -589,7 +599,7 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
     var configs = {
       aprobar:      { titulo:'✅ Aprobar devolución', sub:'Confirma la aprobación de este caso', campos:'<div class="field"><label>Comentario de aprobación</label><textarea id="mac-nota" placeholder="Instrucciones o condiciones de la aprobación..."></textarea></div>', btn:'✅ Aprobar' },
       rechazar:     { titulo:'❌ Rechazar devolución', sub:'Indica el motivo del rechazo', campos:'<div class="field"><label>Motivo del rechazo <span class="req">*</span></label><textarea id="mac-nota" placeholder="Explica por qué se rechaza..."></textarea></div>', btn:'❌ Rechazar' },
-      foto_guia:    { titulo:'📸 Link foto de la guía', sub:'Pega el link donde está la foto de la guía recibida', campos:'<div class="field"><label>Link de la foto <span class="req">*</span></label><input type="url" id="mac-link" placeholder="https://drive.google.com/..."><div style="font-size:12px;color:var(--text-muted);margin-top:4px">Drive, WhatsApp Web, etc.</div></div>', btn:'💾 Guardar link' },
+      foto_guia:    { titulo:'📸 Registrar guía recibida en Almacén', sub:'Pega el link de la foto de la guía. Ventas podrá verlo para identificar al cliente.', campos:'<div class="field"><label>Link de la foto <span class="req">*</span></label><input type="url" id="mac-link" placeholder="https://drive.google.com/..."><div style="font-size:12px;color:var(--text-muted);margin-top:4px">Drive, WhatsApp Web, etc.</div></div>', btn:'💾 Guardar link' },
       contacto:     { titulo:'📞 Registrar contacto con cliente', sub:'Máximo 2 contactos. Si no responde, pasa a stock en almacén.', campos:'<div class="field" style="margin-bottom:12px"><label>Resultado del contacto <span class="req">*</span></label><select id="mac-resultado"><option value="">— Seleccionar —</option><option value="CONTESTO_ACEPTA">✅ Contestó — acepta reenvío</option><option value="CONTESTO_RECHAZA">❌ Contestó — no quiere</option><option value="NO_CONTESTA">📵 No contesta</option></select></div><div class="field"><label>Notas</label><textarea id="mac-nota" placeholder="Detalles del contacto..."></textarea></div>', btn:'💾 Guardar' },
       devolver_dinero:{ titulo:'💸 Registrar devolución de dinero', sub:'La prenda ya está en almacén. Registra el comprobante de pago.', campos:'<div class="field" style="margin-bottom:12px"><label>Link del comprobante <span class="req">*</span></label><input type="url" id="mac-link" placeholder="https://drive.google.com/..."></div><div class="field"><label>Notas</label><textarea id="mac-nota" placeholder="Referencia de la transferencia, número de transacción..."></textarea></div>', btn:'✅ Confirmar devolución' }
     };
@@ -628,10 +638,13 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
       hist.push({ fecha: new Date().toISOString(), accion:'RECHAZADO', usuario: sesion.nombre, nota });
     }
     else if (_accionActual === 'foto_guia') {
-      if (!link) { alert('Pega el link de la foto.'); btn.disabled=false; btn.textContent='💾 Guardar link'; return; }
+      if (!link) { alert('Pega el link de la foto de la guía.'); btn.disabled=false; btn.textContent='💾 Guardar link'; return; }
       update.link_foto_guia = link;
-      update.estado         = 'EN_PROCESO';
-      hist.push({ fecha: new Date().toISOString(), accion:'FOTO_GUIA_RECIBIDA', usuario: sesion.nombre, nota:'Link: ' + link });
+      // Solo cambiar estado para NO_RECIBIDO — los demás ya tienen su propio flujo
+      if (_devActual.tipo === 'NO_RECIBIDO' && _devActual.estado === 'REGISTRADO') {
+        update.estado = 'EN_PROCESO';
+      }
+      hist.push({ fecha: new Date().toISOString(), accion:'GUIA_RECIBIDA_ALMACEN', usuario: sesion.nombre, nota:'Link guía: ' + link });
     }
     else if (_accionActual === 'contacto') {
       if (!resultado) { alert('Selecciona el resultado del contacto.'); btn.disabled=false; btn.textContent='💾 Guardar'; return; }
