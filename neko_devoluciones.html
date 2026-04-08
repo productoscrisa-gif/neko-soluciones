@@ -103,6 +103,8 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
 .hi-fecha{font-size:11px;color:var(--text-muted);}
 .hi-nota{font-size:12px;color:var(--text-secondary);}
 .empty-state{text-align:center;padding:40px;color:var(--text-muted);}
+.dev-item-guia{background:#fffbeb;border-left:3px solid #f59e0b;}
+.btn-nuevo-desde-guia{padding:7px 16px;border-radius:6px;font-size:13px;font-weight:800;cursor:pointer;background:linear-gradient(135deg,var(--coral),#be123c);color:#fff;border:none;box-shadow:0 2px 8px rgba(225,29,72,.3);}
 #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 22px;border-radius:10px;font-size:14px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:9999;opacity:0;transition:opacity .3s;white-space:nowrap;pointer-events:none;}
 @media(max-width:600px){.stats-bar{grid-template-columns:1fr 1fr;}.form-grid-2{grid-template-columns:1fr;}.dev-item{flex-wrap:wrap;}}
 </style>
@@ -146,6 +148,7 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
         </select>
         <select id="fil-estado" onchange="aplicarFiltros()">
           <option value="">Todos los estados</option>
+          <option value="GUIA_RECIBIDA">Guía recibida</option>
           <option value="REGISTRADO">Registrado</option>
           <option value="APROBADO">Aprobado</option>
           <option value="EN_PROCESO">En proceso</option>
@@ -154,10 +157,32 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
         </select>
         <input type="text" id="fil-texto" placeholder="Orden, cliente..." oninput="aplicarFiltros()" style="width:180px">
         <button class="btn-nuevo" onclick="abrirModalNuevo()" id="btn-nuevo-dev">+ Nueva Devolución</button>
+        <button class="btn-nuevo" onclick="document.getElementById('modal-almacen-guia').classList.add('show')" id="btn-almacen-guia" style="display:none;background:linear-gradient(135deg,#0d9488,#0f766e);box-shadow:0 3px 10px rgba(13,148,136,.3)">📦 Registrar guía recibida</button>
       </div>
     </div>
     <div id="lista-devoluciones">
       <div class="empty-state"><p>Cargando...</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ALMACÉN: Registrar guía recibida -->
+<div class="modal-overlay" id="modal-almacen-guia">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-title">📦 Registrar devolución recibida</div>
+    <div class="modal-sub">Pega el link de la foto de la guía. Ventas completará los datos del caso.</div>
+    <div class="form-grid-1 field" style="margin-bottom:16px">
+      <label>Link de la foto de la guía <span class="req">*</span></label>
+      <input type="url" id="ag-link" placeholder="https://drive.google.com/...">
+      <div style="font-size:12px;color:var(--text-muted);margin-top:4px">Drive, WhatsApp Web, etc.</div>
+    </div>
+    <div class="form-grid-1 field" style="margin-bottom:4px">
+      <label>Notas adicionales (opcional)</label>
+      <textarea id="ag-notas" rows="2" placeholder="Ej: Llegó sin empaque, prenda en buen estado..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="cerrarModal('modal-almacen-guia')">Cancelar</button>
+      <button class="btn-guardar" onclick="guardarGuiaAlmacen()" id="btn-guardar-guia">💾 Guardar — Notificar a Ventas</button>
     </div>
   </div>
 </div>
@@ -346,12 +371,47 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
       btnVolver.href = 'neko_admin.html';
       btnVolver.textContent = '← Admin';
     }
-    // Solo Ventas y Admin pueden registrar nuevas devoluciones
-    if (!['Ventas','Admin','Supervisor'].includes(sesion.area)) {
+    // Almacén solo ve el botón de registrar guía
+    // Ventas y Admin ven el botón de nueva devolución
+    if (sesion.area === 'Almacen' || sesion.area === 'Almacén') {
       document.getElementById('btn-nuevo-dev').style.display = 'none';
+      document.getElementById('btn-almacen-guia').style.display = 'inline-flex';
     }
     cargar();
   });
+
+  // ── ALMACÉN: registrar guía recibida ────────────────────
+  async function guardarGuiaAlmacen() {
+    var link  = document.getElementById('ag-link').value.trim();
+    var notas = document.getElementById('ag-notas').value.trim();
+    if (!link) { alert('Pega el link de la foto de la guía.'); return; }
+
+    var btn = document.getElementById('btn-guardar-guia');
+    btn.disabled = true; btn.textContent = '⏳ Guardando...';
+
+    var datos = {
+      tipo:            'PENDIENTE_IDENTIFICAR',
+      numero_orden:    '—',
+      cliente:         'Por identificar',
+      motivo:          'Devolución recibida en almacén — Ventas debe completar datos',
+      notas:           notas,
+      link_foto_guia:  link,
+      vendedora:       sesion.nombre,
+      estado:          'GUIA_RECIBIDA',
+      historial:       JSON.stringify([{ fecha: new Date().toISOString(), accion:'GUIA_RECIBIDA', usuario: sesion.nombre, nota:'Link guía: ' + link }]),
+      fecha_registro:  new Date().toISOString()
+    };
+
+    try {
+      await fetch(SB_URL + '/rest/v1/devoluciones', { method:'POST', headers:HDRF, body:JSON.stringify(datos) });
+      document.getElementById('ag-link').value  = '';
+      document.getElementById('ag-notas').value = '';
+      document.getElementById('modal-almacen-guia').classList.remove('show');
+      showToast('✅ Guía registrada — Ventas recibirá el aviso');
+      cargar();
+    } catch(e) { alert('Error: ' + e.message); }
+    btn.disabled = false; btn.textContent = '💾 Guardar — Notificar a Ventas';
+  }
 
   async function cargar() {
     try {
@@ -389,10 +449,10 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
     renderLista(lista);
   }
 
-  var TIPO_LABEL = { NO_RECIBIDO:'🚫 No recibido', CAMBIO:'🔄 Cambio', GARANTIA:'🛡️ Garantía', DEVOLUCION_DINERO:'💸 Dev. dinero' };
-  var TIPO_CLASS = { NO_RECIBIDO:'tipo-no-recibido', CAMBIO:'tipo-cambio', GARANTIA:'tipo-garantia', DEVOLUCION_DINERO:'tipo-devolucion' };
-  var EST_LABEL  = { REGISTRADO:'Registrado', APROBADO:'✅ Aprobado', EN_PROCESO:'⚙️ En proceso', CERRADO:'🔒 Cerrado', RECHAZADO:'❌ Rechazado' };
-  var EST_CLASS  = { REGISTRADO:'est-registrado', APROBADO:'est-aprobado', EN_PROCESO:'est-en-proceso', CERRADO:'est-cerrado', RECHAZADO:'est-rechazado' };
+  var TIPO_LABEL = { PENDIENTE_IDENTIFICAR:'⏳ Por identificar', NO_RECIBIDO:'🚫 No recibido', CAMBIO:'🔄 Cambio', GARANTIA:'🛡️ Garantía', DEVOLUCION_DINERO:'💸 Dev. dinero' };
+  var TIPO_CLASS = { PENDIENTE_IDENTIFICAR:'tipo-no-recibido', NO_RECIBIDO:'tipo-no-recibido', CAMBIO:'tipo-cambio', GARANTIA:'tipo-garantia', DEVOLUCION_DINERO:'tipo-devolucion' };
+  var EST_LABEL  = { REGISTRADO:'Registrado', GUIA_RECIBIDA:'📦 Guía recibida — Completar', APROBADO:'✅ Aprobado', EN_PROCESO:'⚙️ En proceso', CERRADO:'🔒 Cerrado', RECHAZADO:'❌ Rechazado' };
+  var EST_CLASS  = { REGISTRADO:'est-registrado', GUIA_RECIBIDA:'est-en-proceso', APROBADO:'est-aprobado', EN_PROCESO:'est-en-proceso', CERRADO:'est-cerrado', RECHAZADO:'est-rechazado' };
 
   function renderLista(lista) {
     var el = document.getElementById('lista-devoluciones');
@@ -407,10 +467,19 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
         diasStr = dias === 0 ? 'Hoy' : dias === 1 ? 'Ayer' : 'Hace ' + dias + ' días';
       }
       var acciones = construirBotonesLista(d);
-      return '<div class="dev-item">'
+      d.fecha_registro_fmt = d.fecha_registro ? new Date(d.fecha_registro).toLocaleString('es-CO',{dateStyle:'short',timeStyle:'short'}) : '';
+      // Si es GUIA_RECIBIDA — mostrar bloque especial con link y botón para ventas
+      var esGuiaRecibida = d.estado === 'GUIA_RECIBIDA';
+      return '<div class="dev-item' + (esGuiaRecibida ? ' dev-item-guia' : '') + '">'
         + '<span class="dev-tipo-badge ' + (TIPO_CLASS[d.tipo]||'') + '">' + (TIPO_LABEL[d.tipo]||d.tipo) + '</span>'
         + '<div class="dev-info">'
-          + '<div class="dev-titulo">' + (d.cliente||'Sin cliente') + ' · Orden: <strong>' + (d.numero_orden||'—') + '</strong></div>'
+          + (esGuiaRecibida
+            ? '<div class="dev-titulo">📦 Guía recibida en almacén <span style="font-size:11px;font-weight:600;color:var(--text-muted)">· ' + d.fecha_registro_fmt + '</span></div>'
+              + '<div class="dev-meta" style="margin-top:6px">'
+                + (d.link_foto_guia ? '<a href="' + d.link_foto_guia + '" target="_blank" style="color:var(--blue);font-weight:700;font-size:13px">📸 Ver foto de la guía</a>' : '<span style="color:var(--text-muted)">Sin link</span>')
+                + (d.notas ? '<span style="color:var(--text-secondary)">' + d.notas + '</span>' : '')
+              + '</div>'
+            : '<div class="dev-titulo">' + (d.cliente||'Sin cliente') + ' · Orden: <strong>' + (d.numero_orden||'—') + '</strong></div>')
           + '<div class="dev-meta">'
             + (d.vendedora ? '<span>👤 '+d.vendedora+'</span>' : '')
             + '<span>🕐 '+diasStr+'</span>'
@@ -442,9 +511,14 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
       btns += '<button class="btn-accion btn-rechazar" onclick="abrirAccion(\''+d.id+'\',\'rechazar\')">❌ Rechazar</button>';
     }
 
-    // Almacén pega link foto para NO_RECIBIDO
-    if (esAlmacen && d.tipo === 'NO_RECIBIDO' && d.estado === 'REGISTRADO' && !d.link_foto_guia) {
-      btns += '<button class="btn-accion btn-procesar" onclick="abrirAccion(\''+d.id+'\',\'foto_guia\')">📸 Link foto guía</button>';
+    // Almacén puede pegar link de guía en CUALQUIER tipo y estado activo
+    var estadoActivo = ['REGISTRADO','APROBADO','EN_PROCESO'].includes(d.estado);
+    if (esAlmacen && estadoActivo) {
+      if (!d.link_foto_guia) {
+        btns += '<button class="btn-accion btn-procesar" onclick="abrirAccion(\''+d.id+'\',\'foto_guia\')">📸 Pegar link guía</button>';
+      } else {
+        btns += '<button class="btn-accion btn-link" onclick="abrirAccion(\''+d.id+'\',\'foto_guia\')">🔗 Actualizar link guía</button>';
+      }
     }
 
     // Ventas crea orden de cambio/garantía después de aprobado
@@ -465,8 +539,53 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
     return btns;
   }
 
+  // ── NUEVA DEVOLUCIÓN DESDE GUÍA DE ALMACÉN ─────────────
+  function nuevaDevDesdeGuia(id) {
+    var dev = _devs.find(function(d){ return String(d.id) === String(id); });
+    if (!dev) return;
+    window._completandoDevId   = id;
+    window._completandoDevLink = dev.link_foto_guia;
+    // Limpiar y abrir modal
+    window._completandoDevId = null; // reset temporal para limpiar
+    abrirModalNuevo();
+    window._completandoDevId   = id;
+    window._completandoDevLink = dev.link_foto_guia;
+    // Cambiar título y mostrar link de referencia
+    setTimeout(function() {
+      var tit = document.getElementById('modal-nuevo-titulo');
+      if (tit) tit.textContent = '+ Nueva Devolución';
+      var sub = document.querySelector('#modal-nuevo .modal-sub');
+      if (sub) sub.innerHTML = '📸 Guía registrada por Almacén: <a href="'+dev.link_foto_guia+'" target="_blank" style="color:var(--blue);font-weight:700">Ver foto de la guía</a> — completa los datos del cliente y el tipo de devolución.';
+    }, 50);
+  }
+
+  // ── COMPLETAR DATOS DE DEVOLUCIÓN (cuando Almacén ya registró guía) ───
+  function completarDatosDevolucion(id) {
+    var dev = _devs.find(function(d){ return String(d.id) === String(id); });
+    if (!dev) return;
+    // Guardar el id del registro para actualizarlo en lugar de crear uno nuevo
+    window._completandoDevId = id;
+    window._completandoDevLink = dev.link_foto_guia;
+    // Abrir modal de nueva devolución
+    abrirModalNuevo();
+    // Mostrar el link de la guía como referencia
+    setTimeout(function() {
+      var tit = document.getElementById('modal-nuevo-titulo');
+      if (tit) tit.textContent = '✏️ Completar datos — Guía ya recibida';
+      var sub = document.querySelector('#modal-nuevo .modal-sub');
+      if (sub) sub.innerHTML = '📸 <a href="'+dev.link_foto_guia+'" target="_blank" style="color:var(--blue);font-weight:700">Ver foto de la guía recibida por Almacén</a>';
+    }, 100);
+  }
+
   // ── NUEVA DEVOLUCIÓN ─────────────────────────────────────
   function abrirModalNuevo() {
+    window._completandoDevId = null;
+    window._completandoDevLink = null;
+    // Restaurar títulos
+    var tit = document.getElementById('modal-nuevo-titulo');
+    if (tit) tit.textContent = 'Nueva Devolución';
+    var sub = document.querySelector('#modal-nuevo .modal-sub');
+    if (sub) sub.textContent = 'Registra el caso para iniciar el proceso de devolución';
     ['nd-tipo','nd-orden-origen','nd-cliente','nd-telefono','nd-motivo','nd-foto-guia',
      'nd-prendas-cambio','nd-notas-reparacion','nd-notas','nd-valor','nd-medio-devolucion'].forEach(function(id){
       var el = document.getElementById(id);
@@ -520,9 +639,19 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
     };
 
     try {
-      await fetch(SB_URL + '/rest/v1/devoluciones', { method:'POST', headers:HDRF, body:JSON.stringify(datos) });
+      if (window._completandoDevId) {
+        // Actualizar el registro existente creado por Almacén
+        datos.link_foto_guia = window._completandoDevLink || datos.link_foto_guia;
+        datos.estado = 'REGISTRADO'; // ahora Ventas completó los datos
+        await fetch(SB_URL + '/rest/v1/devoluciones?id=eq.' + window._completandoDevId, { method:'PATCH', headers:HDRF, body:JSON.stringify(datos) });
+        window._completandoDevId  = null;
+        window._completandoDevLink= null;
+        showToast('✅ Datos completados — ' + (TIPO_LABEL[tipo]||tipo));
+      } else {
+        await fetch(SB_URL + '/rest/v1/devoluciones', { method:'POST', headers:HDRF, body:JSON.stringify(datos) });
+        showToast('✅ Devolución registrada — ' + (TIPO_LABEL[tipo]||tipo));
+      }
       cerrarModal('modal-nuevo');
-      showToast('✅ Devolución registrada — ' + (TIPO_LABEL[tipo]||tipo));
       cargar();
     } catch(e) { alert('Error: ' + e.message); }
     btn.disabled = false; btn.textContent = '💾 Registrar';
