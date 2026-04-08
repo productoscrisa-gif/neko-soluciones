@@ -374,6 +374,7 @@
     <button id="vtab-nueva" onclick="cambiarVTab('nueva')" style="flex:1;padding:9px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:#2563eb;color:#fff;box-shadow:0 2px 8px rgba(37,99,235,.3);transition:all .2s">🛒 Nueva Orden</button>
     <button id="vtab-seguimiento" onclick="cambiarVTab('seguimiento')" style="flex:1;padding:9px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:#64748b;transition:all .2s">🔍 Seguimiento</button>
     <a href="neko_leads.html" style="padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;background:#f5f3ff;color:#7c3aed;border:1px solid #ede9fe;text-decoration:none">🎯 Leads</a>
+    <a href="neko_devoluciones.html" style="padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;background:#fff1f2;color:#e11d48;border:1px solid #fecdd3;text-decoration:none">↩️ Devoluciones</a>
     <button onclick="window.location.href='neko_pagos.html'" style="flex:1;padding:9px;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;background:transparent;color:#f97316;transition:all .2s">💳 Pagos</button>
     <button onclick="window.location.href='neko_caja.html'" style="flex:1;padding:9px;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;background:transparent;color:#0d9488;transition:all .2s">💵 Caja</button>
   </div>
@@ -1087,7 +1088,7 @@
 
   async function obtenerSiguienteNumero() {
     // Traer los últimos 200 para encontrar el máximo numérico real
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/ordenes?select=numero_orden&numero_orden=not.like.SRV-*&order=numero_orden.desc&limit=200`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/ordenes?select=numero_orden&numero_orden=not.like.SRV-*&numero_orden=not.like.CAM-*&numero_orden=not.like.GAR-*&order=numero_orden.desc&limit=200`, {
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
     });
     const data = await res.json();
@@ -1196,6 +1197,17 @@
         if (_fr) { const _frd = JSON.parse(_fr); if (_frd && _frd.nombre) sesionVentas = _frd; }
       } catch(e) {}
 
+      // Si viene de una devolución (cambio/garantía) usar número con prefijo
+      var _devPrecarga = null;
+      try {
+        var _devRaw = sessionStorage.getItem('nk_dev_activa');
+        if (_devRaw) _devPrecarga = JSON.parse(_devRaw);
+      } catch(e) {}
+      if (_devPrecarga) {
+        var _prefijo = _devPrecarga.es_cambio ? 'CAM' : 'GAR';
+        numeroOrden = _prefijo + '-' + _devPrecarga.orden_origen;
+      }
+
       const orden = {
         numero_orden:    numeroOrden,
         vendedora:       (sesionVentas && sesionVentas.nombre) ? sesionVentas.nombre : '',
@@ -1233,6 +1245,19 @@
 
       await guardarEnSupabase(orden);
       await upsertCliente(orden);
+
+      // Si era una devolución → actualizar el registro con la orden nueva creada
+      if (_devPrecarga && _devPrecarga.dev_id) {
+        try {
+          await fetch(SUPABASE_URL + '/rest/v1/devoluciones?id=eq.' + _devPrecarga.dev_id, {
+            method: 'PATCH',
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY,
+                       'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+            body: JSON.stringify({ orden_nueva: numeroOrden, estado: 'EN_PROCESO' })
+          });
+          sessionStorage.removeItem('nk_dev_activa');
+        } catch(e) { console.warn('No se pudo actualizar devolución:', e); }
+      }
 
       alert('Orden guardada! N: ' + numeroOrden + ' - Cliente: ' + orden.nombre_cliente + ' - Total: $' + total.toLocaleString('es-CO') + ' COP - Enviada a ANALISIS');
 
@@ -1955,6 +1980,32 @@
     const hoy = new Date().toISOString().split('T')[0];
     document.getElementById('fecha_entrega').min = hoy;
     cargarBarraPE();
+    // Precargar datos si viene de una devolución (cambio o garantía)
+    var _devData = localStorage.getItem('nk_devolucion_precarga');
+    var _devActiva = null;
+    try { var _dRaw = sessionStorage.getItem('nk_dev_activa'); if(_dRaw) _devActiva = JSON.parse(_dRaw); } catch(e){}
+    if (_devData || _devActiva) {
+      if (_devData) localStorage.removeItem('nk_devolucion_precarga');
+      try {
+        var dv = _devData ? JSON.parse(_devData) : {};
+        var da = _devActiva || {};
+        window._aplicarPrecargaDev = function() {
+          var n = document.getElementById('nombre'); if(n && dv.nombre) n.value = dv.nombre;
+          var t = document.getElementById('telefono'); if(t && dv.telefono) t.value = dv.telefono;
+          // Mostrar banner rojo con prefijo del número
+          var prefijo = da.es_cambio ? 'CAM' : 'GAR';
+          var numOrden = prefijo + '-' + (da.orden_origen || dv.orden_origen || '');
+          var banner = document.createElement('div');
+          banner.style.cssText = 'background:#fff1f2;border:2px solid #fca5a5;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:700;color:#e11d48;display:flex;align-items:center;gap:8px';
+          var tipo = da.es_cambio ? '🔄 CAMBIO' : '🛡️ GARANTÍA';
+          banner.innerHTML = tipo + ' · Número de orden: <strong>' + numOrden + '</strong> · ' + (da.cliente||dv.nombre||'') + ' <button onclick="this.parentElement.remove()" style="margin-left:auto;background:none;border:none;cursor:pointer;color:#e11d48;font-size:16px">✕</button>';
+          var formStart = document.querySelector('.card') || document.body.firstElementChild;
+          if (formStart && formStart.parentNode) formStart.parentNode.insertBefore(banner, formStart);
+        };
+        setTimeout(window._aplicarPrecargaDev, 800);
+      } catch(e) {}
+    }
+
     // Precargar datos si viene de un lead
     var _leadData = localStorage.getItem('nk_lead_precarga');
     if (_leadData) {

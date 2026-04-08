@@ -264,7 +264,9 @@
           </div>
         </div>
         <div class="order-header-right">
-          ${o.es_prioritario?'<span class="badge badge-priority">🔴 Prioritario</span>':''}
+          ${o.numero_orden && o.numero_orden.startsWith('CAM-') ? '<span class="badge" style="background:#fff7ed;border:1.5px solid #f97316;color:#c2410c;font-weight:800">🔄 CAMBIO</span>' : ''}
+          ${o.numero_orden && o.numero_orden.startsWith('GAR-') ? '<span class="badge" style="background:#f0fdfa;border:1.5px solid #0d9488;color:#0f766e;font-weight:800">🛡️ GARANTÍA</span>' : ''}
+          ${o.es_prioritario && !o.numero_orden?.startsWith('CAM-') && !o.numero_orden?.startsWith('GAR-') ?'<span class="badge badge-priority">🔴 Prioritario</span>':''}
           <span class="badge ${sinRuta>0?'badge-warn':'badge-ok'}" id="rbadge-${o.id}">${sinRuta>0?'⚠️ '+sinRuta+' sin ruta':'✅ Rutas OK'}</span>
           <span class="chevron" id="chev-${o.id}">▼</span>
         </div>

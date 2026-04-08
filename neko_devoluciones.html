@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neko Soluciones - Devoluciones</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f0f4f8;--surface:#fff;--surface2:#f8fafc;--border:#e2e8f0;
+  --text-primary:#0f172a;--text-secondary:#64748b;--text-muted:#94a3b8;
+  --blue:#2563eb;--blue-light:#eff6ff;--blue-mid:#bfdbfe;
+  --red:#ef4444;--red-light:#fff1f2;--red-border:#fca5a5;
+  --green:#10b981;--green-light:#ecfdf5;--green-border:#6ee7b7;
+  --amber:#f59e0b;--amber-light:#fffbeb;--amber-border:#fcd34d;
+  --teal:#0d9488;--teal-light:#f0fdfa;--teal-mid:#99f6e4;
+  --purple:#7c3aed;--purple-light:#f5f3ff;--purple-mid:#ede9fe;
+  --coral:#e11d48;--coral-light:#fff1f2;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.06);--shadow-md:0 4px 16px rgba(0,0,0,.08);
+  --radius:14px;--radius-sm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(--text-primary);min-height:100vh;}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-sm);}
+.topbar-left{display:flex;align-items:center;gap:12px;}
+.logo-icon{width:36px;height:36px;background:var(--coral);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 3px 10px rgba(225,29,72,.3);}
+.topbar h1{font-size:16px;font-weight:800;}.topbar h1 span{color:var(--coral);}
+.area-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--coral-light);color:var(--coral);text-transform:uppercase;letter-spacing:.05em;}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.user-info{font-size:13px;font-weight:600;color:var(--text-secondary);}
+.btn-sm{padding:6px 12px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--text-secondary);text-decoration:none;display:inline-flex;align-items:center;}
+.main{padding:24px;max-width:1100px;margin:0 auto;}
+.stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow-sm);}
+.stat-label{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;}
+.stat-value{font-size:22px;font-weight:800;margin-top:4px;font-family:"JetBrains Mono",monospace;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-md);overflow:hidden;margin-bottom:20px;}
+.card-header{padding:14px 20px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.card-title{font-size:14px;font-weight:800;}
+.filtros-wrap{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.filtros-wrap select,.filtros-wrap input{padding:7px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;outline:none;background:var(--surface);color:var(--text-primary);}
+.btn-nuevo{padding:9px 20px;background:linear-gradient(135deg,var(--coral),#be123c);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 3px 10px rgba(225,29,72,.3);}
+/* ITEMS */
+.dev-item{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:14px;transition:background .15s;}
+.dev-item:last-child{border-bottom:none;}
+.dev-item:hover{background:var(--surface2);}
+.dev-tipo-badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:800;white-space:nowrap;flex-shrink:0;}
+.tipo-no-recibido{background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;}
+.tipo-cambio{background:var(--blue-light);color:var(--blue);border:1px solid var(--blue-mid);}
+.tipo-garantia{background:var(--teal-light);color:var(--teal);border:1px solid var(--teal-mid);}
+.tipo-devolucion{background:var(--red-light);color:var(--red);border:1px solid var(--red-border);}
+.dev-info{flex:1;min-width:0;}
+.dev-titulo{font-size:14px;font-weight:700;}
+.dev-meta{font-size:12px;color:var(--text-muted);margin-top:3px;display:flex;gap:10px;flex-wrap:wrap;}
+.dev-notas{font-size:12px;color:var(--text-secondary);margin-top:4px;font-style:italic;}
+.dev-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;}
+.estado-badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+.est-registrado{background:#f1f5f9;color:#475569;border:1px solid var(--border);}
+.est-aprobado{background:var(--blue-light);color:var(--blue);}
+.est-en-proceso{background:var(--amber-light);color:#92400e;}
+.est-cerrado{background:var(--green-light);color:var(--green);}
+.est-rechazado{background:var(--red-light);color:var(--red);}
+.dev-actions{display:flex;gap:6px;flex-wrap:wrap;}
+.btn-accion{padding:5px 12px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid;transition:all .15s;}
+.btn-aprobar{background:var(--blue-light);color:var(--blue);border-color:var(--blue-mid);}
+.btn-rechazar{background:var(--red-light);color:var(--red);border-color:var(--red-border);}
+.btn-procesar{background:var(--amber-light);color:#92400e;border-color:var(--amber-border);}
+.btn-cerrar-dev{background:var(--green-light);color:var(--green);border-color:var(--green-border);}
+.btn-orden{background:var(--purple-light);color:var(--purple);border-color:var(--purple-mid);}
+.btn-link{background:var(--surface2);color:var(--text-secondary);border-color:var(--border);}
+/* FORMULARIO */
+.form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.form-grid-1{margin-bottom:12px;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:12px;font-weight:700;color:var(--text-secondary);}
+.req{color:var(--red);}
+.field input,.field select,.field textarea{padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:"Plus Jakarta Sans",sans-serif;background:var(--surface2);color:var(--text-primary);outline:none;transition:border-color .2s;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--coral);box-shadow:0 0 0 3px rgba(225,29,72,.1);}
+.field textarea{resize:vertical;min-height:70px;}
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.show{display:flex;}
+.modal{background:var(--surface);border-radius:var(--radius);padding:28px;max-width:580px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2);max-height:90vh;overflow-y:auto;}
+.modal-title{font-size:16px;font-weight:800;margin-bottom:4px;}
+.modal-sub{font-size:13px;color:var(--text-secondary);margin-bottom:20px;}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;}
+.btn-cancel{padding:9px 16px;background:var(--surface2);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;}
+.btn-guardar{padding:10px 24px;background:linear-gradient(135deg,var(--coral),#be123c);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 3px 10px rgba(225,29,72,.3);}
+.btn-guardar:disabled{opacity:.6;cursor:not-allowed;}
+/* INFO BOX */
+.info-box{border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:12px;font-size:13px;}
+.info-blue{background:var(--blue-light);border:1px solid var(--blue-mid);color:#1e40af;}
+.info-amber{background:var(--amber-light);border:1px solid var(--amber-border);color:#92400e;}
+.info-red{background:var(--red-light);border:1px solid var(--red-border);color:#991b1b;}
+.info-green{background:var(--green-light);border:1px solid var(--green-border);color:#065f46;}
+/* HISTORIAL */
+.historial-item{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:8px;}
+.hi-header{display:flex;justify-content:space-between;margin-bottom:4px;}
+.hi-accion{font-size:12px;font-weight:700;color:var(--text-primary);}
+.hi-fecha{font-size:11px;color:var(--text-muted);}
+.hi-nota{font-size:12px;color:var(--text-secondary);}
+.empty-state{text-align:center;padding:40px;color:var(--text-muted);}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 22px;border-radius:10px;font-size:14px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:9999;opacity:0;transition:opacity .3s;white-space:nowrap;pointer-events:none;}
+@media(max-width:600px){.stats-bar{grid-template-columns:1fr 1fr;}.form-grid-2{grid-template-columns:1fr;}.dev-item{flex-wrap:wrap;}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo-icon">↩️</div>
+    <h1>Neko <span>Soluciones</span></h1>
+    <span class="area-badge">↩️ Devoluciones</span>
+  </div>
+  <div class="topbar-right">
+    <span class="user-info" id="user-info"></span>
+    <button class="btn-sm" onclick="cargar()">🔄 Actualizar</button>
+    <a href="neko_ventas.html" class="btn-sm" style="color:var(--blue);border-color:var(--blue-mid);background:var(--blue-light)">← Ventas</a>
+    <button class="btn-sm" onclick="cerrarSesion()">🚪 Salir</button>
+  </div>
+</div>
+
+<div class="main">
+  <!-- STATS -->
+  <div class="stats-bar">
+    <div class="stat-card"><div class="stat-label">No recibidos</div><div class="stat-value" style="color:#c2410c" id="st-norecibido">—</div></div>
+    <div class="stat-card"><div class="stat-label">Cambios</div><div class="stat-value" style="color:var(--blue)" id="st-cambio">—</div></div>
+    <div class="stat-card"><div class="stat-label">Garantías</div><div class="stat-value" style="color:var(--teal)" id="st-garantia">—</div></div>
+    <div class="stat-card"><div class="stat-label">Dev. dinero</div><div class="stat-value" style="color:var(--red)" id="st-devolucion">—</div></div>
+  </div>
+
+  <!-- LISTA -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">↩️ Gestión de Devoluciones</div>
+      <div class="filtros-wrap">
+        <select id="fil-tipo" onchange="aplicarFiltros()">
+          <option value="">Todos los tipos</option>
+          <option value="NO_RECIBIDO">No recibido</option>
+          <option value="CAMBIO">Cambio</option>
+          <option value="GARANTIA">Garantía</option>
+          <option value="DEVOLUCION_DINERO">Dev. dinero</option>
+        </select>
+        <select id="fil-estado" onchange="aplicarFiltros()">
+          <option value="">Todos los estados</option>
+          <option value="REGISTRADO">Registrado</option>
+          <option value="APROBADO">Aprobado</option>
+          <option value="EN_PROCESO">En proceso</option>
+          <option value="CERRADO">Cerrado</option>
+          <option value="RECHAZADO">Rechazado</option>
+        </select>
+        <input type="text" id="fil-texto" placeholder="Orden, cliente..." oninput="aplicarFiltros()" style="width:180px">
+        <button class="btn-nuevo" onclick="abrirModalNuevo()" id="btn-nuevo-dev">+ Nueva Devolución</button>
+      </div>
+    </div>
+    <div id="lista-devoluciones">
+      <div class="empty-state"><p>Cargando...</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NUEVA DEVOLUCIÓN -->
+<div class="modal-overlay" id="modal-nuevo">
+  <div class="modal">
+    <div class="modal-title" id="modal-nuevo-titulo">Nueva Devolución</div>
+    <div class="modal-sub">Registra el caso para iniciar el proceso de devolución</div>
+
+    <div class="form-grid-2">
+      <div class="field">
+        <label>Tipo <span class="req">*</span></label>
+        <select id="nd-tipo" onchange="actualizarFormulario()">
+          <option value="">— Seleccionar —</option>
+          <option value="NO_RECIBIDO">🚫 No recibido / No quiso pagar</option>
+          <option value="CAMBIO">🔄 Cambio de prenda</option>
+          <option value="GARANTIA">🛡️ Garantía / Reparación</option>
+          <option value="DEVOLUCION_DINERO">💸 Devolución de dinero</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Orden de origen <span class="req">*</span></label>
+        <input type="text" id="nd-orden-origen" placeholder="Ej: 00025">
+      </div>
+    </div>
+
+    <div class="form-grid-2">
+      <div class="field">
+        <label>Nombre del cliente <span class="req">*</span></label>
+        <input type="text" id="nd-cliente" placeholder="Nombre completo">
+      </div>
+      <div class="field">
+        <label>Teléfono</label>
+        <input type="tel" id="nd-telefono" placeholder="3001234567">
+      </div>
+    </div>
+
+    <div class="form-grid-1 field">
+      <label>Motivo detallado <span class="req">*</span></label>
+      <textarea id="nd-motivo" placeholder="Describe el motivo de la devolución..."></textarea>
+    </div>
+
+    <!-- Solo para NO_RECIBIDO: link foto guía de almacén -->
+    <div id="bloque-foto-guia" style="display:none">
+      <div class="info-box info-amber">📦 Almacén debe pegar el link de la foto de la guía para que Ventas identifique al cliente.</div>
+      <div class="form-grid-1 field">
+        <label>Link foto de la guía</label>
+        <input type="url" id="nd-foto-guia" placeholder="https://drive.google.com/...">
+      </div>
+    </div>
+
+    <!-- Solo para CAMBIO -->
+    <div id="bloque-cambio" style="display:none">
+      <div class="info-box info-blue">🔄 El cambio requiere aprobación del Admin antes de crear la orden. No incluyas valor — usa comentarios para excedentes.</div>
+      <div class="form-grid-1 field">
+        <label>Prendas a cambiar (detalle)</label>
+        <textarea id="nd-prendas-cambio" placeholder="Describe las prendas: talla, color, tipo de cambio..."></textarea>
+      </div>
+    </div>
+
+    <!-- Solo para GARANTIA -->
+    <div id="bloque-garantia" style="display:none">
+      <div class="info-box info-blue">🛡️ La garantía requiere aprobación del Admin. Después de aprobada, Ventas crea la orden con las notas de reparación.</div>
+      <div class="form-grid-1 field">
+        <label>Notas de reparación</label>
+        <textarea id="nd-notas-reparacion" placeholder="Describe qué necesita reparación o corrección..."></textarea>
+      </div>
+    </div>
+
+    <!-- Solo para DEVOLUCION_DINERO -->
+    <div id="bloque-devolucion" style="display:none">
+      <div class="info-box info-red">💸 La devolución de dinero requiere autorización del Admin. Después de autorizada, la prenda debe llegar a Almacén antes de proceder.</div>
+      <div class="form-grid-2">
+        <div class="field">
+          <label>Valor a devolver ($)</label>
+          <input type="number" id="nd-valor" placeholder="0" min="0">
+        </div>
+        <div class="field">
+          <label>Medio de devolución</label>
+          <select id="nd-medio-devolucion">
+            <option value="">— Seleccionar —</option>
+            <option>NEQUI</option><option>DAVIPLATA</option>
+            <option>BANCOLOMBIA</option><option>Efectivo</option>
+            <option>Otro</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-grid-1 field">
+      <label>Notas adicionales</label>
+      <textarea id="nd-notas" placeholder="Información adicional relevante..."></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="cerrarModal('modal-nuevo')">Cancelar</button>
+      <button class="btn-guardar" onclick="guardarDevolucion()" id="btn-guardar-nuevo">💾 Registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETALLE / ACCIONES -->
+<div class="modal-overlay" id="modal-detalle">
+  <div class="modal">
+    <div class="modal-title" id="det-titulo">Detalle devolución</div>
+    <div class="modal-sub" id="det-sub"></div>
+
+    <div id="det-info-box" class="info-box" style="display:none"></div>
+
+    <!-- Info de la devolución -->
+    <div id="det-datos" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:16px;font-size:13px;line-height:1.8;"></div>
+
+    <!-- Acciones según rol y estado -->
+    <div id="det-acciones" style="margin-bottom:16px;"></div>
+
+    <!-- Historial de acciones -->
+    <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px">Historial</div>
+    <div id="det-historial"></div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="cerrarModal('modal-detalle')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ACCIÓN (comentario / link / comprobante) -->
+<div class="modal-overlay" id="modal-accion">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-title" id="mac-titulo">Acción</div>
+    <div class="modal-sub" id="mac-sub"></div>
+    <div id="mac-campos"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="cerrarModal('modal-accion')">Cancelar</button>
+      <button class="btn-guardar" onclick="ejecutarAccion()" id="btn-ejecutar">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CREAR ORDEN (cambio/garantía) -->
+<div class="modal-overlay" id="modal-crear-orden">
+  <div class="modal">
+    <div class="modal-title">🛒 Crear orden de cambio / garantía</div>
+    <div class="modal-sub" id="co-sub">Los datos del cliente se precargarán en Ventas</div>
+    <div id="co-resumen" class="info-box info-blue" style="margin-bottom:16px;line-height:1.8;"></div>
+    <div class="form-grid-1 field" style="margin-bottom:12px">
+      <label>Notas para Análisis <span class="req">*</span></label>
+      <textarea id="co-notas-orden" placeholder="Instrucciones de producción, prendas a cambiar, reparación a realizar..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="cerrarModal('modal-crear-orden')">Cancelar</button>
+      <button class="btn-guardar" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);box-shadow:0 3px 10px rgba(124,58,237,.3)" onclick="confirmarCrearOrden()" id="btn-conf-orden">🚀 Ir a Ventas con datos precargados</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const SB_URL = 'https://umlzaupnuvarrnakcbdo.supabase.co';
+  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtbHphdXBudXZhcnJuYWtjYmRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTM4NTYsImV4cCI6MjA4OTg2OTg1Nn0.7Z5q3vvAIGDKFmjMjt6kra-3wHxNHyNjTfEj8GamdFA';
+  const HDR  = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY };
+  const HDRF = Object.assign({}, HDR, { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' });
+
+  var sesion = null;
+  var _devs  = [];
+  var _devActual = null;
+  var _accionActual = null;
+
+  document.addEventListener('DOMContentLoaded', function() {
+    var raw = sessionStorage.getItem('nk_user');
+    if (!raw) { window.location.href = 'neko_login.html'; return; }
+    sesion = JSON.parse(raw);
+    var areas = ['Ventas','Admin','Supervisor','Almacen','Almacén'];
+    if (!areas.includes(sesion.area)) {
+      alert('No tienes acceso a este módulo.');
+      window.location.href = 'neko_login.html'; return;
+    }
+    document.getElementById('user-info').textContent = '👤 ' + sesion.nombre;
+    // Solo Ventas y Admin pueden registrar nuevas devoluciones
+    if (!['Ventas','Admin','Supervisor'].includes(sesion.area)) {
+      document.getElementById('btn-nuevo-dev').style.display = 'none';
+    }
+    cargar();
+  });
+
+  async function cargar() {
+    try {
+      var r = await fetch(SB_URL + '/rest/v1/devoluciones?order=fecha_registro.desc&limit=500', { headers: HDR });
+      _devs = await r.json();
+      if (!Array.isArray(_devs)) _devs = [];
+      actualizarStats();
+      renderLista(_devs);
+    } catch(e) {
+      document.getElementById('lista-devoluciones').innerHTML = '<div class="empty-state"><p>Error: ' + e.message + '</p></div>';
+    }
+  }
+
+  function actualizarStats() {
+    var activos = _devs.filter(function(d){ return d.estado !== 'CERRADO' && d.estado !== 'RECHAZADO'; });
+    document.getElementById('st-norecibido').textContent = activos.filter(function(d){ return d.tipo === 'NO_RECIBIDO'; }).length;
+    document.getElementById('st-cambio').textContent     = activos.filter(function(d){ return d.tipo === 'CAMBIO'; }).length;
+    document.getElementById('st-garantia').textContent   = activos.filter(function(d){ return d.tipo === 'GARANTIA'; }).length;
+    document.getElementById('st-devolucion').textContent = activos.filter(function(d){ return d.tipo === 'DEVOLUCION_DINERO'; }).length;
+  }
+
+  function aplicarFiltros() {
+    var tipo   = document.getElementById('fil-tipo').value;
+    var estado = document.getElementById('fil-estado').value;
+    var texto  = (document.getElementById('fil-texto').value || '').toLowerCase().trim();
+    var lista  = _devs.filter(function(d) {
+      if (tipo   && d.tipo   !== tipo)   return false;
+      if (estado && d.estado !== estado) return false;
+      if (texto) {
+        var h = [(d.numero_orden||''),(d.cliente||''),(d.motivo||''),(d.vendedora||'')].join(' ').toLowerCase();
+        if (!h.includes(texto)) return false;
+      }
+      return true;
+    });
+    renderLista(lista);
+  }
+
+  var TIPO_LABEL = { NO_RECIBIDO:'🚫 No recibido', CAMBIO:'🔄 Cambio', GARANTIA:'🛡️ Garantía', DEVOLUCION_DINERO:'💸 Dev. dinero' };
+  var TIPO_CLASS = { NO_RECIBIDO:'tipo-no-recibido', CAMBIO:'tipo-cambio', GARANTIA:'tipo-garantia', DEVOLUCION_DINERO:'tipo-devolucion' };
+  var EST_LABEL  = { REGISTRADO:'Registrado', APROBADO:'✅ Aprobado', EN_PROCESO:'⚙️ En proceso', CERRADO:'🔒 Cerrado', RECHAZADO:'❌ Rechazado' };
+  var EST_CLASS  = { REGISTRADO:'est-registrado', APROBADO:'est-aprobado', EN_PROCESO:'est-en-proceso', CERRADO:'est-cerrado', RECHAZADO:'est-rechazado' };
+
+  function renderLista(lista) {
+    var el = document.getElementById('lista-devoluciones');
+    if (!lista.length) {
+      el.innerHTML = '<div class="empty-state"><p>No hay devoluciones para mostrar</p></div>';
+      return;
+    }
+    el.innerHTML = lista.map(function(d) {
+      var diasStr = '';
+      if (d.fecha_registro) {
+        var dias = Math.floor((new Date() - new Date(d.fecha_registro)) / 86400000);
+        diasStr = dias === 0 ? 'Hoy' : dias === 1 ? 'Ayer' : 'Hace ' + dias + ' días';
+      }
+      var acciones = construirBotonesLista(d);
+      return '<div class="dev-item">'
+        + '<span class="dev-tipo-badge ' + (TIPO_CLASS[d.tipo]||'') + '">' + (TIPO_LABEL[d.tipo]||d.tipo) + '</span>'
+        + '<div class="dev-info">'
+          + '<div class="dev-titulo">' + (d.cliente||'Sin cliente') + ' · Orden: <strong>' + (d.numero_orden||'—') + '</strong></div>'
+          + '<div class="dev-meta">'
+            + (d.vendedora ? '<span>👤 '+d.vendedora+'</span>' : '')
+            + '<span>🕐 '+diasStr+'</span>'
+            + (d.aprobado_por ? '<span>✅ Aprobado por: '+d.aprobado_por+'</span>' : '')
+            + (d.orden_nueva ? '<span>🔗 Orden nueva: <strong>'+d.orden_nueva+'</strong></span>' : '')
+          + '</div>'
+          + (d.motivo ? '<div class="dev-notas">'+d.motivo.substring(0,100)+(d.motivo.length>100?'...':'')+'</div>' : '')
+        + '</div>'
+        + '<div class="dev-right">'
+          + '<span class="estado-badge '+(EST_CLASS[d.estado]||'')+'">'+( EST_LABEL[d.estado]||d.estado)+'</span>'
+          + '<div class="dev-actions">' + acciones + '</div>'
+        + '</div>'
+      + '</div>';
+    }).join('');
+  }
+
+  function construirBotonesLista(d) {
+    var btns = '';
+    var esAdmin   = sesion.area === 'Admin';
+    var esVentas  = sesion.area === 'Ventas' || sesion.area === 'Supervisor';
+    var esAlmacen = sesion.area === 'Almacen' || sesion.area === 'Almacén';
+
+    btns += '<button class="btn-accion btn-link" onclick="abrirDetalle(\''+d.id+'\')">Ver detalle</button>';
+
+    // Admin aprueba/rechaza cuando está REGISTRADO (Cambio, Garantía, Dev. dinero)
+    if (esAdmin && d.estado === 'REGISTRADO' && d.tipo !== 'NO_RECIBIDO') {
+      btns += '<button class="btn-accion btn-aprobar" onclick="abrirAccion(\''+d.id+'\',\'aprobar\')">✅ Aprobar</button>';
+      btns += '<button class="btn-accion btn-rechazar" onclick="abrirAccion(\''+d.id+'\',\'rechazar\')">❌ Rechazar</button>';
+    }
+
+    // Almacén pega link foto para NO_RECIBIDO
+    if (esAlmacen && d.tipo === 'NO_RECIBIDO' && d.estado === 'REGISTRADO' && !d.link_foto_guia) {
+      btns += '<button class="btn-accion btn-procesar" onclick="abrirAccion(\''+d.id+'\',\'foto_guia\')">📸 Link foto guía</button>';
+    }
+
+    // Ventas crea orden de cambio/garantía después de aprobado
+    if (esVentas && d.estado === 'APROBADO' && (d.tipo === 'CAMBIO' || d.tipo === 'GARANTIA') && !d.orden_nueva) {
+      btns += '<button class="btn-accion btn-orden" onclick="abrirCrearOrden(\''+d.id+'\')">🛒 Crear orden</button>';
+    }
+
+    // Admin devuelve dinero cuando prenda está en almacén
+    if (esAdmin && d.tipo === 'DEVOLUCION_DINERO' && d.estado === 'APROBADO') {
+      btns += '<button class="btn-accion btn-cerrar-dev" onclick="abrirAccion(\''+d.id+'\',\'devolver_dinero\')">💸 Registrar devolución</button>';
+    }
+
+    // Ventas cierra NO_RECIBIDO con contactos
+    if (esVentas && d.tipo === 'NO_RECIBIDO' && d.estado !== 'CERRADO' && d.estado !== 'RECHAZADO') {
+      btns += '<button class="btn-accion btn-procesar" onclick="abrirAccion(\''+d.id+'\',\'contacto\')">📞 Registrar contacto</button>';
+    }
+
+    return btns;
+  }
+
+  // ── NUEVA DEVOLUCIÓN ─────────────────────────────────────
+  function abrirModalNuevo() {
+    ['nd-tipo','nd-orden-origen','nd-cliente','nd-telefono','nd-motivo','nd-foto-guia',
+     'nd-prendas-cambio','nd-notas-reparacion','nd-notas','nd-valor','nd-medio-devolucion'].forEach(function(id){
+      var el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    actualizarFormulario();
+    document.getElementById('modal-nuevo').classList.add('show');
+  }
+
+  function actualizarFormulario() {
+    var tipo = document.getElementById('nd-tipo').value;
+    document.getElementById('bloque-foto-guia').style.display   = tipo === 'NO_RECIBIDO'      ? 'block' : 'none';
+    document.getElementById('bloque-cambio').style.display      = tipo === 'CAMBIO'            ? 'block' : 'none';
+    document.getElementById('bloque-garantia').style.display    = tipo === 'GARANTIA'          ? 'block' : 'none';
+    document.getElementById('bloque-devolucion').style.display  = tipo === 'DEVOLUCION_DINERO' ? 'block' : 'none';
+  }
+
+  async function guardarDevolucion() {
+    var tipo   = document.getElementById('nd-tipo').value;
+    var orden  = document.getElementById('nd-orden-origen').value.trim();
+    var cliente= document.getElementById('nd-cliente').value.trim();
+    var motivo = document.getElementById('nd-motivo').value.trim();
+    if (!tipo)    { alert('Selecciona el tipo de devolución.'); return; }
+    if (!orden)   { alert('Ingresa el número de orden origen.'); return; }
+    if (!cliente) { alert('Ingresa el nombre del cliente.'); return; }
+    if (!motivo)  { alert('Describe el motivo.'); return; }
+
+    var btn = document.getElementById('btn-guardar-nuevo');
+    btn.disabled = true; btn.textContent = '⏳ Guardando...';
+
+    var notas = '';
+    if (tipo === 'CAMBIO')           notas = document.getElementById('nd-prendas-cambio').value.trim();
+    if (tipo === 'GARANTIA')         notas = document.getElementById('nd-notas-reparacion').value.trim();
+    if (tipo === 'DEVOLUCION_DINERO') notas = document.getElementById('nd-notas').value.trim();
+
+    var datos = {
+      tipo,
+      numero_orden:   orden,
+      cliente,
+      telefono:        document.getElementById('nd-telefono').value.trim(),
+      motivo,
+      notas,
+      link_foto_guia:  document.getElementById('nd-foto-guia').value.trim(),
+      valor_devolucion: parseFloat(document.getElementById('nd-valor')?.value) || 0,
+      medio_devolucion: document.getElementById('nd-medio-devolucion')?.value || '',
+      notas_adicionales: document.getElementById('nd-notas').value.trim(),
+      vendedora:       sesion.nombre,
+      estado:          'REGISTRADO',
+      historial:       JSON.stringify([{ fecha: new Date().toISOString(), accion: 'REGISTRADO', usuario: sesion.nombre, nota: motivo }]),
+      fecha_registro:  new Date().toISOString()
+    };
+
+    try {
+      await fetch(SB_URL + '/rest/v1/devoluciones', { method:'POST', headers:HDRF, body:JSON.stringify(datos) });
+      cerrarModal('modal-nuevo');
+      showToast('✅ Devolución registrada — ' + (TIPO_LABEL[tipo]||tipo));
+      cargar();
+    } catch(e) { alert('Error: ' + e.message); }
+    btn.disabled = false; btn.textContent = '💾 Registrar';
+  }
+
+  // ── DETALLE ───────────────────────────────────────────────
+  function abrirDetalle(id) {
+    _devActual = _devs.find(function(d){ return String(d.id) === String(id); });
+    if (!_devActual) return;
+    var d = _devActual;
+
+    document.getElementById('det-titulo').textContent = (TIPO_LABEL[d.tipo]||d.tipo) + ' — ' + d.numero_orden;
+    document.getElementById('det-sub').textContent    = 'Estado: ' + (EST_LABEL[d.estado]||d.estado) + ' · Registrado por: ' + d.vendedora;
+
+    // Info box según tipo
+    var infoEl = document.getElementById('det-info-box');
+    var infoMap = {
+      NO_RECIBIDO:      { cls:'info-amber', txt:'📦 Almacén recibe la devolución, pega el link de la foto de la guía y Ventas contacta al cliente (máx. 2 veces). Sin respuesta → queda en stock.' },
+      CAMBIO:           { cls:'info-blue',  txt:'🔄 Requiere aprobación del Admin. Después de aprobado, Ventas crea la orden de cambio sin valor. Prioridad igual a Mercado Libre.' },
+      GARANTIA:         { cls:'info-blue',  txt:'🛡️ Requiere aprobación del Admin. Después de aprobado, Ventas crea la orden con las notas de reparación.' },
+      DEVOLUCION_DINERO:{ cls:'info-red',   txt:'💸 Requiere autorización del Admin. La prenda debe llegar a Almacén. El jefe realiza la devolución y envía el comprobante a Ventas.' }
+    };
+    var info = infoMap[d.tipo];
+    if (info) {
+      infoEl.className = 'info-box ' + info.cls;
+      infoEl.textContent = info.txt;
+      infoEl.style.display = 'block';
+    } else { infoEl.style.display = 'none'; }
+
+    // Datos
+    var datosHTML = '<table style="width:100%;font-size:13px;border-collapse:collapse">';
+    var filas = [
+      ['Cliente', d.cliente], ['Teléfono', d.telefono||'—'],
+      ['Orden origen', d.numero_orden], ['Orden nueva', d.orden_nueva||'—'],
+      ['Vendedora', d.vendedora], ['Aprobado por', d.aprobado_por||'—'],
+      ['Motivo', d.motivo], ['Notas', d.notas||'—'],
+    ];
+    if (d.tipo === 'DEVOLUCION_DINERO') {
+      filas.push(['Valor a devolver', '$' + Number(d.valor_devolucion||0).toLocaleString('es-CO')]);
+      filas.push(['Medio devolución', d.medio_devolucion||'—']);
+      filas.push(['Comprobante', d.link_comprobante ? '<a href="'+d.link_comprobante+'" target="_blank" style="color:var(--blue)">Ver comprobante</a>' : '—']);
+    }
+    if (d.link_foto_guia) filas.push(['Foto guía', '<a href="'+d.link_foto_guia+'" target="_blank" style="color:var(--blue)">Ver foto</a>']);
+    filas.forEach(function(f) {
+      datosHTML += '<tr><td style="padding:5px 8px 5px 0;color:var(--text-secondary);font-weight:600;white-space:nowrap;width:140px">'+f[0]+'</td><td style="padding:5px 0">'+f[1]+'</td></tr>';
+    });
+    datosHTML += '</table>';
+    document.getElementById('det-datos').innerHTML = datosHTML;
+
+    // Acciones
+    document.getElementById('det-acciones').innerHTML = construirBotonesLista(d);
+
+    // Historial
+    var hist = [];
+    try { hist = JSON.parse(d.historial || '[]'); } catch(e) {}
+    var histHTML = hist.length ? hist.map(function(h) {
+      return '<div class="historial-item">'
+        + '<div class="hi-header"><span class="hi-accion">'+h.accion+'</span><span class="hi-fecha">'+(h.fecha?new Date(h.fecha).toLocaleString('es-CO'):'')+'</span></div>'
+        + (h.usuario ? '<div style="font-size:11px;color:var(--text-muted)">👤 '+h.usuario+'</div>' : '')
+        + (h.nota    ? '<div class="hi-nota">'+h.nota+'</div>' : '')
+      + '</div>';
+    }).join('') : '<div style="font-size:13px;color:var(--text-muted)">Sin historial</div>';
+    document.getElementById('det-historial').innerHTML = histHTML;
+
+    document.getElementById('modal-detalle').classList.add('show');
+  }
+
+  // ── ACCIONES ─────────────────────────────────────────────
+  function abrirAccion(id, accion) {
+    _devActual    = _devs.find(function(d){ return String(d.id) === String(id); });
+    _accionActual = accion;
+    if (!_devActual) return;
+
+    var configs = {
+      aprobar:      { titulo:'✅ Aprobar devolución', sub:'Confirma la aprobación de este caso', campos:'<div class="field"><label>Comentario de aprobación</label><textarea id="mac-nota" placeholder="Instrucciones o condiciones de la aprobación..."></textarea></div>', btn:'✅ Aprobar' },
+      rechazar:     { titulo:'❌ Rechazar devolución', sub:'Indica el motivo del rechazo', campos:'<div class="field"><label>Motivo del rechazo <span class="req">*</span></label><textarea id="mac-nota" placeholder="Explica por qué se rechaza..."></textarea></div>', btn:'❌ Rechazar' },
+      foto_guia:    { titulo:'📸 Link foto de la guía', sub:'Pega el link donde está la foto de la guía recibida', campos:'<div class="field"><label>Link de la foto <span class="req">*</span></label><input type="url" id="mac-link" placeholder="https://drive.google.com/..."><div style="font-size:12px;color:var(--text-muted);margin-top:4px">Drive, WhatsApp Web, etc.</div></div>', btn:'💾 Guardar link' },
+      contacto:     { titulo:'📞 Registrar contacto con cliente', sub:'Máximo 2 contactos. Si no responde, pasa a stock en almacén.', campos:'<div class="field" style="margin-bottom:12px"><label>Resultado del contacto <span class="req">*</span></label><select id="mac-resultado"><option value="">— Seleccionar —</option><option value="CONTESTO_ACEPTA">✅ Contestó — acepta reenvío</option><option value="CONTESTO_RECHAZA">❌ Contestó — no quiere</option><option value="NO_CONTESTA">📵 No contesta</option></select></div><div class="field"><label>Notas</label><textarea id="mac-nota" placeholder="Detalles del contacto..."></textarea></div>', btn:'💾 Guardar' },
+      devolver_dinero:{ titulo:'💸 Registrar devolución de dinero', sub:'La prenda ya está en almacén. Registra el comprobante de pago.', campos:'<div class="field" style="margin-bottom:12px"><label>Link del comprobante <span class="req">*</span></label><input type="url" id="mac-link" placeholder="https://drive.google.com/..."></div><div class="field"><label>Notas</label><textarea id="mac-nota" placeholder="Referencia de la transferencia, número de transacción..."></textarea></div>', btn:'✅ Confirmar devolución' }
+    };
+
+    var cfg = configs[accion];
+    if (!cfg) return;
+    document.getElementById('mac-titulo').textContent = cfg.titulo;
+    document.getElementById('mac-sub').textContent    = cfg.sub;
+    document.getElementById('mac-campos').innerHTML   = cfg.campos;
+    document.getElementById('btn-ejecutar').textContent = cfg.btn;
+    document.getElementById('modal-accion').classList.add('show');
+  }
+
+  async function ejecutarAccion() {
+    if (!_devActual || !_accionActual) return;
+    var btn = document.getElementById('btn-ejecutar');
+    btn.disabled = true; btn.textContent = '⏳...';
+
+    var nota     = document.getElementById('mac-nota')?.value.trim() || '';
+    var link     = document.getElementById('mac-link')?.value.trim() || '';
+    var resultado= document.getElementById('mac-resultado')?.value || '';
+
+    var hist = [];
+    try { hist = JSON.parse(_devActual.historial || '[]'); } catch(e) {}
+
+    var update = {};
+
+    if (_accionActual === 'aprobar') {
+      update.estado      = 'APROBADO';
+      update.aprobado_por= sesion.nombre;
+      hist.push({ fecha: new Date().toISOString(), accion:'APROBADO', usuario: sesion.nombre, nota });
+    }
+    else if (_accionActual === 'rechazar') {
+      if (!nota) { alert('Escribe el motivo del rechazo.'); btn.disabled=false; btn.textContent='❌ Rechazar'; return; }
+      update.estado = 'RECHAZADO';
+      hist.push({ fecha: new Date().toISOString(), accion:'RECHAZADO', usuario: sesion.nombre, nota });
+    }
+    else if (_accionActual === 'foto_guia') {
+      if (!link) { alert('Pega el link de la foto.'); btn.disabled=false; btn.textContent='💾 Guardar link'; return; }
+      update.link_foto_guia = link;
+      update.estado         = 'EN_PROCESO';
+      hist.push({ fecha: new Date().toISOString(), accion:'FOTO_GUIA_RECIBIDA', usuario: sesion.nombre, nota:'Link: ' + link });
+    }
+    else if (_accionActual === 'contacto') {
+      if (!resultado) { alert('Selecciona el resultado del contacto.'); btn.disabled=false; btn.textContent='💾 Guardar'; return; }
+      var contactos = (_devActual.contactos_realizados || 0) + 1;
+      update.contactos_realizados = contactos;
+      hist.push({ fecha: new Date().toISOString(), accion:'CONTACTO_' + contactos + ': ' + resultado, usuario: sesion.nombre, nota });
+      if (contactos >= 2 && resultado === 'NO_CONTESTA') {
+        update.estado = 'EN_PROCESO'; // pasa a stock almacén
+        hist.push({ fecha: new Date().toISOString(), accion:'SIN_RESPUESTA — pasa a stock almacén', usuario: sesion.nombre, nota: '' });
+        update.notas = (_devActual.notas || '') + '\n[STOCK ALMACÉN]: Sin respuesta en 2 contactos.';
+      } else if (resultado === 'CONTESTO_ACEPTA') {
+        update.estado = 'EN_PROCESO';
+      } else if (resultado === 'CONTESTO_RECHAZA') {
+        update.estado = 'EN_PROCESO';
+        update.notas = (_devActual.notas || '') + '\n[CLIENTE RECHAZA REENVÍO]: pasa a stock almacén.';
+      }
+    }
+    else if (_accionActual === 'devolver_dinero') {
+      if (!link) { alert('Pega el link del comprobante.'); btn.disabled=false; btn.textContent='✅ Confirmar devolución'; return; }
+      update.estado           = 'CERRADO';
+      update.link_comprobante = link;
+      hist.push({ fecha: new Date().toISOString(), accion:'DINERO_DEVUELTO', usuario: sesion.nombre, nota: 'Comprobante: ' + link + (nota ? ' · ' + nota : '') });
+    }
+
+    update.historial = JSON.stringify(hist);
+
+    try {
+      await fetch(SB_URL + '/rest/v1/devoluciones?id=eq.' + _devActual.id, { method:'PATCH', headers:HDRF, body:JSON.stringify(update) });
+      // Actualizar local
+      var idx = _devs.findIndex(function(d){ return String(d.id) === String(_devActual.id); });
+      if (idx >= 0) _devs[idx] = Object.assign({}, _devs[idx], update);
+      cerrarModal('modal-accion');
+      cerrarModal('modal-detalle');
+      showToast('✅ Acción registrada correctamente');
+      actualizarStats();
+      renderLista(_devs);
+    } catch(e) { alert('Error: ' + e.message); }
+    btn.disabled = false;
+  }
+
+  // ── CREAR ORDEN CAMBIO / GARANTÍA ─────────────────────────
+  function abrirCrearOrden(id) {
+    _devActual = _devs.find(function(d){ return String(d.id) === String(id); });
+    if (!_devActual) return;
+    var d = _devActual;
+    var esCambio = d.tipo === 'CAMBIO';
+    document.getElementById('co-sub').textContent = esCambio
+      ? 'Cambio aprobado por: ' + (d.aprobado_por||'Admin') + ' — sin valor monetario'
+      : 'Garantía aprobada por: ' + (d.aprobado_por||'Admin');
+    document.getElementById('co-resumen').innerHTML =
+      '<strong>Cliente:</strong> ' + d.cliente + '<br>'
+      + '<strong>Teléfono:</strong> ' + (d.telefono||'—') + '<br>'
+      + '<strong>Orden origen:</strong> ' + d.numero_orden + '<br>'
+      + '<strong>Motivo:</strong> ' + d.motivo + '<br>'
+      + (d.notas ? '<strong>Notas:</strong> ' + d.notas : '');
+    document.getElementById('co-notas-orden').value = d.notas || d.motivo || '';
+    document.getElementById('modal-crear-orden').classList.add('show');
+  }
+
+  async function confirmarCrearOrden() {
+    if (!_devActual) return;
+    var notas = document.getElementById('co-notas-orden').value.trim();
+    if (!notas) { alert('Agrega las notas para Análisis.'); return; }
+
+    var btn = document.getElementById('btn-conf-orden');
+    btn.disabled = true; btn.textContent = '⏳ Preparando...';
+
+    var esCambio = _devActual.tipo === 'CAMBIO';
+    // Guardar precarga para ventas
+    // Guardar en localStorage para precarga de campos del formulario
+    localStorage.setItem('nk_devolucion_precarga', JSON.stringify({
+      nombre:       _devActual.cliente,
+      telefono:     _devActual.telefono || '',
+      orden_origen: _devActual.numero_orden,
+      notas:        notas,
+      es_cambio:    esCambio
+    }));
+    // Guardar en sessionStorage para lógica del número de orden
+    sessionStorage.setItem('nk_dev_activa', JSON.stringify({
+      es_cambio:    esCambio,
+      es_garantia:  _devActual.tipo === 'GARANTIA',
+      orden_origen: _devActual.numero_orden,
+      dev_id:       _devActual.id,
+      cliente:      _devActual.cliente
+    }));
+
+    // Marcar como EN_PROCESO
+    var hist = [];
+    try { hist = JSON.parse(_devActual.historial || '[]'); } catch(e) {}
+    hist.push({ fecha: new Date().toISOString(), accion:'ORDEN_EN_CREACION', usuario: sesion.nombre, nota: 'Ventas procede a crear la orden' });
+    await fetch(SB_URL + '/rest/v1/devoluciones?id=eq.' + _devActual.id, {
+      method:'PATCH', headers:HDRF,
+      body:JSON.stringify({ estado:'EN_PROCESO', historial:JSON.stringify(hist) })
+    });
+
+    cerrarModal('modal-crear-orden');
+    showToast('Redirigiendo a Ventas...');
+    var devId = _devActual.id;
+    _devActual = null;
+    setTimeout(function(){ window.location.href = 'neko_ventas.html?dev=' + devId; }, 700);
+  }
+
+  // ── HELPERS ───────────────────────────────────────────────
+  function cerrarModal(id) {
+    document.getElementById(id).classList.remove('show');
+    if (id !== 'modal-detalle') _devActual = null;
+  }
+
+  function cerrarSesion() {
+    sessionStorage.removeItem('nk_user');
+    window.location.href = 'neko_login.html';
+  }
+
+  function showToast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg; t.style.opacity = '1';
+    clearTimeout(t._t);
+    t._t = setTimeout(function(){ t.style.opacity = '0'; }, 3000);
+  }
+</script>
+</body>
+</html>
