@@ -942,14 +942,18 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
       + '<span style="font-size:13px;font-weight:700">📦 Producto #' + n + '</span>'
       + (n > 1 ? '<button onclick="eliminarProdDev(' + n + ')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:18px">✕</button>' : '')
       + '</div>'
-      + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:8px">'
         + '<div class="field"><label>Tipo de prenda <span class="req">*</span></label>'
           + '<select name="cop-tipo-'+n+'"><option value="">— Tipo —</option>'
-          + ['Camiseta','Hoodie','Cobija','Toalla con capota','Bermuda','Croptop','Sudadera','Otros'].map(function(t){ return '<option>'+t+'</option>'; }).join('')
+          + ['Bandera','Banderin','BAO BAO','Bermuda','Blusa','Camibuzo','Camisa','Camiseta','Camiseta con mangas','Camisilla','Capa','Cartuchera','Chaleco','Chaqueta','Choker','Cobija','Cojin','Cojin para cuello','Cojines para pintar','Corbata','Correa','Croptop','Dakimakuras','Delantal','DTF','Estola','Falda','Gafas','Gorro','Hoodie','Impresion','Kimono','Manga','Maxibuzo','Medias','MousePad','Mug','Overol','Pantalon','Pantaloneta','Pañoleta','Pendon','Peto','Ruana','Short','Sublimacion','Sudadera','Tapaboca','Termos','Toalla','Toalla con capota','Totebag','Tula','Tula para pintar','Uniforme','Vaso','Vestido','Otros'].map(function(t){ return '<option>'+t+'</option>'; }).join('')
+          + '</select></div>'
+        + '<div class="field"><label>Horma</label>'
+          + '<select name="cop-horma-'+n+'"><option value="">— Horma —</option>'
+          + ['Unisex','Masculino','Femenino','Oversize','Junior','Varias','Otras'].map(function(h){ return '<option>'+h+'</option>'; }).join('')
           + '</select></div>'
         + '<div class="field"><label>Talla <span class="req">*</span></label>'
           + '<select name="cop-talla-'+n+'"><option value="">— Talla —</option>'
-          + ['XS','S','M','L','XL','2XL','3XL','Personalizada'].map(function(t){ return '<option>'+t+'</option>'; }).join('')
+          + ['4','6','8','10','12','14','16','XS','S','M','L','XL','XXL','XXXL','XXXXL','Personalizada'].map(function(t){ return '<option>'+t+'</option>'; }).join('')
           + '</select></div>'
         + '<div class="field"><label>Cantidad <span class="req">*</span></label>'
           + '<input type="number" name="cop-cant-'+n+'" value="1" min="1"></div>'
@@ -988,7 +992,8 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
       var link = wrap.querySelector('[name="cop-link-'+i+'"]')?.value;
       var obs  = wrap.querySelector('[name="cop-obs-'+i+'"]')?.value;
       if (!tipo || !talla) { alert('Completa tipo y talla del producto #' + i); return; }
-      productos.push({ tipo, talla, cantidad: cant||'1', url: link||'', notas: obs||'' });
+      var horma = wrap.querySelector('[name="cop-horma-'+i+'"]')?.value || '';
+      productos.push({ tipo, horma, talla, cantidad: cant||'1', url: link||'', notas: obs||'' });
     }
     if (!productos.length) { alert('Agrega al menos un producto.'); return; }
 
