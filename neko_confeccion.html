@@ -421,6 +421,7 @@
     if (prenda.horma) tags += '<span class="ptag ptag-gray">' + prenda.horma + '</span>';
     if (prenda.talla) tags += '<span class="ptag ptag-gray">' + prenda.talla + '</span>';
     tags += '<span class="ptag ptag-blue">x' + (prenda.cantidad || 1) + '</span>';
+    if (prenda.nombre_insumo) tags += '<span class="ptag" style="background:#f0fdf4;border:1.5px solid #6ee7b7;color:#065f46;font-weight:700">🧵 ' + prenda.nombre_insumo + '</span>';
     if (item.nivelUrgencia === 'urgente')    tags += '<span class="ptag" style="background:#fff7ed;border:1.5px solid #ea580c;color:#ea580c;font-weight:800">🚨 URGENTE</span>';
     if (item.nivelUrgencia === 'marketplace') tags += '<span class="ptag" style="background:#fef9c3;border:1.5px solid #ca8a04;color:#854d0e;font-weight:800">🛒 ML</span>';
     if (esPrioritario && item.nivelUrgencia !== 'urgente' && item.nivelUrgencia !== 'marketplace') tags += '<span class="ptag ptag-red">🔴 Prioritario</span>';

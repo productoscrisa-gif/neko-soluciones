@@ -1980,32 +1980,6 @@
     const hoy = new Date().toISOString().split('T')[0];
     document.getElementById('fecha_entrega').min = hoy;
     cargarBarraPE();
-    // Precargar datos si viene de una devolución (cambio o garantía)
-    var _devData = localStorage.getItem('nk_devolucion_precarga');
-    var _devActiva = null;
-    try { var _dRaw = sessionStorage.getItem('nk_dev_activa'); if(_dRaw) _devActiva = JSON.parse(_dRaw); } catch(e){}
-    if (_devData || _devActiva) {
-      if (_devData) localStorage.removeItem('nk_devolucion_precarga');
-      try {
-        var dv = _devData ? JSON.parse(_devData) : {};
-        var da = _devActiva || {};
-        window._aplicarPrecargaDev = function() {
-          var n = document.getElementById('nombre'); if(n && dv.nombre) n.value = dv.nombre;
-          var t = document.getElementById('telefono'); if(t && dv.telefono) t.value = dv.telefono;
-          // Mostrar banner rojo con prefijo del número
-          var prefijo = da.es_cambio ? 'CAM' : 'GAR';
-          var numOrden = prefijo + '-' + (da.orden_origen || dv.orden_origen || '');
-          var banner = document.createElement('div');
-          banner.style.cssText = 'background:#fff1f2;border:2px solid #fca5a5;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:700;color:#e11d48;display:flex;align-items:center;gap:8px';
-          var tipo = da.es_cambio ? '🔄 CAMBIO' : '🛡️ GARANTÍA';
-          banner.innerHTML = tipo + ' · Número de orden: <strong>' + numOrden + '</strong> · ' + (da.cliente||dv.nombre||'') + ' <button onclick="this.parentElement.remove()" style="margin-left:auto;background:none;border:none;cursor:pointer;color:#e11d48;font-size:16px">✕</button>';
-          var formStart = document.querySelector('.card') || document.body.firstElementChild;
-          if (formStart && formStart.parentNode) formStart.parentNode.insertBefore(banner, formStart);
-        };
-        setTimeout(window._aplicarPrecargaDev, 800);
-      } catch(e) {}
-    }
-
     // Precargar datos si viene de un lead
     var _leadData = localStorage.getItem('nk_lead_precarga');
     if (_leadData) {
