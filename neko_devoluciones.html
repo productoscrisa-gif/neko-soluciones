@@ -475,19 +475,22 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
         + '<div class="dev-info">'
           + (esGuiaRecibida
             ? '<div class="dev-titulo">📦 Guía recibida en almacén <span style="font-size:11px;font-weight:600;color:var(--text-muted)">· ' + d.fecha_registro_fmt + '</span></div>'
-              + '<div class="dev-meta" style="margin-top:6px">'
-                + (d.link_foto_guia ? '<a href="' + d.link_foto_guia + '" target="_blank" style="color:var(--blue);font-weight:700;font-size:13px">📸 Ver foto de la guía</a>' : '<span style="color:var(--text-muted)">Sin link</span>')
-                + (d.notas ? '<span style="color:var(--text-secondary)">' + d.notas + '</span>' : '')
+              + '<div class="dev-meta" style="margin-top:6px;align-items:center">'
+                + (d.link_foto_guia ? '<a href="' + d.link_foto_guia + '" target="_blank" style="color:var(--blue);font-weight:700;font-size:13px">📸 Ver foto de la guía</a>' : '<span style="color:var(--text-muted)">Sin link de guía</span>')
+                + (d.notas ? '<span style="color:var(--text-secondary);font-size:12px">' + d.notas + '</span>' : '')
               + '</div>'
+              + ((['Ventas','Supervisor'].includes(sesion.area)) && d.estado === 'GUIA_RECIBIDA'
+                ? '<div style="margin-top:10px"><button class="btn-nuevo-desde-guia" onclick="nuevaDevDesdeGuia(\''+d.id+'\')">+ Nueva Devolución</button></div>'
+                : '')
             : '<div class="dev-titulo">' + (d.cliente||'Sin cliente') + ' · Orden: <strong>' + (d.numero_orden||'—') + '</strong></div>')
-          + '<div class="dev-meta">'
+          + (!esGuiaRecibida ? '<div class="dev-meta">'
             + (d.vendedora ? '<span>👤 '+d.vendedora+'</span>' : '')
             + '<span>🕐 '+diasStr+'</span>'
             + (d.aprobado_por ? '<span>✅ Aprobado por: '+d.aprobado_por+'</span>' : '')
             + (d.orden_nueva ? '<span>🔗 Orden nueva: <strong>'+d.orden_nueva+'</strong></span>' : '')
-            + (d.link_foto_guia ? '<span>📸 <a href="'+d.link_foto_guia+'" target="_blank" style="color:var(--blue);font-weight:700">Ver guía recibida</a></span>' : '')
-          + '</div>'
-          + (d.motivo ? '<div class="dev-notas">'+d.motivo.substring(0,100)+(d.motivo.length>100?'...':'')+'</div>' : '')
+            + (d.link_foto_guia && !esGuiaRecibida ? '<span>📸 <a href="'+d.link_foto_guia+'" target="_blank" style="color:var(--blue);font-weight:700">Ver guía recibida</a></span>' : '')
+          + '</div>' : '')
+          + (!esGuiaRecibida && d.motivo ? '<div class="dev-notas">'+d.motivo.substring(0,100)+(d.motivo.length>100?'...':'')+' </div>' : '')
         + '</div>'
         + '<div class="dev-right">'
           + '<span class="estado-badge '+(EST_CLASS[d.estado]||'')+'">'+( EST_LABEL[d.estado]||d.estado)+'</span>'
