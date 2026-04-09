@@ -1022,7 +1022,7 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
       barrio:          '',
       ciudad:          ciudad,
       departamento:    document.getElementById('co-departamento').value.trim(),
-      fecha_entrega:   '',
+      fecha_entrega:   (function(){ var d = new Date(); d.setDate(d.getDate()+3); return d.toISOString().split('T')[0]; })(), // prioridad ML = 3 días
       valor_total:     parseFloat(document.getElementById('co-valor').value) || 0,
       monto_pagado:    0,
       saldo_pendiente: 0,
@@ -1032,11 +1032,11 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
       nivel_urgencia:  'marketplace',
       es_prioritario:  true,
       requiere_aprobacion: false,
-      link_drive:      '',
+      link_drive:      null,
       estado:          'EN_ANALISIS',
       orden_padre:     _devActual.numero_orden,
-      productos:       JSON.stringify(productos),
-      sub_estados:     JSON.stringify(subEstados),
+      productos:       productos,
+      sub_estados:     subEstados,
       tiene_hijas:     false,
       fecha_creacion:  new Date().toISOString()
     };
