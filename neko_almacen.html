@@ -382,8 +382,17 @@ function renderPendientes() {
   }
 
   // Agrupar: padres primero, hijas anidadas dentro del padre
-  var padres = ordenesEnAlmacen.filter(function(o) { return !o.orden_padre; });
-  var hijas  = ordenesEnAlmacen.filter(function(o) { return !!o.orden_padre;  });
+  // padres normales — excluir CAM- y GAR- (se muestran aparte)
+  var padres = ordenesEnAlmacen.filter(function(o) {
+    if (o.numero_orden && (o.numero_orden.startsWith('CAM-') || o.numero_orden.startsWith('GAR-'))) return false;
+    return !o.orden_padre;
+  });
+  // hijas normales — excluir CAM- y GAR- que son órdenes independientes
+  var hijas  = ordenesEnAlmacen.filter(function(o) {
+    if (!o.orden_padre) return false;
+    if (o.numero_orden && (o.numero_orden.startsWith('CAM-') || o.numero_orden.startsWith('GAR-'))) return false;
+    return true;
+  });
 
   var html = '<div class="orders-list">';
 
@@ -441,12 +450,32 @@ function renderPendientes() {
 
   // Hijas huérfanas (cuya madre no llegó aún a Almacén — caso raro)
   var hijasHuerfanas = hijas.filter(function(h) {
+    // Excluir CAM- y GAR- — son cambios/garantías, no hijas normales
+    if (h.numero_orden && (h.numero_orden.startsWith('CAM-') || h.numero_orden.startsWith('GAR-'))) return false;
     return !padres.find(function(p) { return p.numero_orden === h.orden_padre; });
   });
   hijasHuerfanas.forEach(function(h) {
     html += '<div style="border:2px solid #fcd34d;border-radius:12px;overflow:hidden;margin-bottom:12px">';
     html += '<div style="background:#fffbeb;padding:6px 16px;font-size:12px;font-weight:700;color:#92400e">⚠️ ADICIONAL de ' + h.orden_padre + ' — La orden principal aún no llegó a Almacén</div>';
     html += buildCard(h, false, true);
+    html += '</div>';
+  });
+
+  // Órdenes de Cambio y Garantía — se muestran como órdenes normales pero con nota de trazabilidad
+  var ordenesCamGar = ordenesEnAlmacen.filter(function(o) {
+    return o.numero_orden && (o.numero_orden.startsWith('CAM-') || o.numero_orden.startsWith('GAR-'));
+  });
+  ordenesCamGar.forEach(function(o) {
+    var esCambio  = o.numero_orden.startsWith('CAM-');
+    var colorBorde = esCambio ? '#fed7aa' : '#99f6e4';
+    var colorFondo = esCambio ? '#fff7ed' : '#f0fdfa';
+    var colorTexto = esCambio ? '#c2410c' : '#0f766e';
+    var icono      = esCambio ? '🔄' : '🛡️';
+    var tipo       = esCambio ? 'CAMBIO' : 'GARANTÍA';
+    html += '<div style="border:2px solid ' + colorBorde + ';border-radius:12px;overflow:hidden;margin-bottom:12px">';
+    html += '<div style="background:' + colorFondo + ';padding:6px 16px;font-size:12px;font-weight:700;color:' + colorTexto + '">'
+          + icono + ' ' + tipo + ' — Nota: esta prenda viene de la orden ' + o.orden_padre + '</div>';
+    html += buildCard(o, false, false);
     html += '</div>';
   });
 
