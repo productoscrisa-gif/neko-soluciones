@@ -872,11 +872,12 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
       body:JSON.stringify({ estado:'EN_PROCESO', historial:JSON.stringify(hist) })
     });
 
-    cerrarModal('modal-crear-orden');
-    showToast('Redirigiendo a Ventas...');
+    // Guardar devId ANTES de cerrar el modal (cerrarModal pone _devActual = null)
     var devId = _devActual.id;
+    document.getElementById('modal-crear-orden').classList.remove('show');
+    showToast('Redirigiendo a Ventas...');
     _devActual = null;
-    setTimeout(function(){ window.location.href = 'neko_ventas.html?dev=' + devId; }, 700);
+    setTimeout(function(){ window.location.href = 'neko_ventas.html'; }, 700);
   }
 
   // ── HELPERS ───────────────────────────────────────────────
