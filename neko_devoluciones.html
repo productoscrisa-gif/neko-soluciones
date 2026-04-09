@@ -322,19 +322,65 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
   </div>
 </div>
 
-<!-- MODAL CREAR ORDEN (cambio/garantía) -->
+<!-- MODAL CREAR ORDEN (cambio/garantía) — formulario completo -->
 <div class="modal-overlay" id="modal-crear-orden">
-  <div class="modal">
-    <div class="modal-title">🛒 Crear orden de cambio / garantía</div>
-    <div class="modal-sub" id="co-sub">Los datos del cliente se precargarán en Ventas</div>
-    <div id="co-resumen" class="info-box info-blue" style="margin-bottom:16px;line-height:1.8;"></div>
-    <div class="form-grid-1 field" style="margin-bottom:12px">
-      <label>Notas para Análisis <span class="req">*</span></label>
-      <textarea id="co-notas-orden" placeholder="Instrucciones de producción, prendas a cambiar, reparación a realizar..."></textarea>
+  <div class="modal" style="max-width:700px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+      <div class="modal-title" id="co-titulo">🛒 Crear orden de cambio</div>
+      <span id="co-badge" style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:800;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa">CAM-XXXXX · Prioridad ML</span>
     </div>
+    <div class="modal-sub" id="co-sub" style="margin-bottom:14px"></div>
+
+    <!-- Info del caso -->
+    <div id="co-resumen" class="info-box info-blue" style="margin-bottom:16px;font-size:13px;line-height:1.9"></div>
+
+    <!-- Datos del cliente -->
+    <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px">Datos del cliente</div>
+    <div class="form-grid-2" style="margin-bottom:12px">
+      <div class="field"><label>Nombre <span class="req">*</span></label><input type="text" id="co-nombre" placeholder="Nombre del cliente"></div>
+      <div class="field"><label>Teléfono</label><input type="tel" id="co-telefono" placeholder="3001234567"></div>
+    </div>
+    <div class="form-grid-2" style="margin-bottom:12px">
+      <div class="field"><label>Dirección <span class="req">*</span></label><input type="text" id="co-direccion" placeholder="Dirección de envío"></div>
+      <div class="field"><label>Ciudad <span class="req">*</span></label><input type="text" id="co-ciudad" placeholder="Ciudad"></div>
+    </div>
+    <div class="form-grid-2" style="margin-bottom:16px">
+      <div class="field"><label>Departamento</label><input type="text" id="co-departamento" placeholder="Departamento"></div>
+      <div class="field"><label>Tipo de envío <span class="req">*</span></label>
+        <select id="co-tipo-envio">
+          <option value="">— Seleccionar —</option>
+          <option value="Transportadora">Transportadora</option>
+          <option value="Domicilio">Domicilio</option>
+          <option value="Recogida en tienda">Recogida en tienda</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Productos -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Productos del pedido</div>
+      <button onclick="agregarProductoOrden()" style="padding:5px 12px;background:var(--blue-light);color:var(--blue);border:1px solid var(--blue-mid);border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">+ Agregar producto</button>
+    </div>
+    <div id="co-productos-lista"></div>
+
+    <!-- Config de la orden -->
+    <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px;margin-top:16px">Configuración de la orden</div>
+    <div class="form-grid-2" style="margin-bottom:12px">
+      <div class="field"><label>Marca <span class="req">*</span></label><select id="co-marca"><option value="">— Seleccionar —</option></select></div>
+      <div class="field" id="co-valor-wrap">
+        <label>Valor total</label>
+        <input type="number" id="co-valor" value="0" min="0" placeholder="0">
+        <div style="font-size:11px;color:var(--text-muted);margin-top:3px" id="co-valor-hint">$0 para cambios — usa comentarios para excedentes</div>
+      </div>
+    </div>
+    <div class="form-grid-1 field" style="margin-bottom:4px">
+      <label>Notas para Análisis <span class="req">*</span></label>
+      <textarea id="co-notas-orden" placeholder="Instrucciones de producción, descripción del cambio o reparación..."></textarea>
+    </div>
+
     <div class="modal-actions">
       <button class="btn-cancel" onclick="cerrarModal('modal-crear-orden')">Cancelar</button>
-      <button class="btn-guardar" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);box-shadow:0 3px 10px rgba(124,58,237,.3)" onclick="confirmarCrearOrden()" id="btn-conf-orden">🚀 Ir a Ventas con datos precargados</button>
+      <button class="btn-guardar" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);box-shadow:0 3px 10px rgba(124,58,237,.3)" onclick="confirmarCrearOrden()" id="btn-conf-orden">🚀 Crear orden → Análisis</button>
     </div>
   </div>
 </div>
@@ -817,67 +863,211 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
     btn.disabled = false;
   }
 
-  // ── CREAR ORDEN CAMBIO / GARANTÍA ─────────────────────────
-  function abrirCrearOrden(id) {
+  // ── CREAR ORDEN CAMBIO / GARANTÍA ────────────────────────
+  var _prodContador = 0;
+  var _marcasDev = [];
+
+  async function abrirCrearOrden(id) {
     _devActual = _devs.find(function(d){ return String(d.id) === String(id); });
     if (!_devActual) return;
     var d = _devActual;
     var esCambio = d.tipo === 'CAMBIO';
-    document.getElementById('co-sub').textContent = esCambio
-      ? 'Cambio aprobado por: ' + (d.aprobado_por||'Admin') + ' — sin valor monetario'
-      : 'Garantía aprobada por: ' + (d.aprobado_por||'Admin');
+    var prefijo  = esCambio ? 'CAM' : 'GAR';
+
+    // Título y badge
+    document.getElementById('co-titulo').textContent = esCambio ? '🔄 Crear orden de cambio' : '🛡️ Crear orden de garantía';
+    document.getElementById('co-badge').textContent  = prefijo + '-' + d.numero_orden + ' · Prioridad ML';
+    document.getElementById('co-badge').style.background = esCambio ? '#fff7ed' : '#f0fdfa';
+    document.getElementById('co-badge').style.color      = esCambio ? '#c2410c' : '#0f766e';
+    document.getElementById('co-badge').style.borderColor= esCambio ? '#fed7aa' : '#99f6e4';
+
+    document.getElementById('co-sub').textContent = 'Aprobado por: ' + (d.aprobado_por||'Admin') + ' · Orden origen: ' + d.numero_orden;
+
+    // Info del caso
     document.getElementById('co-resumen').innerHTML =
-      '<strong>Cliente:</strong> ' + d.cliente + '<br>'
-      + '<strong>Teléfono:</strong> ' + (d.telefono||'—') + '<br>'
-      + '<strong>Orden origen:</strong> ' + d.numero_orden + '<br>'
-      + '<strong>Motivo:</strong> ' + d.motivo + '<br>'
-      + (d.notas ? '<strong>Notas:</strong> ' + d.notas : '');
-    document.getElementById('co-notas-orden').value = d.notas || d.motivo || '';
+      '<strong>Cliente:</strong> ' + d.cliente
+      + ' &nbsp;·&nbsp; <strong>Tel:</strong> ' + (d.telefono||'—')
+      + ' &nbsp;·&nbsp; <strong>Motivo:</strong> ' + d.motivo
+      + (d.notas ? '<br><strong>Notas:</strong> ' + d.notas : '');
+
+    // Precargar cliente
+    document.getElementById('co-nombre').value    = d.cliente || '';
+    document.getElementById('co-telefono').value  = d.telefono || '';
+    document.getElementById('co-direccion').value = '';
+    document.getElementById('co-ciudad').value    = '';
+    document.getElementById('co-departamento').value = '';
+    document.getElementById('co-notas-orden').value  = d.notas || d.motivo || '';
+
+    // Hint valor
+    document.getElementById('co-valor').value = '0';
+    document.getElementById('co-valor-hint').textContent = esCambio
+      ? '$0 para cambios — usa comentarios para excedentes'
+      : 'Ingresa el valor si hay cobro adicional por la garantía';
+
+    // Cargar marcas
+    _prodContador = 0;
+    document.getElementById('co-productos-lista').innerHTML = '';
+    agregarProductoOrden();
+    await cargarMarcasDev();
+
     document.getElementById('modal-crear-orden').classList.add('show');
+  }
+
+  function eliminarProdDev(n) {
+    var el = document.getElementById('co-prod-' + n);
+    if (el) el.remove();
+  }
+
+  async function cargarMarcasDev() {
+    try {
+      var r = await fetch(SB_URL + '/rest/v1/marcas?activo=eq.true&select=nombre', { headers: HDR });
+      _marcasDev = await r.json();
+      if (!Array.isArray(_marcasDev)) _marcasDev = [];
+    } catch(e) { _marcasDev = []; }
+    var sel = document.getElementById('co-marca');
+    sel.innerHTML = '<option value="">— Seleccionar —</option>';
+    _marcasDev.forEach(function(m) {
+      sel.innerHTML += '<option value="' + m.nombre + '">' + m.nombre + '</option>';
+    });
+  }
+
+  function agregarProductoOrden() {
+    _prodContador++;
+    var n = _prodContador;
+    var div = document.createElement('div');
+    div.id = 'co-prod-' + n;
+    div.style.cssText = 'background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:10px';
+    div.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+      + '<span style="font-size:13px;font-weight:700">📦 Producto #' + n + '</span>'
+      + (n > 1 ? '<button onclick="eliminarProdDev(' + n + ')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:18px">✕</button>' : '')
+      + '</div>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">'
+        + '<div class="field"><label>Tipo de prenda <span class="req">*</span></label>'
+          + '<select name="cop-tipo-'+n+'"><option value="">— Tipo —</option>'
+          + ['Camiseta','Hoodie','Cobija','Toalla con capota','Bermuda','Croptop','Sudadera','Otros'].map(function(t){ return '<option>'+t+'</option>'; }).join('')
+          + '</select></div>'
+        + '<div class="field"><label>Talla <span class="req">*</span></label>'
+          + '<select name="cop-talla-'+n+'"><option value="">— Talla —</option>'
+          + ['XS','S','M','L','XL','2XL','3XL','Personalizada'].map(function(t){ return '<option>'+t+'</option>'; }).join('')
+          + '</select></div>'
+        + '<div class="field"><label>Cantidad <span class="req">*</span></label>'
+          + '<input type="number" name="cop-cant-'+n+'" value="1" min="1"></div>'
+      + '</div>'
+      + '<div class="field" style="margin-bottom:8px"><label>Link de imagen / referencia</label>'
+        + '<input type="url" name="cop-link-'+n+'" placeholder="https://drive.google.com/..."></div>'
+      + '<div class="field"><label>Observaciones</label>'
+        + '<textarea name="cop-obs-'+n+'" rows="2" placeholder="Color, diseño, instrucciones especiales..."></textarea></div>';
+    document.getElementById('co-productos-lista').appendChild(div);
   }
 
   async function confirmarCrearOrden() {
     if (!_devActual) return;
-    var notas = document.getElementById('co-notas-orden').value.trim();
-    if (!notas) { alert('Agrega las notas para Análisis.'); return; }
+    var nombre   = document.getElementById('co-nombre').value.trim();
+    var dir      = document.getElementById('co-direccion').value.trim();
+    var ciudad   = document.getElementById('co-ciudad').value.trim();
+    var marca    = document.getElementById('co-marca').value;
+    var tipoEnvio= document.getElementById('co-tipo-envio').value;
+    var notas    = document.getElementById('co-notas-orden').value.trim();
+    if (!nombre)   { alert('Ingresa el nombre del cliente.'); return; }
+    if (!dir)      { alert('Ingresa la dirección de envío.'); return; }
+    if (!ciudad)   { alert('Ingresa la ciudad.'); return; }
+    if (!marca)    { alert('Selecciona la marca.'); return; }
+    if (!tipoEnvio){ alert('Selecciona el tipo de envío.'); return; }
+    if (!notas)    { alert('Agrega las notas para Análisis.'); return; }
+
+    // Recolectar productos
+    var productos = [];
+    var n = _prodContador;
+    for (var i = 1; i <= n; i++) {
+      var wrap = document.getElementById('co-prod-' + i);
+      if (!wrap) continue;
+      var tipo = wrap.querySelector('[name="cop-tipo-'+i+'"]')?.value;
+      var talla= wrap.querySelector('[name="cop-talla-'+i+'"]')?.value;
+      var cant = wrap.querySelector('[name="cop-cant-'+i+'"]')?.value;
+      var link = wrap.querySelector('[name="cop-link-'+i+'"]')?.value;
+      var obs  = wrap.querySelector('[name="cop-obs-'+i+'"]')?.value;
+      if (!tipo || !talla) { alert('Completa tipo y talla del producto #' + i); return; }
+      productos.push({ tipo, talla, cantidad: cant||'1', url: link||'', notas: obs||'' });
+    }
+    if (!productos.length) { alert('Agrega al menos un producto.'); return; }
 
     var btn = document.getElementById('btn-conf-orden');
-    btn.disabled = true; btn.textContent = '⏳ Preparando...';
+    btn.disabled = true; btn.textContent = '⏳ Creando orden...';
 
     var esCambio = _devActual.tipo === 'CAMBIO';
-    // Guardar precarga para ventas
-    // Guardar en localStorage para precarga de campos del formulario
-    localStorage.setItem('nk_devolucion_precarga', JSON.stringify({
-      nombre:       _devActual.cliente,
-      telefono:     _devActual.telefono || '',
-      orden_origen: _devActual.numero_orden,
-      notas:        notas,
-      es_cambio:    esCambio
-    }));
-    // Guardar en sessionStorage para lógica del número de orden
-    sessionStorage.setItem('nk_dev_activa', JSON.stringify({
-      es_cambio:    esCambio,
-      es_garantia:  _devActual.tipo === 'GARANTIA',
-      orden_origen: _devActual.numero_orden,
-      dev_id:       _devActual.id,
-      cliente:      _devActual.cliente
-    }));
+    var prefijo  = esCambio ? 'CAM' : 'GAR';
+    var numOrden = prefijo + '-' + _devActual.numero_orden;
 
-    // Marcar como EN_PROCESO
-    var hist = [];
-    try { hist = JSON.parse(_devActual.historial || '[]'); } catch(e) {}
-    hist.push({ fecha: new Date().toISOString(), accion:'ORDEN_EN_CREACION', usuario: sesion.nombre, nota: 'Ventas procede a crear la orden' });
-    await fetch(SB_URL + '/rest/v1/devoluciones?id=eq.' + _devActual.id, {
-      method:'PATCH', headers:HDRF,
-      body:JSON.stringify({ estado:'EN_PROCESO', historial:JSON.stringify(hist) })
+    // Sub-estados iniciales para cada prenda
+    var subEstados = productos.map(function(p, idx) {
+      return { prenda_idx: idx, area_actual: 'Análisis', estado: 'pendiente',
+               diseñador_asignado: '', insumo_id: null, ruta: '' };
     });
 
-    // Guardar devId ANTES de cerrar el modal (cerrarModal pone _devActual = null)
-    var devId = _devActual.id;
-    document.getElementById('modal-crear-orden').classList.remove('show');
-    showToast('Redirigiendo a Ventas...');
-    _devActual = null;
-    setTimeout(function(){ window.location.href = 'neko_ventas.html'; }, 700);
+    var orden = {
+      numero_orden:    numOrden,
+      vendedora:       sesion.nombre,
+      marca:           marca,
+      tipo_envio:      tipoEnvio,
+      es_contraentrega: false,
+      envio_contraentrega: false,
+      usuario_red:     '',
+      canal:           'Devolución',
+      doc_cliente:     '',
+      nombre_cliente:  nombre,
+      telefono:        document.getElementById('co-telefono').value.trim(),
+      email:           '',
+      direccion:       dir,
+      barrio:          '',
+      ciudad:          ciudad,
+      departamento:    document.getElementById('co-departamento').value.trim(),
+      fecha_entrega:   '',
+      valor_total:     parseFloat(document.getElementById('co-valor').value) || 0,
+      monto_pagado:    0,
+      saldo_pendiente: 0,
+      tipo_pago:       'total',
+      medio_pago:      'Sin cobro',
+      obs_pago:        esCambio ? 'Cambio de prenda — sin cobro' : 'Garantía / reparación',
+      nivel_urgencia:  'marketplace',
+      es_prioritario:  true,
+      requiere_aprobacion: false,
+      link_drive:      '',
+      estado:          'EN_ANALISIS',
+      orden_padre:     _devActual.numero_orden,
+      productos:       JSON.stringify(productos),
+      sub_estados:     JSON.stringify(subEstados),
+      tiene_hijas:     false,
+      fecha_creacion:  new Date().toISOString()
+    };
+
+    try {
+      // Guardar en tabla ordenes
+      var rOrden = await fetch(SB_URL + '/rest/v1/ordenes', {
+        method: 'POST',
+        headers: Object.assign({}, HDR, { 'Content-Type':'application/json', 'Prefer':'return=representation' }),
+        body: JSON.stringify(orden)
+      });
+      if (!rOrden.ok) {
+        var err = await rOrden.json();
+        throw new Error(err.message || 'Error al crear la orden');
+      }
+
+      // Actualizar devolución con orden_nueva y estado CERRADO
+      var hist = [];
+      try { hist = JSON.parse(_devActual.historial || '[]'); } catch(e) {}
+      hist.push({ fecha: new Date().toISOString(), accion:'ORDEN_CREADA', usuario: sesion.nombre,
+                  nota: 'Orden ' + numOrden + ' creada y enviada a Análisis' });
+      await fetch(SB_URL + '/rest/v1/devoluciones?id=eq.' + _devActual.id, {
+        method: 'PATCH', headers: Object.assign({}, HDR, {'Content-Type':'application/json','Prefer':'return=minimal'}),
+        body: JSON.stringify({ orden_nueva: numOrden, estado: 'EN_PROCESO', historial: JSON.stringify(hist) })
+      });
+
+      cerrarModal('modal-crear-orden');
+      showToast('✅ Orden ' + numOrden + ' creada — enviada a Análisis con prioridad ML');
+      cargar();
+    } catch(e) { alert('Error: ' + e.message); }
+    btn.disabled = false; btn.textContent = '🚀 Crear orden → Análisis';
   }
 
   // ── HELPERS ───────────────────────────────────────────────
