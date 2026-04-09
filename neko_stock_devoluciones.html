@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neko Soluciones - Stock Devoluciones</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f0f4f8;--surface:#fff;--surface2:#f8fafc;--border:#e2e8f0;
+  --text-primary:#0f172a;--text-secondary:#64748b;--text-muted:#94a3b8;
+  --blue:#2563eb;--blue-light:#eff6ff;--blue-mid:#bfdbfe;
+  --red:#ef4444;--red-light:#fff1f2;--red-border:#fca5a5;
+  --green:#10b981;--green-light:#ecfdf5;--green-border:#6ee7b7;
+  --amber:#f59e0b;--amber-light:#fffbeb;--amber-border:#fcd34d;
+  --teal:#0d9488;--teal-light:#f0fdfa;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.06);--shadow-md:0 4px 16px rgba(0,0,0,.08);
+  --radius:14px;--radius-sm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(--text-primary);min-height:100vh;}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-sm);}
+.topbar-left{display:flex;align-items:center;gap:12px;}
+.logo-icon{width:36px;height:36px;background:var(--teal);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.topbar h1{font-size:16px;font-weight:800;}.topbar h1 span{color:var(--teal);}
+.area-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--teal-light);color:var(--teal);}
+.btn-sm{padding:6px 12px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--text-secondary);text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
+.main{padding:24px;max-width:1100px;margin:0 auto;}
+.stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow-sm);}
+.stat-label{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;}
+.stat-value{font-size:22px;font-weight:800;margin-top:4px;font-family:"JetBrains Mono",monospace;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-md);overflow:hidden;margin-bottom:20px;}
+.card-header{padding:14px 20px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.card-title{font-size:14px;font-weight:800;}
+.filtros{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.filtros input,.filtros select{padding:7px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;outline:none;background:var(--surface);}
+.btn-nuevo{padding:9px 20px;background:linear-gradient(135deg,var(--teal),#0f766e);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 3px 10px rgba(13,148,136,.3);}
+/* tabla */
+.tabla-stock{width:100%;border-collapse:collapse;}
+.tabla-stock th{background:var(--surface2);padding:10px 16px;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid var(--border);text-align:left;}
+.tabla-stock td{padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle;}
+.tabla-stock tr:hover td{background:var(--surface2);}
+.tabla-stock tr:last-child td{border-bottom:none;}
+.badge-disponible{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:var(--green-light);color:var(--green);}
+.badge-agotado{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:var(--red-light);color:var(--red);}
+.badge-origen{padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;background:#f0fdfa;color:#0f766e;border:1px solid #99f6e4;}
+.btn-accion{padding:5px 12px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid;transition:all .15s;}
+.btn-sacar{background:var(--amber-light);color:#92400e;border-color:var(--amber-border);}
+.btn-ver{background:var(--blue-light);color:var(--blue);border-color:var(--blue-mid);}
+.btn-eliminar{background:var(--red-light);color:var(--red);border-color:var(--red-border);}
+/* historial */
+.mov-item{padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px;}
+.mov-header{display:flex;justify-content:space-between;margin-bottom:3px;}
+.mov-tipo{font-size:12px;font-weight:700;}
+.mov-fecha{font-size:11px;color:var(--text-muted);}
+.mov-nota{font-size:12px;color:var(--text-secondary);}
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.show{display:flex;}
+.modal{background:var(--surface);border-radius:var(--radius);padding:28px;max-width:540px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2);max-height:90vh;overflow-y:auto;}
+.modal-title{font-size:16px;font-weight:800;margin-bottom:4px;}
+.modal-sub{font-size:13px;color:var(--text-secondary);margin-bottom:20px;}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;}
+.btn-cancel{padding:9px 16px;background:var(--surface2);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;}
+.btn-guardar{padding:10px 24px;background:linear-gradient(135deg,var(--teal),#0f766e);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:800;cursor:pointer;}
+.form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.form-grid-1{margin-bottom:12px;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:12px;font-weight:700;color:var(--text-secondary);}
+.req{color:var(--red);}
+.field input,.field select,.field textarea{padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;background:var(--surface2);color:var(--text-primary);outline:none;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--teal);}
+.info-box{border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:12px;font-size:13px;}
+.info-teal{background:var(--teal-light);border:1px solid #99f6e4;color:#0f766e;}
+.info-amber{background:var(--amber-light);border:1px solid var(--amber-border);color:#92400e;}
+.empty-state{text-align:center;padding:40px;color:var(--text-muted);}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 22px;border-radius:10px;font-size:14px;font-weight:600;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo-icon">📦</div>
+    <h1>Neko <span>Soluciones</span></h1>
+    <span class="area-badge">📦 Stock Devoluciones</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <span style="font-size:13px;font-weight:600;color:var(--text-secondary)" id="user-info"></span>
+    <button class="btn-sm" onclick="cargar()">🔄 Actualizar</button>
+    <a id="btn-volver" href="neko_almacen.html" class="btn-sm">← Almacén</a>
+    <button class="btn-sm" onclick="cerrarSesion()">🚪 Salir</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="stats-bar">
+    <div class="stat-card"><div class="stat-label">Total prendas</div><div class="stat-value" style="color:var(--teal)" id="st-total">—</div></div>
+    <div class="stat-card"><div class="stat-label">Disponibles</div><div class="stat-value" style="color:var(--green)" id="st-disponibles">—</div></div>
+    <div class="stat-card"><div class="stat-label">Asignadas</div><div class="stat-value" style="color:var(--amber)" id="st-asignadas">—</div></div>
+    <div class="stat-card"><div class="stat-label">Agotadas</div><div class="stat-value" style="color:var(--red)" id="st-agotadas">—</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">📦 Inventario de Stock — Devoluciones</div>
+      <div class="filtros">
+        <input type="text" id="fil-texto" placeholder="Prenda, talla, origen..." oninput="aplicarFiltros()" style="width:200px">
+        <select id="fil-estado" onchange="aplicarFiltros()">
+          <option value="">Todos los estados</option>
+          <option value="disponible">Disponible</option>
+          <option value="asignado">Asignado</option>
+          <option value="agotado">Agotado</option>
+        </select>
+        <button class="btn-nuevo" onclick="abrirModalNuevo()">+ Ingresar prenda</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="tabla-stock">
+        <thead>
+          <tr>
+            <th>Prenda</th>
+            <th>Talla</th>
+            <th>Cantidad</th>
+            <th>Estado producto</th>
+            <th>Origen</th>
+            <th>Estado stock</th>
+            <th>Fecha ingreso</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-stock">
+          <tr><td colspan="8" class="empty-state">Cargando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL INGRESAR PRENDA -->
+<div class="modal-overlay" id="modal-nuevo">
+  <div class="modal">
+    <div class="modal-title">+ Ingresar prenda al stock</div>
+    <div class="modal-sub">Registra la prenda recibida por devolución, cambio o garantía.</div>
+    <div class="form-grid-2">
+      <div class="field"><label>Tipo de prenda <span class="req">*</span></label>
+        <input type="text" id="np-tipo" placeholder="Camiseta, Hoodie..."></div>
+      <div class="field"><label>Talla</label>
+        <input type="text" id="np-talla" placeholder="M, L, XL..."></div>
+    </div>
+    <div class="form-grid-2">
+      <div class="field"><label>Cantidad <span class="req">*</span></label>
+        <input type="number" id="np-cantidad" value="1" min="1"></div>
+      <div class="field"><label>Estado del producto</label>
+        <select id="np-estado-prod">
+          <option value="Bueno">Bueno — sin daños</option>
+          <option value="Con detalles">Con detalles menores</option>
+          <option value="Dañado">Dañado</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-grid-1 field">
+      <label>Orden de origen <span class="req">*</span></label>
+      <input type="text" id="np-orden-origen" placeholder="Ej: 00025, CAM-00025...">
+    </div>
+    <div class="form-grid-1 field">
+      <label>Motivo de ingreso</label>
+      <select id="np-motivo">
+        <option value="No recibido">No recibido / No quiso pagar</option>
+        <option value="Cambio">Cambio de prenda (excedente)</option>
+        <option value="Garantia">Devolución por garantía</option>
+        <option value="Devolucion dinero">Devolución de dinero</option>
+        <option value="Otro">Otro</option>
+      </select>
+    </div>
+    <div class="form-grid-1 field">
+      <label>Notas</label>
+      <textarea id="np-notas" rows="2" placeholder="Observaciones del producto..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="cerrarModal('modal-nuevo')">Cancelar</button>
+      <button class="btn-guardar" onclick="guardarIngreso()" id="btn-guardar-ingreso">💾 Ingresar al stock</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SACAR PRENDA -->
+<div class="modal-overlay" id="modal-sacar">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title">📤 Sacar prenda del stock</div>
+    <div class="modal-sub" id="sacar-sub">Indica para qué orden se usa esta prenda.</div>
+    <div class="info-box info-teal" id="sacar-info"></div>
+    <div class="form-grid-2">
+      <div class="field"><label>Número de orden destino <span class="req">*</span></label>
+        <input type="text" id="sacar-orden" placeholder="Ej: 00030"></div>
+      <div class="field"><label>Cantidad a sacar <span class="req">*</span></label>
+        <input type="number" id="sacar-cantidad" value="1" min="1"></div>
+    </div>
+    <div class="form-grid-1 field">
+      <label>Motivo / comentario <span class="req">*</span></label>
+      <textarea id="sacar-notas" rows="2" placeholder="Ej: Usada para reemplazar prenda defectuosa de la orden 00030..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="cerrarModal('modal-sacar')">Cancelar</button>
+      <button class="btn-guardar" style="background:linear-gradient(135deg,#f59e0b,#d97706)" onclick="confirmarSacar()" id="btn-confirmar-sacar">📤 Confirmar salida</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETALLE / HISTORIAL -->
+<div class="modal-overlay" id="modal-detalle">
+  <div class="modal">
+    <div class="modal-title" id="det-titulo">Detalle prenda</div>
+    <div class="modal-sub" id="det-sub"></div>
+    <div id="det-datos" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:16px;font-size:13px;line-height:1.9"></div>
+    <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px">Historial de movimientos</div>
+    <div id="det-historial"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="cerrarModal('modal-detalle')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const SB_URL = 'https://umlzaupnuvarrnakcbdo.supabase.co';
+  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtbHphdXBudXZhcnJuYWtjYmRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTM4NTYsImV4cCI6MjA4OTg2OTg1Nn0.7Z5q3vvAIGDKFmjMjt6kra-3wHxNHyNjTfEj8GamdFA';
+  const HDR  = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY };
+  const HDRF = Object.assign({}, HDR, { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' });
+
+  var sesion = null;
+  var _items = [];
+  var _itemActual = null;
+
+  document.addEventListener('DOMContentLoaded', function() {
+    var raw = sessionStorage.getItem('nk_user');
+    if (!raw) { window.location.href = 'neko_login.html'; return; }
+    sesion = JSON.parse(raw);
+    document.getElementById('user-info').textContent = '👤 ' + sesion.nombre;
+    // Botón volver según área
+    if (sesion.area === 'Admin') {
+      var bv = document.getElementById('btn-volver');
+      bv.href = 'neko_admin.html'; bv.textContent = '← Admin';
+    } else if (sesion.area === 'Ventas' || sesion.area === 'Supervisor') {
+      var bv = document.getElementById('btn-volver');
+      bv.href = 'neko_ventas.html'; bv.textContent = '← Ventas';
+    }
+    cargar();
+  });
+
+  async function cargar() {
+    try {
+      var r = await fetch(SB_URL + '/rest/v1/stock_devoluciones?order=fecha_ingreso.desc&limit=500', { headers: HDR });
+      _items = await r.json();
+      if (!Array.isArray(_items)) _items = [];
+      actualizarStats();
+      renderTabla(_items);
+    } catch(e) {
+      document.getElementById('tbody-stock').innerHTML = '<tr><td colspan="8" class="empty-state">Error: ' + e.message + '</td></tr>';
+    }
+  }
+
+  function actualizarStats() {
+    var disp = _items.filter(function(i){ return i.estado_stock === 'disponible'; });
+    var asig = _items.filter(function(i){ return i.estado_stock === 'asignado'; });
+    var agot = _items.filter(function(i){ return i.estado_stock === 'agotado'; });
+    document.getElementById('st-total').textContent       = _items.length;
+    document.getElementById('st-disponibles').textContent = disp.length;
+    document.getElementById('st-asignadas').textContent   = asig.length;
+    document.getElementById('st-agotadas').textContent    = agot.length;
+  }
+
+  function aplicarFiltros() {
+    var texto  = (document.getElementById('fil-texto').value || '').toLowerCase();
+    var estado = document.getElementById('fil-estado').value;
+    var lista  = _items.filter(function(i) {
+      if (estado && i.estado_stock !== estado) return false;
+      if (texto) {
+        var h = [(i.tipo_prenda||''),(i.talla||''),(i.orden_origen||''),(i.motivo||'')].join(' ').toLowerCase();
+        if (!h.includes(texto)) return false;
+      }
+      return true;
+    });
+    renderTabla(lista);
+  }
+
+  function renderTabla(lista) {
+    var tbody = document.getElementById('tbody-stock');
+    if (!lista.length) {
+      tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No hay prendas en stock</td></tr>';
+      return;
+    }
+    tbody.innerHTML = lista.map(function(item) {
+      var estadoBadge = item.estado_stock === 'disponible'
+        ? '<span class="badge-disponible">✅ Disponible</span>'
+        : item.estado_stock === 'asignado'
+          ? '<span class="badge-disponible" style="background:var(--amber-light);color:#92400e">📤 Asignado</span>'
+          : '<span class="badge-agotado">❌ Agotado</span>';
+      var fecha = item.fecha_ingreso ? new Date(item.fecha_ingreso).toLocaleDateString('es-CO', {day:'2-digit',month:'short',year:'numeric'}) : '—';
+      var iid = item.id;
+      var acciones = item.estado_stock === 'disponible'
+        ? '<button class="btn-accion btn-sacar" onclick="abrirModalSacar('+JSON.stringify(iid)+')">📤 Sacar</button> '
+          + '<button class="btn-accion btn-ver" onclick="abrirDetalle('+JSON.stringify(iid)+')">Ver</button>'
+        : '<button class="btn-accion btn-ver" onclick="abrirDetalle('+JSON.stringify(iid)+')">Ver</button>';
+      return '<tr>'
+        + '<td><strong>' + (item.tipo_prenda||'—') + '</strong></td>'
+        + '<td>' + (item.talla||'—') + '</td>'
+        + '<td style="font-family:monospace;font-weight:700">' + (item.cantidad||1) + '</td>'
+        + '<td>' + (item.estado_producto||'—') + '</td>'
+        + '<td><span class="badge-origen">📦 ' + (item.orden_origen||'—') + '</span><br><small style="color:var(--text-muted)">' + (item.motivo||'') + '</small></td>'
+        + '<td>' + estadoBadge + '</td>'
+        + '<td style="color:var(--text-muted);font-size:12px">' + fecha + '</td>'
+        + '<td>' + acciones + '</td>'
+      + '</tr>';
+    }).join('');
+  }
+
+  // ── INGRESAR PRENDA ──────────────────────────────────────
+  function abrirModalNuevo() {
+    ['np-tipo','np-talla','np-notas','np-orden-origen'].forEach(function(id){
+      var el = document.getElementById(id); if(el) el.value='';
+    });
+    document.getElementById('np-cantidad').value = '1';
+    document.getElementById('modal-nuevo').classList.add('show');
+  }
+
+  async function guardarIngreso() {
+    var tipo   = document.getElementById('np-tipo').value.trim();
+    var cantidad = parseInt(document.getElementById('np-cantidad').value) || 1;
+    var origen = document.getElementById('np-orden-origen').value.trim();
+    if (!tipo)   { alert('Ingresa el tipo de prenda.'); return; }
+    if (!origen) { alert('Ingresa la orden de origen.'); return; }
+
+    var btn = document.getElementById('btn-guardar-ingreso');
+    btn.disabled = true; btn.textContent = '⏳ Guardando...';
+
+    var datos = {
+      tipo_prenda:    tipo,
+      talla:          document.getElementById('np-talla').value.trim(),
+      cantidad:       cantidad,
+      estado_producto:document.getElementById('np-estado-prod').value,
+      orden_origen:   origen,
+      motivo:         document.getElementById('np-motivo').value,
+      notas:          document.getElementById('np-notas').value.trim(),
+      registrado_por: sesion.nombre,
+      estado_stock:   'disponible',
+      historial:      JSON.stringify([{
+        fecha: new Date().toISOString(),
+        tipo: 'INGRESO',
+        usuario: sesion.nombre,
+        cantidad: cantidad,
+        nota: 'Ingreso desde orden ' + origen + ' — ' + document.getElementById('np-motivo').value
+      }]),
+      fecha_ingreso: new Date().toISOString()
+    };
+
+    try {
+      await fetch(SB_URL + '/rest/v1/stock_devoluciones', { method:'POST', headers:HDRF, body:JSON.stringify(datos) });
+      cerrarModal('modal-nuevo');
+      showToast('✅ Prenda ingresada al stock');
+      cargar();
+    } catch(e) { alert('Error: ' + e.message); }
+    btn.disabled = false; btn.textContent = '💾 Ingresar al stock';
+  }
+
+  // ── SACAR PRENDA ─────────────────────────────────────────
+  function abrirModalSacar(id) {
+    _itemActual = _items.find(function(i){ return String(i.id) === String(id); });
+    if (!_itemActual) return;
+    var i = _itemActual;
+    document.getElementById('sacar-info').innerHTML =
+      '<strong>' + (i.tipo_prenda||'—') + '</strong>'
+      + (i.talla ? ' · Talla: ' + i.talla : '')
+      + ' · Disponible: <strong>' + (i.cantidad||1) + ' und</strong>'
+      + ' · Origen: ' + (i.orden_origen||'—');
+    document.getElementById('sacar-orden').value = '';
+    document.getElementById('sacar-cantidad').value = '1';
+    document.getElementById('sacar-cantidad').max = i.cantidad || 1;
+    document.getElementById('sacar-notas').value = '';
+    document.getElementById('modal-sacar').classList.add('show');
+  }
+
+  async function confirmarSacar() {
+    if (!_itemActual) return;
+    var ordenDestino = document.getElementById('sacar-orden').value.trim();
+    var cantSacar    = parseInt(document.getElementById('sacar-cantidad').value) || 1;
+    var nota         = document.getElementById('sacar-notas').value.trim();
+    if (!ordenDestino) { alert('Ingresa el número de orden destino.'); return; }
+    if (!nota)         { alert('Escribe el motivo de la salida.'); return; }
+    if (cantSacar > (_itemActual.cantidad||1)) { alert('No hay suficiente cantidad disponible.'); return; }
+
+    var btn = document.getElementById('btn-confirmar-sacar');
+    btn.disabled = true; btn.textContent = '⏳ Procesando...';
+
+    var hist = [];
+    try { hist = JSON.parse(_itemActual.historial || '[]'); } catch(e) {}
+    hist.push({
+      fecha: new Date().toISOString(),
+      tipo: 'SALIDA',
+      usuario: sesion.nombre,
+      cantidad: cantSacar,
+      orden_destino: ordenDestino,
+      nota: nota
+    });
+
+    var nuevaCantidad = (_itemActual.cantidad||1) - cantSacar;
+    var nuevoEstado = nuevaCantidad <= 0 ? 'agotado' : 'disponible';
+
+    try {
+      await fetch(SB_URL + '/rest/v1/stock_devoluciones?id=eq.' + _itemActual.id, {
+        method: 'PATCH', headers: HDRF,
+        body: JSON.stringify({
+          cantidad:     nuevaCantidad,
+          estado_stock: nuevoEstado,
+          historial:    JSON.stringify(hist)
+        })
+      });
+      cerrarModal('modal-sacar');
+      showToast('📤 Prenda asignada a orden ' + ordenDestino);
+      cargar();
+    } catch(e) { alert('Error: ' + e.message); }
+    btn.disabled = false; btn.textContent = '📤 Confirmar salida';
+    _itemActual = null;
+  }
+
+  // ── DETALLE ───────────────────────────────────────────────
+  function abrirDetalle(id) {
+    var item = _items.find(function(i){ return String(i.id) === String(id); });
+    if (!item) return;
+    document.getElementById('det-titulo').textContent = item.tipo_prenda + (item.talla ? ' — ' + item.talla : '');
+    document.getElementById('det-sub').textContent = 'Origen: ' + (item.orden_origen||'—') + ' · Registrado por: ' + (item.registrado_por||'—');
+    document.getElementById('det-datos').innerHTML =
+      '<strong>Tipo:</strong> ' + (item.tipo_prenda||'—') + ' &nbsp;·&nbsp; '
+      + '<strong>Talla:</strong> ' + (item.talla||'—') + ' &nbsp;·&nbsp; '
+      + '<strong>Cantidad:</strong> ' + (item.cantidad||0) + '<br>'
+      + '<strong>Estado producto:</strong> ' + (item.estado_producto||'—') + ' &nbsp;·&nbsp; '
+      + '<strong>Stock:</strong> ' + (item.estado_stock||'—') + '<br>'
+      + '<strong>Motivo ingreso:</strong> ' + (item.motivo||'—') + '<br>'
+      + (item.notas ? '<strong>Notas:</strong> ' + item.notas : '');
+
+    var hist = [];
+    try { hist = JSON.parse(item.historial || '[]'); } catch(e) {}
+    var histHTML = hist.length ? hist.map(function(h) {
+      var color = h.tipo === 'INGRESO' ? 'var(--green)' : h.tipo === 'SALIDA' ? '#92400e' : 'var(--text-secondary)';
+      return '<div class="mov-item">'
+        + '<div class="mov-header">'
+          + '<span class="mov-tipo" style="color:' + color + '">'
+            + (h.tipo === 'INGRESO' ? '📥 INGRESO' : '📤 SALIDA')
+            + (h.cantidad ? ' — ' + h.cantidad + ' und' : '')
+            + (h.orden_destino ? ' → Orden ' + h.orden_destino : '')
+          + '</span>'
+          + '<span class="mov-fecha">' + (h.fecha ? new Date(h.fecha).toLocaleString('es-CO') : '') + '</span>'
+        + '</div>'
+        + (h.usuario ? '<div style="font-size:11px;color:var(--text-muted)">👤 ' + h.usuario + '</div>' : '')
+        + (h.nota ? '<div class="mov-nota">' + h.nota + '</div>' : '')
+      + '</div>';
+    }).join('') : '<div style="font-size:13px;color:var(--text-muted)">Sin movimientos</div>';
+    document.getElementById('det-historial').innerHTML = histHTML;
+    document.getElementById('modal-detalle').classList.add('show');
+  }
+
+  // ── HELPERS ───────────────────────────────────────────────
+  function cerrarModal(id) {
+    document.getElementById(id).classList.remove('show');
+    if (id !== 'modal-detalle') _itemActual = null;
+  }
+  function cerrarSesion() {
+    sessionStorage.removeItem('nk_user');
+    window.location.href = 'neko_login.html';
+  }
+  function showToast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg; t.style.opacity = '1';
+    clearTimeout(t._t);
+    t._t = setTimeout(function(){ t.style.opacity = '0'; }, 3000);
+  }
+</script>
+</body>
+</html>

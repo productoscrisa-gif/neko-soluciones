@@ -120,6 +120,7 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
   <div class="topbar-right">
     <span class="user-info" id="user-info"></span>
     <button class="btn-sm" onclick="cargar()">🔄 Actualizar</button>
+    <a href="neko_stock_devoluciones.html" style="padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;background:#f0fdfa;color:#0d9488;border:1px solid #99f6e4;text-decoration:none">📦 Stock</a>
     <a id="btn-volver" href="neko_ventas.html" class="btn-sm" style="color:var(--blue);border-color:var(--blue-mid);background:var(--blue-light)">← Volver</a>
     <button class="btn-sm" onclick="cerrarSesion()">🚪 Salir</button>
   </div>
@@ -381,6 +382,57 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
     <div class="modal-actions">
       <button class="btn-cancel" onclick="cerrarModal('modal-crear-orden')">Cancelar</button>
       <button class="btn-guardar" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);box-shadow:0 3px 10px rgba(124,58,237,.3)" onclick="confirmarCrearOrden()" id="btn-conf-orden">🚀 Crear orden → Análisis</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL STOCK ALMACÉN: productos que llegan a stock -->
+<div class="modal-overlay" id="modal-stock-almacen">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title">📦 Registrar productos en stock de Almacén</div>
+    <div class="modal-sub" id="st-sub">El cliente no respondió o no acepta. Registra los productos recibidos para stock.</div>
+    <div id="st-info" class="info-box info-amber" style="margin-bottom:16px"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Productos recibidos</div>
+      <button onclick="agregarItemStock()" style="padding:5px 12px;background:var(--blue-light);color:var(--blue);border:1px solid var(--blue-mid);border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">+ Agregar producto</button>
+    </div>
+    <div id="st-productos-lista"></div>
+    <div class="form-grid-1 field" style="margin-top:12px">
+      <label>Notas adicionales</label>
+      <textarea id="st-notas" rows="2" placeholder="Estado de los productos, observaciones..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="cerrarModal('modal-stock-almacen')">Cancelar</button>
+      <button class="btn-guardar" style="background:linear-gradient(135deg,#0d9488,#0f766e)" onclick="confirmarStock()" id="btn-confirmar-stock">📦 Registrar en Stock</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL REENVÍO: actualizar datos del cliente para reenviar -->
+<div class="modal-overlay" id="modal-reenvio">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-title">🚚 Actualizar datos para reenvío</div>
+    <div class="modal-sub">El cliente acepta el reenvío. Confirma o actualiza los datos de entrega.</div>
+    <div id="re-info" class="info-box info-blue" style="margin-bottom:16px"></div>
+    <div class="form-grid-2" style="margin-bottom:12px">
+      <div class="field"><label>Nombre <span class="req">*</span></label><input type="text" id="re-nombre" placeholder="Nombre del cliente"></div>
+      <div class="field"><label>Teléfono <span class="req">*</span></label><input type="tel" id="re-telefono" placeholder="3001234567"></div>
+    </div>
+    <div class="form-grid-1 field" style="margin-bottom:12px">
+      <label>Dirección <span class="req">*</span></label>
+      <input type="text" id="re-direccion" placeholder="Dirección completa de entrega">
+    </div>
+    <div class="form-grid-2" style="margin-bottom:12px">
+      <div class="field"><label>Ciudad <span class="req">*</span></label><input type="text" id="re-ciudad" placeholder="Ciudad"></div>
+      <div class="field"><label>Departamento</label><input type="text" id="re-departamento" placeholder="Departamento"></div>
+    </div>
+    <div class="form-grid-1 field" style="margin-bottom:4px">
+      <label>Notas para Almacén</label>
+      <textarea id="re-notas" rows="2" placeholder="Instrucciones especiales de entrega..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="cerrarModal('modal-reenvio')">Cancelar</button>
+      <button class="btn-guardar" onclick="confirmarReenvio()" id="btn-confirmar-reenvio">🚚 Confirmar — Enviar a Almacén</button>
     </div>
   </div>
 </div>
@@ -829,16 +881,33 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
       var contactos = (_devActual.contactos_realizados || 0) + 1;
       update.contactos_realizados = contactos;
       hist.push({ fecha: new Date().toISOString(), accion:'CONTACTO_' + contactos + ': ' + resultado, usuario: sesion.nombre, nota });
-      if (contactos >= 2 && resultado === 'NO_CONTESTA') {
-        update.estado = 'EN_PROCESO'; // pasa a stock almacén
-        hist.push({ fecha: new Date().toISOString(), accion:'SIN_RESPUESTA — pasa a stock almacén', usuario: sesion.nombre, nota: '' });
-        update.notas = (_devActual.notas || '') + '\n[STOCK ALMACÉN]: Sin respuesta en 2 contactos.';
+      update.historial = JSON.stringify(hist);
+
+      // Guardar el contacto primero
+      try {
+        await fetch(SB_URL + '/rest/v1/devoluciones?id=eq.' + _devActual.id, { method:'PATCH', headers:HDRF, body:JSON.stringify(update) });
+        var idx2 = _devs.findIndex(function(d){ return String(d.id) === String(_devActual.id); });
+        if (idx2 >= 0) _devs[idx2] = Object.assign({}, _devs[idx2], update, { contactos_realizados: contactos });
+      } catch(e) { alert('Error: ' + e.message); btn.disabled=false; return; }
+
+      cerrarModal('modal-accion');
+      actualizarStats();
+      renderLista(_devs);
+      btn.disabled = false;
+
+      // Según resultado abrir el modal correspondiente
+      var pasaAStock = (resultado === 'NO_CONTESTA' && contactos >= 2) || resultado === 'CONTESTO_RECHAZA';
+      if (pasaAStock) {
+        // Abrir modal para registrar productos en stock
+        abrirModalStock(_devActual.id, resultado);
       } else if (resultado === 'CONTESTO_ACEPTA') {
-        update.estado = 'EN_PROCESO';
-      } else if (resultado === 'CONTESTO_RECHAZA') {
-        update.estado = 'EN_PROCESO';
-        update.notas = (_devActual.notas || '') + '\n[CLIENTE RECHAZA REENVÍO]: pasa a stock almacén.';
+        // Abrir modal para actualizar datos de reenvío
+        abrirModalReenvio(_devActual.id);
+      } else {
+        showToast('✅ Contacto #' + contactos + ' registrado');
       }
+      _devActual = null;
+      return; // ya guardamos arriba
     }
     else if (_accionActual === 'devolver_dinero') {
       if (!link) { alert('Pega el link del comprobante.'); btn.disabled=false; btn.textContent='✅ Confirmar devolución'; return; }
@@ -1073,6 +1142,215 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
       cargar();
     } catch(e) { alert('Error: ' + e.message); }
     btn.disabled = false; btn.textContent = '🚀 Crear orden → Análisis';
+  }
+
+  // ── STOCK ALMACÉN ────────────────────────────────────────
+  var _stockDevId = null;
+  var _stockContadorItems = 0;
+
+  function abrirModalStock(devId, motivo) {
+    _stockDevId = devId;
+    _stockContadorItems = 0;
+    var dev = _devs.find(function(d){ return String(d.id) === String(devId); });
+    var titulo = motivo === 'CONTESTO_RECHAZA'
+      ? 'El cliente rechazó el reenvío. Registra los productos para stock de almacén.'
+      : 'Sin respuesta en 2 contactos. Registra los productos para stock de almacén.';
+    document.getElementById('st-sub').textContent = titulo;
+    document.getElementById('st-info').innerHTML = dev
+      ? '<strong>Orden:</strong> ' + dev.numero_orden + ' &nbsp;·&nbsp; <strong>Cliente:</strong> ' + dev.cliente
+      : '';
+    document.getElementById('st-productos-lista').innerHTML = '';
+    document.getElementById('st-notas').value = '';
+    agregarItemStock();
+    document.getElementById('modal-stock-almacen').classList.add('show');
+  }
+
+  function agregarItemStock() {
+    _stockContadorItems++;
+    var n = _stockContadorItems;
+    var div = document.createElement('div');
+    div.id = 'st-item-' + n;
+    div.style.cssText = 'background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px';
+    div.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+      + '<span style="font-size:12px;font-weight:700">Producto #' + n + '</span>'
+      + (n > 1 ? '<button onclick="eliminarItemStock(' + n + ')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:16px">✕</button>' : '')
+      + '</div>'
+      + '<div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px">'
+        + '<div class="field"><label>Tipo de prenda</label>'
+          + '<input type="text" name="st-tipo-'+n+'" placeholder="Ej: Camiseta, Hoodie..."></div>'
+        + '<div class="field"><label>Talla</label>'
+          + '<input type="text" name="st-talla-'+n+'" placeholder="M, L, XL..."></div>'
+        + '<div class="field"><label>Cantidad</label>'
+          + '<input type="number" name="st-cant-'+n+'" value="1" min="1"></div>'
+      + '</div>'
+      + '<div class="field" style="margin-top:6px"><label>Estado del producto</label>'
+        + '<select name="st-estado-'+n+'">'
+          + '<option value="Bueno">Bueno — sin daños</option>'
+          + '<option value="Con detalles">Con detalles menores</option>'
+          + '<option value="Dañado">Dañado</option>'
+        + '</select></div>';
+    document.getElementById('st-productos-lista').appendChild(div);
+  }
+
+  function eliminarItemStock(n) {
+    var el = document.getElementById('st-item-' + n);
+    if (el) el.remove();
+  }
+
+  async function confirmarStock() {
+    var btn = document.getElementById('btn-confirmar-stock');
+    btn.disabled = true; btn.textContent = '⏳ Guardando...';
+
+    // Recolectar productos
+    var items = [];
+    for (var i = 1; i <= _stockContadorItems; i++) {
+      var wrap = document.getElementById('st-item-' + i);
+      if (!wrap) continue;
+      var tipo  = wrap.querySelector('[name="st-tipo-'+i+'"]')?.value.trim();
+      var talla = wrap.querySelector('[name="st-talla-'+i+'"]')?.value.trim();
+      var cant  = wrap.querySelector('[name="st-cant-'+i+'"]')?.value || '1';
+      var estado= wrap.querySelector('[name="st-estado-'+i+'"]')?.value || 'Bueno';
+      if (tipo) items.push({ tipo, talla, cantidad: cant, estado_producto: estado });
+    }
+
+    var notas = document.getElementById('st-notas').value.trim();
+    var dev = _devs.find(function(d){ return String(d.id) === String(_stockDevId); });
+    var hist = [];
+    try { hist = JSON.parse(dev?.historial || '[]'); } catch(e) {}
+
+    hist.push({
+      fecha: new Date().toISOString(),
+      accion: 'PRODUCTOS_EN_STOCK',
+      usuario: sesion.nombre,
+      nota: items.map(function(it){ return it.tipo + ' T:' + (it.talla||'—') + ' x' + it.cantidad + ' [' + it.estado_producto + ']'; }).join(' | ') + (notas ? ' — ' + notas : '')
+    });
+
+    // Guardar entrada en tabla stock_devoluciones (o usar notas en devolución)
+    // Registrar en almacén — tabla tela_stock_dev si existe, sino en notas
+    var notaStock = 'STOCK ALMACÉN: ' + items.map(function(it){
+      return it.tipo + ' T:' + (it.talla||'—') + ' x' + it.cantidad + ' [' + it.estado_producto + ']';
+    }).join(', ') + (notas ? ' · ' + notas : '');
+
+    try {
+      await fetch(SB_URL + '/rest/v1/devoluciones?id=eq.' + _stockDevId, {
+        method: 'PATCH', headers: HDRF,
+        body: JSON.stringify({
+          estado: 'CERRADO',
+          notas: (dev?.notas || '') + '\n[' + notaStock + ']',
+          historial: JSON.stringify(hist)
+        })
+      });
+      var idx2 = _devs.findIndex(function(d){ return String(d.id) === String(_stockDevId); });
+      if (idx2 >= 0) _devs[idx2] = Object.assign({}, _devs[idx2], { estado:'CERRADO' });
+      cerrarModal('modal-stock-almacen');
+      actualizarStats();
+      renderLista(_devs);
+      showToast('📦 Productos registrados en stock — Devolución cerrada');
+    } catch(e) { alert('Error: ' + e.message); }
+    btn.disabled = false; btn.textContent = '📦 Registrar en Stock';
+    _stockDevId = null;
+  }
+
+  // ── REENVÍO ────────────────────────────────────────────────
+  var _reenvioDevId = null;
+
+  function abrirModalReenvio(devId) {
+    _reenvioDevId = devId;
+    var dev = _devs.find(function(d){ return String(d.id) === String(devId); });
+    document.getElementById('re-info').innerHTML = dev
+      ? '<strong>Orden:</strong> ' + dev.numero_orden + ' &nbsp;·&nbsp; <strong>Cliente:</strong> ' + dev.cliente + '<br><span style="font-size:12px">Confirma o actualiza los datos de entrega para el reenvío.</span>'
+      : '';
+    // Precargar datos existentes
+    document.getElementById('re-nombre').value     = dev?.cliente || '';
+    document.getElementById('re-telefono').value   = dev?.telefono || '';
+    document.getElementById('re-direccion').value  = '';
+    document.getElementById('re-ciudad').value     = '';
+    document.getElementById('re-departamento').value = '';
+    document.getElementById('re-notas').value      = '';
+    document.getElementById('modal-reenvio').classList.add('show');
+  }
+
+  async function confirmarReenvio() {
+    var nombre  = document.getElementById('re-nombre').value.trim();
+    var telefono= document.getElementById('re-telefono').value.trim();
+    var dir     = document.getElementById('re-direccion').value.trim();
+    var ciudad  = document.getElementById('re-ciudad').value.trim();
+    var notas   = document.getElementById('re-notas').value.trim();
+    if (!nombre)  { alert('Ingresa el nombre del cliente.'); return; }
+    if (!dir)     { alert('Ingresa la dirección de entrega.'); return; }
+    if (!ciudad)  { alert('Ingresa la ciudad.'); return; }
+
+    var btn = document.getElementById('btn-confirmar-reenvio');
+    btn.disabled = true; btn.textContent = '⏳ Procesando...';
+
+    var dev = _devs.find(function(d){ return String(d.id) === String(_reenvioDevId); });
+    var hist = [];
+    try { hist = JSON.parse(dev?.historial || '[]'); } catch(e) {}
+    hist.push({
+      fecha: new Date().toISOString(),
+      accion: 'REENVIO_CONFIRMADO',
+      usuario: sesion.nombre,
+      nota: 'Nueva dirección: ' + dir + ', ' + ciudad + (notas ? ' — ' + notas : '')
+    });
+
+    // Actualizar la orden original con la nueva dirección
+    try {
+      // Actualizar devolución
+      await fetch(SB_URL + '/rest/v1/devoluciones?id=eq.' + _reenvioDevId, {
+        method: 'PATCH', headers: HDRF,
+        body: JSON.stringify({
+          estado: 'EN_PROCESO',
+          cliente: nombre,
+          telefono: telefono,
+          notas: (dev?.notas || '') + '\n[REENVÍO: ' + dir + ', ' + ciudad + ']',
+          historial: JSON.stringify(hist)
+        })
+      });
+
+      // Actualizar la orden — nueva dirección y pasar directo a Almacén (Por Despachar)
+      if (dev?.numero_orden && dev.numero_orden !== '—') {
+        // Primero traer la orden para obtener sus sub_estados y productos actuales
+        var rOrden = await fetch(SB_URL + '/rest/v1/ordenes?numero_orden=eq.' + encodeURIComponent(dev.numero_orden)
+          + '&select=id,productos,sub_estados', { headers: HDR });
+        var ordenes = await rOrden.json();
+        var ordenActual = Array.isArray(ordenes) && ordenes[0] ? ordenes[0] : null;
+
+        // Actualizar sub_estados de todas las prendas a Almacén
+        var subActualizados = null;
+        if (ordenActual && Array.isArray(ordenActual.sub_estados)) {
+          subActualizados = ordenActual.sub_estados.map(function(se) {
+            return Object.assign({}, se, { area_actual: 'Almacén', estado: 'pendiente' });
+          });
+        }
+
+        var patchOrden = {
+          nombre_cliente: nombre,
+          telefono:       telefono,
+          direccion:      dir,
+          ciudad:         ciudad,
+          departamento:   document.getElementById('re-departamento').value.trim(),
+          estado:         'EN_PRODUCCION',
+          obs_envio:      'REENVÍO: ' + (notas || 'Cliente confirmó nueva dirección. Listo para despachar.'),
+          obs_envio_leido: false
+        };
+        if (subActualizados) patchOrden.sub_estados = subActualizados;
+
+        await fetch(SB_URL + '/rest/v1/ordenes?numero_orden=eq.' + encodeURIComponent(dev.numero_orden), {
+          method: 'PATCH', headers: HDRF,
+          body: JSON.stringify(patchOrden)
+        });
+      }
+
+      var idx2 = _devs.findIndex(function(d){ return String(d.id) === String(_reenvioDevId); });
+      if (idx2 >= 0) _devs[idx2] = Object.assign({}, _devs[idx2], { estado:'EN_PROCESO' });
+      cerrarModal('modal-reenvio');
+      actualizarStats();
+      renderLista(_devs);
+      showToast('🚚 Reenvío confirmado — Orden actualizada y enviada a Almacén');
+    } catch(e) { alert('Error: ' + e.message); }
+    btn.disabled = false; btn.textContent = '🚚 Confirmar — Enviar a Almacén';
+    _reenvioDevId = null;
   }
 
   // ── HELPERS ───────────────────────────────────────────────
