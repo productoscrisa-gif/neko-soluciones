@@ -658,7 +658,7 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
     }
 
     // Ventas cierra NO_RECIBIDO con contactos
-    if (esVentas && d.tipo === 'NO_RECIBIDO' && d.estado !== 'CERRADO' && d.estado !== 'RECHAZADO') {
+    if (esVentas && d.tipo === 'NO_RECIBIDO' && d.estado !== 'CERRADO' && d.estado !== 'RECHAZADO' && d.estado !== 'PENDIENTE_STOCK') {
       btns += '<button class="btn-accion btn-procesar" onclick="abrirAccion(\''+d.id+'\',\'contacto\')">📞 Registrar contacto</button>';
     }
 
@@ -920,15 +920,20 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
       renderLista(_devs);
       btn.disabled = false;
 
-      // Según resultado abrir el modal correspondiente
-      var pasaAStock = resultado === 'CONTESTO_RECHAZA';
-      var alertaAlmacen = resultado === 'NO_CONTESTA' && contactos >= 3;
-      if (alertaAlmacen) {
-        // 3 intentos sin respuesta — cambiar estado a PENDIENTE_STOCK para que Almacén lo vea
+      // Determinar si pasa a PENDIENTE_STOCK (Almacén lo ingresa)
+      var pasaPendienteStock = (resultado === 'NO_CONTESTA' && contactos >= 3)
+                            || resultado === 'CONTESTO_RECHAZA';
+
+      if (pasaPendienteStock) {
+        // Cambiar estado a PENDIENTE_STOCK — Almacén verá la alerta y lo ingresará
+        var accionLog = resultado === 'CONTESTO_RECHAZA'
+          ? 'CLIENTE_RECHAZA_REENVÍO — pasa a stock almacén'
+          : '3 CONTACTOS SIN RESPUESTA — pasa a stock almacén';
         try {
           var hAlm = [];
           try { hAlm = JSON.parse(_devActual.historial || '[]'); } catch(e2) {}
-          hAlm.push({ fecha: new Date().toISOString(), accion:'SIN_RESPUESTA_3_INTENTOS', usuario: sesion.nombre, nota:'3 contactos sin respuesta — pendiente ingresar a stock en almacén' });
+          hAlm.push({ fecha: new Date().toISOString(), accion: accionLog, usuario: sesion.nombre,
+            nota: 'Almacén debe ingresar la prenda a stock y cerrar la novedad' });
           await fetch(SB_URL + '/rest/v1/devoluciones?id=eq.' + _devActual.id, {
             method:'PATCH', headers:HDRF,
             body:JSON.stringify({ estado:'PENDIENTE_STOCK', historial:JSON.stringify(hAlm) })
@@ -937,15 +942,12 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
           if (idx3 >= 0) _devs[idx3] = Object.assign({}, _devs[idx3], { estado:'PENDIENTE_STOCK' });
           actualizarStats();
           renderLista(_devs);
-        } catch(e2) {}
-        showToast('⚠️ 3 contactos sin respuesta — Almacén debe ingresar la prenda a stock');
-      } else if (pasaAStock) {
-        // Contesta pero rechaza → modal para registrar en stock
-        abrirModalStock(_devActual.id, resultado);
+        } catch(e2) { console.warn('Error actualizando estado:', e2); }
+        showToast('⚠️ Caso enviado a Almacén — deben ingresar la prenda a stock');
       } else if (resultado === 'CONTESTO_ACEPTA') {
-        // Abrir modal para actualizar datos de reenvío
         abrirModalReenvio(_devActual.id);
       } else {
+        // NO_CONTESTA contacto 1 o 2 — solo registrar
         showToast('✅ Contacto #' + contactos + ' registrado');
       }
       _devActual = null;
