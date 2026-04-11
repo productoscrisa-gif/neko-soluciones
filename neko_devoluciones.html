@@ -905,49 +905,47 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
       if (!resultado) { alert('Selecciona el resultado del contacto.'); btn.disabled=false; btn.textContent='💾 Guardar'; return; }
       var contactos = (_devActual.contactos_realizados || 0) + 1;
       update.contactos_realizados = contactos;
-      hist.push({ fecha: new Date().toISOString(), accion:'CONTACTO_' + contactos + ': ' + resultado, usuario: sesion.nombre, nota });
+
+      // Determinar si pasa a PENDIENTE_STOCK en este mismo PATCH
+      var pasaPendienteStock = (resultado === 'NO_CONTESTA' && contactos >= 3)
+                            || resultado === 'CONTESTO_RECHAZA';
+
+      var accionLog = resultado === 'CONTESTO_RECHAZA'
+        ? 'CLIENTE_RECHAZA_REENVÍO — pasa a stock almacén'
+        : contactos >= 3
+          ? '3 CONTACTOS SIN RESPUESTA — pasa a stock almacén'
+          : 'CONTACTO_' + contactos + ': ' + resultado;
+
+      hist.push({ fecha: new Date().toISOString(), accion: accionLog, usuario: sesion.nombre, nota: nota || '' });
+      if (pasaPendienteStock) {
+        hist.push({ fecha: new Date().toISOString(), accion: 'PENDIENTE_STOCK',
+          usuario: sesion.nombre, nota: 'Almacén debe ingresar la prenda a stock y cerrar la novedad' });
+        update.estado = 'PENDIENTE_STOCK'; // todo en UN solo PATCH
+      }
       update.historial = JSON.stringify(hist);
 
-      // Guardar el contacto primero
+      // Guardar TODO en un solo PATCH
       try {
-        await fetch(SB_URL + '/rest/v1/devoluciones?id=eq.' + _devActual.id, { method:'PATCH', headers:HDRF, body:JSON.stringify(update) });
+        var patchRes = await fetch(SB_URL + '/rest/v1/devoluciones?id=eq.' + _devActual.id,
+          { method:'PATCH', headers:HDRF, body:JSON.stringify(update) });
+        if (!patchRes.ok) {
+          var errBody = await patchRes.json().catch(function(){ return {}; });
+          throw new Error(errBody.message || 'HTTP ' + patchRes.status);
+        }
         var idx2 = _devs.findIndex(function(d){ return String(d.id) === String(_devActual.id); });
-        if (idx2 >= 0) _devs[idx2] = Object.assign({}, _devs[idx2], update, { contactos_realizados: contactos });
-      } catch(e) { alert('Error: ' + e.message); btn.disabled=false; return; }
+        if (idx2 >= 0) _devs[idx2] = Object.assign({}, _devs[idx2], update);
+      } catch(e) { alert('Error al guardar: ' + e.message); btn.disabled=false; return; }
 
       cerrarModal('modal-accion');
       actualizarStats();
       renderLista(_devs);
       btn.disabled = false;
 
-      // Determinar si pasa a PENDIENTE_STOCK (Almacén lo ingresa)
-      var pasaPendienteStock = (resultado === 'NO_CONTESTA' && contactos >= 3)
-                            || resultado === 'CONTESTO_RECHAZA';
-
       if (pasaPendienteStock) {
-        // Cambiar estado a PENDIENTE_STOCK — Almacén verá la alerta y lo ingresará
-        var accionLog = resultado === 'CONTESTO_RECHAZA'
-          ? 'CLIENTE_RECHAZA_REENVÍO — pasa a stock almacén'
-          : '3 CONTACTOS SIN RESPUESTA — pasa a stock almacén';
-        try {
-          var hAlm = [];
-          try { hAlm = JSON.parse(_devActual.historial || '[]'); } catch(e2) {}
-          hAlm.push({ fecha: new Date().toISOString(), accion: accionLog, usuario: sesion.nombre,
-            nota: 'Almacén debe ingresar la prenda a stock y cerrar la novedad' });
-          await fetch(SB_URL + '/rest/v1/devoluciones?id=eq.' + _devActual.id, {
-            method:'PATCH', headers:HDRF,
-            body:JSON.stringify({ estado:'PENDIENTE_STOCK', historial:JSON.stringify(hAlm) })
-          });
-          var idx3 = _devs.findIndex(function(d){ return String(d.id) === String(_devActual.id); });
-          if (idx3 >= 0) _devs[idx3] = Object.assign({}, _devs[idx3], { estado:'PENDIENTE_STOCK' });
-          actualizarStats();
-          renderLista(_devs);
-        } catch(e2) { console.warn('Error actualizando estado:', e2); }
         showToast('⚠️ Caso enviado a Almacén — deben ingresar la prenda a stock');
       } else if (resultado === 'CONTESTO_ACEPTA') {
         abrirModalReenvio(_devActual.id);
       } else {
-        // NO_CONTESTA contacto 1 o 2 — solo registrar
         showToast('✅ Contacto #' + contactos + ' registrado');
       }
       _devActual = null;
