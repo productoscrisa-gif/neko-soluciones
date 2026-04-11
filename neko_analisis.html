@@ -319,8 +319,38 @@
             ? buildSelectDiseniador(oid, idx, p.diseñador || '')
             : ''}
         </div>
+        ${rutaActual === 'Ruta 9' ? `
+        <div style="margin-top:10px;background:#f0fdfa;border:1.5px solid #5eead4;border-radius:8px;padding:12px 14px">
+          <div style="font-size:11px;font-weight:700;color:#0f766e;text-transform:uppercase;margin-bottom:6px">
+            💬 Comentario para Almacén — Ruta 9
+          </div>
+          <textarea
+            id="comentario-r9-${oid}-${idx}"
+            rows="2"
+            placeholder="Ej: Prenda lista, sin producción requerida. Instrucciones de despacho..."
+            style="width:100%;padding:8px 10px;border:1.5px solid #99f6e4;border-radius:6px;font-size:13px;font-family:inherit;background:#fff;outline:none;resize:vertical"
+            oninput="guardarComentarioR9('${oid}',${idx},this.value)"
+          >${p.comentario_r9||''}</textarea>
+        </div>` : ''}
       </div>
     </div>`;
+  }
+
+  function guardarComentarioR9(oid, idx, valor) {
+    const orden = ordenes.find(o => String(o.id) === String(oid));
+    if (!orden || !orden.productos || !orden.productos[idx]) return;
+    orden.productos[idx].comentario_r9 = valor;
+    // Guardar en Supabase
+    clearTimeout(window['_r9timer_'+oid+'_'+idx]);
+    window['_r9timer_'+oid+'_'+idx] = setTimeout(async function() {
+      try {
+        await fetch(`${SB_URL}/rest/v1/ordenes?id=eq.${oid}`, {
+          method: 'PATCH',
+          headers: Object.assign({}, HDR, {'Content-Type':'application/json','Prefer':'return=minimal'}),
+          body: JSON.stringify({ productos: orden.productos })
+        });
+      } catch(e) { console.warn('Error guardando comentario R9:', e); }
+    }, 800);
   }
 
   function toggleCard(id) {
