@@ -104,6 +104,7 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
 .hi-nota{font-size:12px;color:var(--text-secondary);}
 .empty-state{text-align:center;padding:40px;color:var(--text-muted);}
 .dev-item-guia{background:#fffbeb;border-left:3px solid #f59e0b;}
+.dev-item-pendiente-stock{background:#f0fdfa;border-left:3px solid #0d9488;}
 .btn-nuevo-desde-guia{padding:7px 16px;border-radius:6px;font-size:13px;font-weight:800;cursor:pointer;background:linear-gradient(135deg,var(--coral),#be123c);color:#fff;border:none;box-shadow:0 2px 8px rgba(225,29,72,.3);}
 #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 22px;border-radius:10px;font-size:14px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:9999;opacity:0;transition:opacity .3s;white-space:nowrap;pointer-events:none;}
 @media(max-width:600px){.stats-bar{grid-template-columns:1fr 1fr;}.form-grid-2{grid-template-columns:1fr;}.dev-item{flex-wrap:wrap;}}
@@ -150,6 +151,7 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
         <select id="fil-estado" onchange="aplicarFiltros()">
           <option value="">Todos los estados</option>
           <option value="GUIA_RECIBIDA">Guía recibida</option>
+          <option value="PENDIENTE_STOCK">Pendiente stock</option>
           <option value="REGISTRADO">Registrado</option>
           <option value="APROBADO">Aprobado</option>
           <option value="EN_PROCESO">En proceso</option>
@@ -526,6 +528,13 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
   function actualizarStats() {
     var activos = _devs.filter(function(d){ return d.estado !== 'CERRADO' && d.estado !== 'RECHAZADO'; });
     document.getElementById('st-norecibido').textContent = activos.filter(function(d){ return d.tipo === 'NO_RECIBIDO'; }).length;
+    // Alertar si hay pendientes de stock para almacén
+    var pendStock = _devs.filter(function(d){ return d.estado === 'PENDIENTE_STOCK'; }).length;
+    var stNoEl = document.getElementById('st-norecibido');
+    if (pendStock > 0 && (sesion.area === 'Almacen' || sesion.area === 'Almacén')) {
+      stNoEl.style.color = '#0d9488';
+      stNoEl.title = pendStock + ' devolución(es) pendiente(s) de ingresar a stock';
+    }
     document.getElementById('st-cambio').textContent     = activos.filter(function(d){ return d.tipo === 'CAMBIO'; }).length;
     document.getElementById('st-garantia').textContent   = activos.filter(function(d){ return d.tipo === 'GARANTIA'; }).length;
     document.getElementById('st-devolucion').textContent = activos.filter(function(d){ return d.tipo === 'DEVOLUCION_DINERO'; }).length;
@@ -549,8 +558,8 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
 
   var TIPO_LABEL = { PENDIENTE_IDENTIFICAR:'⏳ Por identificar', NO_RECIBIDO:'🚫 No recibido', CAMBIO:'🔄 Cambio', GARANTIA:'🛡️ Garantía', DEVOLUCION_DINERO:'💸 Dev. dinero' };
   var TIPO_CLASS = { PENDIENTE_IDENTIFICAR:'tipo-no-recibido', NO_RECIBIDO:'tipo-no-recibido', CAMBIO:'tipo-cambio', GARANTIA:'tipo-garantia', DEVOLUCION_DINERO:'tipo-devolucion' };
-  var EST_LABEL  = { REGISTRADO:'Registrado', GUIA_RECIBIDA:'📦 Guía recibida — Completar', APROBADO:'✅ Aprobado', EN_PROCESO:'⚙️ En proceso', CERRADO:'🔒 Cerrado', RECHAZADO:'❌ Rechazado' };
-  var EST_CLASS  = { REGISTRADO:'est-registrado', GUIA_RECIBIDA:'est-en-proceso', APROBADO:'est-aprobado', EN_PROCESO:'est-en-proceso', CERRADO:'est-cerrado', RECHAZADO:'est-rechazado' };
+  var EST_LABEL  = { REGISTRADO:'Registrado', GUIA_RECIBIDA:'📦 Guía recibida — Completar', APROBADO:'✅ Aprobado', EN_PROCESO:'⚙️ En proceso', PENDIENTE_STOCK:'⚠️ Pendiente stock — Almacén', CERRADO:'🔒 Cerrado', RECHAZADO:'❌ Rechazado' };
+  var EST_CLASS  = { REGISTRADO:'est-registrado', GUIA_RECIBIDA:'est-en-proceso', APROBADO:'est-aprobado', EN_PROCESO:'est-en-proceso', PENDIENTE_STOCK:'est-en-proceso', CERRADO:'est-cerrado', RECHAZADO:'est-rechazado' };
 
   function renderLista(lista) {
     var el = document.getElementById('lista-devoluciones');
@@ -568,7 +577,8 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
       d.fecha_registro_fmt = d.fecha_registro ? new Date(d.fecha_registro).toLocaleString('es-CO',{dateStyle:'short',timeStyle:'short'}) : '';
       // Si es GUIA_RECIBIDA — mostrar bloque especial con link y botón para ventas
       var esGuiaRecibida = d.estado === 'GUIA_RECIBIDA';
-      return '<div class="dev-item' + (esGuiaRecibida ? ' dev-item-guia' : '') + '">'
+      var esPendStock    = d.estado === 'PENDIENTE_STOCK' && (sesion.area === 'Almacen' || sesion.area === 'Almacén');
+      return '<div class="dev-item' + (esGuiaRecibida ? ' dev-item-guia' : esPendStock ? ' dev-item-pendiente-stock' : '') + '">'
         + '<span class="dev-tipo-badge ' + (TIPO_CLASS[d.tipo]||'') + '">' + (TIPO_LABEL[d.tipo]||d.tipo) + '</span>'
         + '<div class="dev-info">'
           + (esGuiaRecibida
@@ -612,6 +622,11 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
       btns += '<button class="btn-accion btn-rechazar" onclick="abrirAccion(\''+d.id+'\',\'rechazar\')">❌ Rechazar</button>';
     }
 
+    // Almacén ve alerta PENDIENTE_STOCK — debe ingresar a stock y cerrar
+    if (esAlmacen && d.estado === 'PENDIENTE_STOCK') {
+      var iid = d.id; btns = '<button class="btn-accion btn-aprobar" style="background:#f0fdfa;color:#0f766e;border-color:#99f6e4;font-size:13px;padding:8px 16px" onclick="ingresarStockYCerrar('+iid+')">✅ Ingresar a stock y cerrar novedad</button>';
+      return btns;
+    }
     // Almacén puede pegar link de guía en CUALQUIER tipo y estado activo
     var estadoActivo = ['REGISTRADO','APROBADO','EN_PROCESO'].includes(d.estado);
     if (esAlmacen && estadoActivo) {
@@ -830,7 +845,7 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
       aprobar:      { titulo:'✅ Aprobar devolución', sub:'Confirma la aprobación de este caso', campos:'<div class="field"><label>Comentario de aprobación</label><textarea id="mac-nota" placeholder="Instrucciones o condiciones de la aprobación..."></textarea></div>', btn:'✅ Aprobar' },
       rechazar:     { titulo:'❌ Rechazar devolución', sub:'Indica el motivo del rechazo', campos:'<div class="field"><label>Motivo del rechazo <span class="req">*</span></label><textarea id="mac-nota" placeholder="Explica por qué se rechaza..."></textarea></div>', btn:'❌ Rechazar' },
       foto_guia:    { titulo:'📸 Registrar guía recibida en Almacén', sub:'Pega el link de la foto de la guía. Ventas podrá verlo para identificar al cliente.', campos:'<div class="field"><label>Link de la foto <span class="req">*</span></label><input type="url" id="mac-link" placeholder="https://drive.google.com/..."><div style="font-size:12px;color:var(--text-muted);margin-top:4px">Drive, WhatsApp Web, etc.</div></div>', btn:'💾 Guardar link' },
-      contacto:     { titulo:'📞 Registrar contacto con cliente', sub:'Máximo 2 contactos. Si no responde, pasa a stock en almacén.', campos:'<div class="field" style="margin-bottom:12px"><label>Resultado del contacto <span class="req">*</span></label><select id="mac-resultado"><option value="">— Seleccionar —</option><option value="CONTESTO_ACEPTA">✅ Contestó — acepta reenvío</option><option value="CONTESTO_RECHAZA">❌ Contestó — no quiere</option><option value="NO_CONTESTA">📵 No contesta</option></select></div><div class="field"><label>Notas</label><textarea id="mac-nota" placeholder="Detalles del contacto..."></textarea></div>', btn:'💾 Guardar' },
+      contacto:     { titulo:'📞 Registrar contacto con cliente', sub:'Máximo 3 contactos. Si no responde en los 3, Almacén recibirá la alerta para ingresar a stock.', campos:'<div class="field" style="margin-bottom:12px"><label>Resultado del contacto <span class="req">*</span></label><select id="mac-resultado"><option value="">— Seleccionar —</option><option value="CONTESTO_ACEPTA">✅ Contestó — acepta reenvío</option><option value="CONTESTO_RECHAZA">❌ Contestó — no quiere</option><option value="NO_CONTESTA">📵 No contesta</option></select></div><div class="field"><label>Notas</label><textarea id="mac-nota" placeholder="Detalles del contacto..."></textarea></div>', btn:'💾 Guardar' },
       devolver_dinero:{ titulo:'💸 Registrar devolución de dinero', sub:'La prenda ya está en almacén. Registra el comprobante de pago.', campos:'<div class="field" style="margin-bottom:12px"><label>Link del comprobante <span class="req">*</span></label><input type="url" id="mac-link" placeholder="https://drive.google.com/..."></div><div class="field"><label>Notas</label><textarea id="mac-nota" placeholder="Referencia de la transferencia, número de transacción..."></textarea></div>', btn:'✅ Confirmar devolución' }
     };
 
@@ -896,9 +911,26 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
       btn.disabled = false;
 
       // Según resultado abrir el modal correspondiente
-      var pasaAStock = (resultado === 'NO_CONTESTA' && contactos >= 2) || resultado === 'CONTESTO_RECHAZA';
-      if (pasaAStock) {
-        // Abrir modal para registrar productos en stock
+      var pasaAStock = resultado === 'CONTESTO_RECHAZA';
+      var alertaAlmacen = resultado === 'NO_CONTESTA' && contactos >= 3;
+      if (alertaAlmacen) {
+        // 3 intentos sin respuesta — cambiar estado a PENDIENTE_STOCK para que Almacén lo vea
+        try {
+          var hAlm = [];
+          try { hAlm = JSON.parse(_devActual.historial || '[]'); } catch(e2) {}
+          hAlm.push({ fecha: new Date().toISOString(), accion:'SIN_RESPUESTA_3_INTENTOS', usuario: sesion.nombre, nota:'3 contactos sin respuesta — pendiente ingresar a stock en almacén' });
+          await fetch(SB_URL + '/rest/v1/devoluciones?id=eq.' + _devActual.id, {
+            method:'PATCH', headers:HDRF,
+            body:JSON.stringify({ estado:'PENDIENTE_STOCK', historial:JSON.stringify(hAlm) })
+          });
+          var idx3 = _devs.findIndex(function(d){ return String(d.id) === String(_devActual.id); });
+          if (idx3 >= 0) _devs[idx3] = Object.assign({}, _devs[idx3], { estado:'PENDIENTE_STOCK' });
+          actualizarStats();
+          renderLista(_devs);
+        } catch(e2) {}
+        showToast('⚠️ 3 contactos sin respuesta — Almacén debe ingresar la prenda a stock');
+      } else if (pasaAStock) {
+        // Contesta pero rechaza → modal para registrar en stock
         abrirModalStock(_devActual.id, resultado);
       } else if (resultado === 'CONTESTO_ACEPTA') {
         // Abrir modal para actualizar datos de reenvío
@@ -1142,6 +1174,22 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
       cargar();
     } catch(e) { alert('Error: ' + e.message); }
     btn.disabled = false; btn.textContent = '🚀 Crear orden → Análisis';
+  }
+
+  // ── INGRESAR STOCK Y CERRAR (Almacén — 3 intentos sin respuesta) ───
+  function ingresarStockYCerrar(devId) {
+    _stockDevId = devId;
+    var dev = _devs.find(function(d){ return String(d.id) === String(devId); });
+    // Abrir modal de stock con mensaje especial
+    document.getElementById('st-sub').textContent = '3 contactos sin respuesta. Ingresa los productos al stock de almacén para cerrar esta novedad.';
+    document.getElementById('st-info').innerHTML = dev
+      ? '<strong>Orden:</strong> ' + dev.numero_orden + ' &nbsp;·&nbsp; <strong>Cliente:</strong> ' + dev.cliente + '<br><span style="font-size:12px;color:#0f766e">✅ Al confirmar, la devolución quedará CERRADA y los productos en stock.</span>'
+      : '';
+    document.getElementById('st-productos-lista').innerHTML = '';
+    document.getElementById('st-notas').value = '';
+    _stockContadorItems = 0;
+    agregarItemStock();
+    document.getElementById('modal-stock-almacen').classList.add('show');
   }
 
   // ── STOCK ALMACÉN ────────────────────────────────────────
