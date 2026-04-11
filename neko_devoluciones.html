@@ -1236,14 +1236,14 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
       + '</div>'
       + '<div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px">'
         + '<div class="field"><label>Tipo de prenda</label>'
-          + '<input type="text" name="st-tipo-'+n+'" placeholder="Ej: Camiseta, Hoodie..."></div>'
+          + '<input type="text" id="st-tipo-'+n+'" name="st-tipo-'+n+'" placeholder="Ej: Camiseta, Hoodie..."></div>'
         + '<div class="field"><label>Talla</label>'
-          + '<input type="text" name="st-talla-'+n+'" placeholder="M, L, XL..."></div>'
+          + '<input type="text" id="st-talla-'+n+'" name="st-talla-'+n+'" placeholder="M, L, XL..."></div>'
         + '<div class="field"><label>Cantidad</label>'
-          + '<input type="number" name="st-cant-'+n+'" value="1" min="1"></div>'
+          + '<input type="number" id="st-cant-'+n+'" name="st-cant-'+n+'" value="1" min="1"></div>'
       + '</div>'
       + '<div class="field" style="margin-top:6px"><label>Estado del producto</label>'
-        + '<select name="st-estado-'+n+'">'
+        + '<select id="st-estado-'+n+'" name="st-estado-'+n+'">'
           + '<option value="Bueno">Bueno — sin daños</option>'
           + '<option value="Con detalles">Con detalles menores</option>'
           + '<option value="Dañado">Dañado</option>'
@@ -1291,6 +1291,38 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
     }).join(', ') + (notas ? ' · ' + notas : '');
 
     try {
+      // 1. Insertar cada producto en stock_devoluciones
+      for (var si = 0; si < items.length; si++) {
+        var it = items[si];
+        var stockItem = {
+          tipo_prenda:     it.tipo,
+          talla:           it.talla || '',
+          cantidad:        Math.max(1, parseInt(it.cantidad) || 1),
+          estado_producto: it.estado_producto || 'Bueno',
+          orden_origen:    dev ? dev.numero_orden : '—',
+          motivo:          dev ? (dev.tipo === 'NO_RECIBIDO' ? 'No recibido / No quiso pagar' : dev.tipo) : 'Devolución',
+          notas:           notas || '',
+          registrado_por:  sesion.nombre,
+          estado_stock:    'disponible',
+          historial:       JSON.stringify([{
+            fecha: new Date().toISOString(),
+            tipo: 'INGRESO',
+            usuario: sesion.nombre,
+            cantidad: Math.max(1, parseInt(it.cantidad) || 1),
+            nota: 'Ingreso desde devolución ' + (dev ? dev.numero_orden : '—') + ' — ' + it.estado_producto
+          }]),
+          fecha_ingreso: new Date().toISOString()
+        };
+        var rStock = await fetch(SB_URL + '/rest/v1/stock_devoluciones', {
+          method: 'POST', headers: HDRF, body: JSON.stringify(stockItem)
+        });
+        if (!rStock.ok) {
+          var errS = await rStock.json().catch(function(){ return {}; });
+          throw new Error('Error en stock: ' + (errS.message || 'HTTP ' + rStock.status));
+        }
+      }
+
+      // 2. Cerrar la devolución
       await fetch(SB_URL + '/rest/v1/devoluciones?id=eq.' + _stockDevId, {
         method: 'PATCH', headers: HDRF,
         body: JSON.stringify({
@@ -1304,7 +1336,7 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
       cerrarModal('modal-stock-almacen');
       actualizarStats();
       renderLista(_devs);
-      showToast('📦 Productos registrados en stock — Devolución cerrada');
+      showToast('📦 ' + items.length + ' producto(s) ingresado(s) al stock — Devolución cerrada');
     } catch(e) { alert('Error: ' + e.message); }
     btn.disabled = false; btn.textContent = '📦 Registrar en Stock';
     _stockDevId = null;
