@@ -1290,6 +1290,18 @@
         + '</option>';
     });
 
+    // Ruta 9 → no mostrar tela, mostrar comentario
+    if (p.ruta === 'Ruta 9') {
+      return '<div style="margin-top:10px;padding:12px;background:#f0fdfa;border:1.5px solid #5eead4;border-radius:8px">'
+        + '<div style="font-size:11px;font-weight:700;color:#0f766e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">💬 Comentario para Almacén — Ruta 9</div>'
+        + '<textarea id="comentario-r9-' + oid + '-' + idx + '" rows="2" '
+          + 'placeholder="Ej: Prenda lista, sin producción requerida. Instrucciones de despacho..." '
+          + 'onchange="guardarComentarioR9Sup('+oid+','+idx+',this.value)" '
+          + 'style="width:100%;padding:8px 10px;border:1.5px solid #99f6e4;border-radius:6px;font-size:13px;font-family:inherit;background:#fff;outline:none;resize:vertical">'
+          + (p.comentario_r9 || '')
+        + '</textarea>'
+        + '</div>';
+    }
     var html = '<div style="margin-top:10px;padding:12px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px">';
     html += '<div style="font-size:11px;font-weight:700;color:#c2410c;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">🧵 Asignar Insumo / Tela</div>';
     html += '<div style="display:grid;grid-template-columns:2fr 1fr;gap:8px">';
@@ -1307,6 +1319,22 @@
     }
     html += '</div>';
     return html;
+  }
+
+  function guardarComentarioR9Sup(oid, idx, valor) {
+    const orden = ordenesAnalisis.find(o => String(o.id) === String(oid));
+    if (!orden || !orden.productos || !orden.productos[idx]) return;
+    orden.productos[idx].comentario_r9 = valor;
+    clearTimeout(window['_r9sup_'+oid+'_'+idx]);
+    window['_r9sup_'+oid+'_'+idx] = setTimeout(async function() {
+      try {
+        const HDR_W = Object.assign({}, HDR, {'Content-Type':'application/json','Prefer':'return=minimal'});
+        await fetch(SB_URL + '/rest/v1/ordenes?id=eq.' + oid, {
+          method: 'PATCH', headers: HDR_W,
+          body: JSON.stringify({ productos: orden.productos })
+        });
+      } catch(e) { console.warn('Error guardando comentario R9:', e); }
+    }, 800);
   }
 
   function asignarInsumoSup(sel) {
