@@ -319,6 +319,7 @@
             ? buildSelectDiseniador(oid, idx, p.diseñador || '')
             : ''}
         </div>
+        <div id="div-tela-r9-${oid}-${idx}">
         ${rutaActual === 'Ruta 9' ? `
         <div style="margin-top:10px;background:#f0fdfa;border:1.5px solid #5eead4;border-radius:8px;padding:12px 14px">
           <div style="font-size:11px;font-weight:700;color:#0f766e;text-transform:uppercase;margin-bottom:6px">
@@ -385,6 +386,26 @@
         divDisenio.innerHTML = buildSelectDiseniador(oid, idx, valorActual);
       } else {
         divDisenio.innerHTML = '';
+      }
+    }
+
+    // Actualizar bloque tela/comentario según ruta
+    const divTelaR9 = document.getElementById(`div-tela-r9-${oid}-${idx}`);
+    if (divTelaR9) {
+      if (ruta === 'Ruta 9') {
+        const orden0 = ordenes.find(o=>String(o.id)===String(oid));
+        const comentActual = orden0?.productos?.[idx]?.comentario_r9 || '';
+        divTelaR9.innerHTML = `
+          <div style="margin-top:10px;background:#f0fdfa;border:1.5px solid #5eead4;border-radius:8px;padding:12px 14px">
+            <div style="font-size:11px;font-weight:700;color:#0f766e;text-transform:uppercase;margin-bottom:6px">💬 Comentario para Almacén — Ruta 9</div>
+            <textarea id="comentario-r9-${oid}-${idx}" rows="2"
+              placeholder="Ej: Prenda lista, sin producción requerida..."
+              oninput="guardarComentarioR9('${oid}',${idx},this.value)"
+              style="width:100%;padding:8px 10px;border:1.5px solid #99f6e4;border-radius:6px;font-size:13px;font-family:inherit;background:#fff;outline:none;resize:vertical"
+            >${comentActual}</textarea>
+          </div>`;
+      } else {
+        divTelaR9.innerHTML = '';
       }
     }
 

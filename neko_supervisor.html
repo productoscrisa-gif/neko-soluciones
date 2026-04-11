@@ -736,7 +736,9 @@
             ? buildSelectDiseniadorSup(oid, idx, p.diseñador || '')
             : '')
         + '</div>'
-        + buildSelectorInsumoSup(oid, idx, p)
+        + '<div id="div-insumo-sup-' + oid + '-' + idx + '">'
+          + buildSelectorInsumoSup(oid, idx, p)
+        + '</div>'
       + '</div>'
     + '</div>';
   }
@@ -770,6 +772,15 @@
       } else {
         supDivDisenio.innerHTML = '';
       }
+    }
+
+    // Actualizar bloque tela/comentario dinámicamente
+    const divInsumoSup = document.getElementById('div-insumo-sup-' + oid + '-' + idx);
+    if (divInsumoSup) {
+      const ordenTmp = ordenesAnalisis.find(o => String(o.id) === String(oid));
+      const pTmp = ordenTmp?.productos?.[idx] || {};
+      pTmp.ruta = ruta; // actualizar antes de llamar buildSelector
+      divInsumoSup.innerHTML = buildSelectorInsumoSup(oid, idx, pTmp);
     }
 
     const orden = ordenesAnalisis.find(o => String(o.id) === String(oid));
