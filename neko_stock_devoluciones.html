@@ -255,7 +255,10 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
     if (sesion.area === 'Admin') {
       var bv = document.getElementById('btn-volver');
       bv.href = 'neko_admin.html'; bv.textContent = '← Admin';
-    } else if (sesion.area === 'Ventas' || sesion.area === 'Supervisor') {
+    } else if (sesion.area === 'Supervisor') {
+      var bv = document.getElementById('btn-volver');
+      bv.href = 'neko_supervisor.html'; bv.textContent = '← Supervisor';
+    } else if (sesion.area === 'Ventas') {
       var bv = document.getElementById('btn-volver');
       bv.href = 'neko_ventas.html'; bv.textContent = '← Ventas';
     }
