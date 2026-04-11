@@ -181,12 +181,13 @@
   const RUTAS = {
     'Ruta 1':{ nombre:'Prendas Sublimadas',    pasos:['Ventas','Análisis','Diseño','Sublimación','Corte','Confección','Terminación','Almacén'] },
     'Ruta 2':{ nombre:'Prendas Unicolor',       pasos:['Ventas','Análisis','Corte','Confección','Terminación','Almacén'] },
-    'Ruta 3':{ nombre:'Estampado DTF',          pasos:['Ventas','Análisis','Compras','Diseño','Estampado','Almacén'] },
+    'Ruta 3':{ nombre:'Estampado DTF',          pasos:['Ventas','Análisis','Compras','Diseño','Terminación','Almacén'] },
     'Ruta 4':{ nombre:'Solo Diseño/Sublimación',pasos:['Ventas','Análisis','Diseño','Sublimación','Almacén'] },
     'Ruta 5':{ nombre:'Bordado Tipo 1',         pasos:['Ventas','Análisis','Diseño','Confección','Bordado','Terminación','Almacén'] },
     'Ruta 6':{ nombre:'Bordado Tipo 2',         pasos:['Ventas','Análisis','Diseño','Bordado','Confección','Terminación','Almacén'] },
     'Ruta 7':{ nombre:'Corte y Confección',      pasos:['Ventas','Análisis','Corte','Confección','Terminación','Almacén'] },
-    'Ruta 8':{ nombre:'DTF Unicolor',            pasos:['Ventas','Análisis','Corte','Confección','Diseño','Sublimación','Almacén'] },
+    'Ruta 8':{ nombre:'DTF Unicolor',            pasos:['Ventas','Análisis','Corte','Confección','Diseño','Terminación','Almacén'] },
+    'Ruta 9':{ nombre:'Directo Almacén',          pasos:['Ventas','Análisis','Almacén'] },
   };
 
   let ordenes = [];
@@ -407,7 +408,7 @@
       return;
     }
     // Rutas sin tela obligatoria — solo advertencia
-    const rutasSinTela = ['Ruta 3','Ruta 4'];
+    const rutasSinTela = ['Ruta 3','Ruta 4','Ruta 9'];
     const sinInsumoOpc = prods.filter(p => rutasSinTela.includes(p.ruta) && !p.insumo_id);
     if (sinInsumoOpc.length) {
       const ok = confirm(`ℹ️ ${sinInsumoOpc.length} prenda(s) sin insumo asignado (opcional para esta ruta).\n¿Enviar de todos modos?`);
@@ -448,7 +449,7 @@
   const RUTAS_INIT = {
     'Ruta 1':['Ventas','Análisis','Diseño','Sublimación','Corte','Confección','Terminación','Almacén'],
     'Ruta 2':['Ventas','Análisis','Corte','Confección','Terminación','Almacén'],
-    'Ruta 3':['Ventas','Análisis','Compras','Diseño','Estampado','Almacén'],
+    'Ruta 3':['Ventas','Análisis','Compras','Diseño','Terminación','Almacén'],
     'Ruta 4':['Ventas','Análisis','Diseño','Sublimación','Almacén'],
     'Ruta 5':['Ventas','Análisis','Diseño','Confección','Bordado','Terminación','Almacén'],
     'Ruta 6':['Ventas','Análisis','Diseño','Bordado','Confección','Terminación','Almacén'],
