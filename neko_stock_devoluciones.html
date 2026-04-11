@@ -239,6 +239,18 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
     if (!raw) { window.location.href = 'neko_login.html'; return; }
     sesion = JSON.parse(raw);
     document.getElementById('user-info').textContent = '👤 ' + sesion.nombre;
+
+    // Modo solo lectura — Supervisor no puede editar
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('readonly') === '1' || sesion.area === 'Supervisor') {
+      window._soloLectura = true;
+      // Ocultar botón Ingresar prenda
+      var btnNuevo = document.querySelector('.btn-nuevo');
+      if (btnNuevo) btnNuevo.style.display = 'none';
+      // Badge de solo lectura
+      var badge = document.querySelector('.area-badge');
+      if (badge) badge.textContent = '📦 Stock Devoluciones — Solo lectura';
+    }
     // Botón volver según área
     if (sesion.area === 'Admin') {
       var bv = document.getElementById('btn-volver');
@@ -300,10 +312,12 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
           : '<span class="badge-agotado">❌ Agotado</span>';
       var fecha = item.fecha_ingreso ? new Date(item.fecha_ingreso).toLocaleDateString('es-CO', {day:'2-digit',month:'short',year:'numeric'}) : '—';
       var iid = item.id;
-      var acciones = item.estado_stock === 'disponible'
-        ? '<button class="btn-accion btn-sacar" onclick="abrirModalSacar('+JSON.stringify(iid)+')">📤 Sacar</button> '
-          + '<button class="btn-accion btn-ver" onclick="abrirDetalle('+JSON.stringify(iid)+')">Ver</button>'
-        : '<button class="btn-accion btn-ver" onclick="abrirDetalle('+JSON.stringify(iid)+')">Ver</button>';
+      var acciones = window._soloLectura
+        ? '<button class="btn-accion btn-ver" onclick="abrirDetalle('+JSON.stringify(iid)+')">Ver</button>'
+        : item.estado_stock === 'disponible'
+          ? '<button class="btn-accion btn-sacar" onclick="abrirModalSacar('+JSON.stringify(iid)+')">📤 Sacar</button> '
+            + '<button class="btn-accion btn-ver" onclick="abrirDetalle('+JSON.stringify(iid)+')">Ver</button>'
+          : '<button class="btn-accion btn-ver" onclick="abrirDetalle('+JSON.stringify(iid)+')">Ver</button>';
       return '<tr>'
         + '<td><strong>' + (item.tipo_prenda||'—') + '</strong></td>'
         + '<td>' + (item.talla||'—') + '</td>'
