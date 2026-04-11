@@ -590,15 +590,25 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(-
               + ((['Ventas','Supervisor'].includes(sesion.area)) && d.estado === 'GUIA_RECIBIDA'
                 ? '<div style="margin-top:10px"><button class="btn-nuevo-desde-guia" onclick="nuevaDevDesdeGuia(\''+d.id+'\')">+ Nueva Devolución</button></div>'
                 : '')
-            : '<div class="dev-titulo">' + (d.cliente||'Sin cliente') + ' · Orden: <strong>' + (d.numero_orden||'—') + '</strong></div>')
-          + (!esGuiaRecibida ? '<div class="dev-meta">'
+            : esPendStock
+              ? '<div class="dev-titulo" style="color:#0f766e;font-size:15px;font-weight:800">⚠️ Pendiente ingresar a stock</div>'
+                + '<div class="dev-meta" style="margin-top:6px">'
+                  + '<span style="font-weight:700;color:#0f172a">' + (d.cliente||'Sin cliente') + '</span>'
+                  + '<span>📦 Orden: <strong>' + (d.numero_orden||'—') + '</strong></span>'
+                  + '<span style="color:#dc2626;font-weight:700">3 contactos sin respuesta</span>'
+                + '</div>'
+                + '<div style="margin-top:8px;background:#ccfbf1;border:1.5px solid #5eead4;border-radius:8px;padding:10px 14px;font-size:13px;font-weight:700;color:#0f766e">'
+                  + '📋 Almacén debe ingresar esta prenda al stock y cerrar la novedad'
+                + '</div>'
+              : '<div class="dev-titulo">' + (d.cliente||'Sin cliente') + ' · Orden: <strong>' + (d.numero_orden||'—') + '</strong></div>')
+          + (!esGuiaRecibida && !esPendStock ? '<div class="dev-meta">'
             + (d.vendedora ? '<span>👤 '+d.vendedora+'</span>' : '')
             + '<span>🕐 '+diasStr+'</span>'
             + (d.aprobado_por ? '<span>✅ Aprobado por: '+d.aprobado_por+'</span>' : '')
             + (d.orden_nueva ? '<span>🔗 Orden nueva: <strong>'+d.orden_nueva+'</strong></span>' : '')
             + (d.link_foto_guia && !esGuiaRecibida ? '<span>📸 <a href="'+d.link_foto_guia+'" target="_blank" style="color:var(--blue);font-weight:700">Ver guía recibida</a></span>' : '')
           + '</div>' : '')
-          + (!esGuiaRecibida && d.motivo ? '<div class="dev-notas">'+d.motivo.substring(0,100)+(d.motivo.length>100?'...':'')+' </div>' : '')
+          + (!esGuiaRecibida && !esPendStock && d.motivo ? '<div class="dev-notas">'+d.motivo.substring(0,100)+(d.motivo.length>100?'...':'')+' </div>' : '')
         + '</div>'
         + '<div class="dev-right">'
           + '<span class="estado-badge '+(EST_CLASS[d.estado]||'')+'">'+( EST_LABEL[d.estado]||d.estado)+'</span>'
