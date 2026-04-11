@@ -671,7 +671,8 @@
       if (!p.ruta) errores.push('❌ ' + label + ': sin ruta');
       else if (rutasConDiseno.includes(p.ruta) && !p.diseñador)
         errores.push('❌ ' + label + ': sin diseñador');
-      if (catalogoInsumos.length > 0 && !p.insumo_id)
+      // Ruta 9 no requiere insumo — va directo a Almacén
+      if (catalogoInsumos.length > 0 && !p.insumo_id && p.ruta !== 'Ruta 9')
         errores.push('⚠️ ' + label + ': sin insumo/tela');
     });
 
@@ -830,9 +831,9 @@
       return;
     }
 
-    // Validar insumo — OBLIGATORIO
+    // Validar insumo — OBLIGATORIO (excepto Ruta 9 que va directo a Almacén)
     if (catalogoInsumos.length > 0) {
-      const sinInsumo = prods.filter(p => !p.insumo_id);
+      const sinInsumo = prods.filter(p => p.ruta !== 'Ruta 9' && !p.insumo_id);
       if (sinInsumo.length) {
         alert('⚠️ ' + sinInsumo.length + ' prenda(s) sin insumo/tela:\n'
           + sinInsumo.map(p => p.tipo || 'Prenda').join(', ')

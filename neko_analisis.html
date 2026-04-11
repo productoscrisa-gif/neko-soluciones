@@ -458,8 +458,8 @@
       alert(`⚠️ ${sinTela.length} prenda(s) requieren tela asignada antes de enviar a producción.\n(${sinTela.map(p=>p.tipo||'Prenda').join(', ')})\n\nVe a la prenda y asigna la tela correspondiente.`);
       return;
     }
-    // Rutas sin tela obligatoria — solo advertencia
-    const rutasSinTela = ['Ruta 3','Ruta 4','Ruta 9'];
+    // Rutas sin tela obligatoria — solo advertencia (excluir Ruta 9 que no necesita insumo)
+    const rutasSinTela = ['Ruta 3','Ruta 4'];
     const sinInsumoOpc = prods.filter(p => rutasSinTela.includes(p.ruta) && !p.insumo_id);
     if (sinInsumoOpc.length) {
       const ok = confirm(`ℹ️ ${sinInsumoOpc.length} prenda(s) sin insumo asignado (opcional para esta ruta).\n¿Enviar de todos modos?`);
